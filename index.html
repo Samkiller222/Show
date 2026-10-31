@@ -34,6 +34,18 @@ h1{font-family:var(--display);font-size:24px;margin:0;letter-spacing:.01em;line-
 h2{font-family:var(--display);font-size:20px;margin:0;text-transform:uppercase;letter-spacing:.03em}
 .panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px}
 .stock{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.rounds{display:flex;flex-direction:column}
+.round{display:grid;grid-template-columns:minmax(0,13em) minmax(0,1fr);gap:6px 12px;padding-block:9px;border-top:1px solid var(--line);align-items:start}
+.round:first-child{border-top:0;padding-top:0}
+.rname{font-weight:600;font-size:14px;display:flex;gap:8px}
+.rname span{color:var(--muted);font-variant-numeric:tabular-nums;min-width:1.6em}
+.needs{display:flex;flex-wrap:wrap;gap:6px}
+.need{display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:3px 9px 3px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);white-space:nowrap}
+.need .rib{width:8px;height:16px}
+.bneeds{padding:8px 14px 10px;background:var(--accent-soft);display:flex;flex-wrap:wrap;gap:6px}
+.breed.done .bneeds{background:var(--ok-soft)}
+.totals{border-top:1px solid var(--line);padding-top:10px}
+@media (max-width:520px){.round{grid-template-columns:minmax(0,1fr)}}
 .chip{display:flex;align-items:center;gap:8px;font-size:14px;font-variant-numeric:tabular-nums}
 .chip b{font-family:var(--display);font-size:20px;min-width:22px;text-align:right}
 .rib{width:12px;height:26px;border-radius:2px;flex:none;clip-path:polygon(0 0,100% 0,100% 100%,50% 82%,0 100%)}
@@ -82,9 +94,10 @@ pre{white-space:pre-wrap;font-size:13px;background:var(--bg);border:1px solid va
   </header>
 
   <section class="panel">
-    <h2>Awards to lay out</h2>
-    <div class="stock" id="stock"></div>
-    <p class="note">Worked out from the entries. A class with one dog only needs a 1st. Each breed gets Best Dog or Best Bitch, Best Puppy, Junior or Veteran only where it has those classes, even when the booklet leaves the line out.</p>
+    <h2>Awards per round</h2>
+    <p class="note">What to take into the ring for each round, in judging order. A class with one dog only needs a 1st. Best Dog, Bitch, Puppy, Junior and Veteran appear only where the breed has those classes, even when the booklet leaves the line out.</p>
+    <div class="rounds" id="rounds"></div>
+    <div class="totals"><h3 class="note" style="margin:0 0 8px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;font-size:12px">Show totals</h3><div class="stock" id="stock"></div></div>
   </section>
 
   <div id="breeds" style="display:flex;flex-direction:column;gap:14px"></div>
@@ -234,6 +247,14 @@ function row(k,lab,opts,cur,hint){
 }
 const opt=(v,l,cur,dis)=>`<option value="${esc(v)}"${v===cur?" selected":""}${dis?" disabled":""}>${esc(l)}</option>`;
 
+function needs(b){
+  const n=[],r=[0,0,0];
+  b.classes.forEach(c=>{const k=c.entries.length;if(k>=1)r[0]++;if(k>=2)r[1]++;if(k>=3)r[2]++});
+  [["1st","r1"],["2nd","r2"],["3rd","r3"]].forEach(([t,c],i)=>{if(r[i])n.push({c,t:t+" ribbon",n:r[i]})});
+  breedAwards(b).forEach(a=>n.push({c:"rc",t:a.t.replace(" in Breed",""),n:1}));
+  return n;
+}
+const chips=list=>list.map(x=>`<span class="need"><span class="rib ${x.c}"${x.g?' style="background:var(--muted)"':''}></span>${x.n>1?x.n+" × ":""}${esc(x.t)}</span>`).join("");
 function render(){
   const breeds=allBreeds();
   reconcile(breeds); save(KS,res);
@@ -246,6 +267,9 @@ function render(){
     [["1st ribbons",r1,"r1"],["2nd ribbons",r2,"r2"],["3rd ribbons",r3,"r3"]].map(([t,n,c])=>`<div class="chip"><span class="rib ${c}"></span><b>${n}</b>${t}</div>`).join("")+
     order.filter(t=>cards[t]).map(t=>`<div class="chip"><span class="rib rc"></span><b>${cards[t]}</b>${t.replace(" in Breed","")}</div>`).join("")+
     `<div class="chip"><span class="rib rc" style="background:var(--muted)"></span><b>${gAw.length}</b>Group awards</div>`;
+  const gsecs=[...new Set(gAw.map(a=>a.sec))];
+  const rounds=[...breeds.map(b=>({name:b.name,list:needs(b)})),...gsecs.map(sec=>({name:sec,list:gAw.filter(a=>a.sec===sec).map(a=>({c:"rc",g:1,t:a.t.replace(" Utility / Hound",""),n:1}))}))];
+  document.getElementById("rounds").innerHTML=rounds.map((r,i)=>`<div class="round"><div class="rname"><span>${i+1}</span>${esc(r.name)}</div><div class="needs">${chips(r.list)}</div></div>`).join("");
 
   let total=0,given=0,doneBreeds=0;
   document.getElementById("breeds").innerHTML=breeds.map(b=>{
@@ -253,7 +277,7 @@ function render(){
     const keys=[...b.classes.flatMap(c=>PLACES.slice(0,Math.min(3,c.entries.length)).map(pl=>ck(b,c,pl.p))),...aw.map(a=>bk(b,a.id))];
     const g=keys.filter(k=>res["g|"+k]).length; total+=keys.length; given+=g;
     const done=g===keys.length; if(done)doneBreeds++;
-    let h=`<article class="breed${done?" done":""}"><div class="bhead"><div><h2>${esc(b.name)}</h2>${b.group?`<small>${esc(b.group)} Group</small>`:""}</div><span class="count">${g} / ${keys.length} given</span></div>`;
+    let h=`<article class="breed${done?" done":""}"><div class="bhead"><div><h2>${esc(b.name)}</h2>${b.group?`<small>${esc(b.group)} Group</small>`:""}</div><span class="count">${g} / ${keys.length} given</span></div><div class="bneeds">${chips(needs(b))}</div>`;
     b.classes.forEach(c=>{
       const n=Math.min(3,c.entries.length);
       const chosen=PLACES.slice(0,n).map(pl=>res[ck(b,c,pl.p)]).filter(Boolean);
