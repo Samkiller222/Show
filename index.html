@@ -94,10 +94,9 @@ pre{white-space:pre-wrap;font-size:13px;background:var(--bg);border:1px solid va
   </header>
 
   <section class="panel">
-    <h2>Awards per round</h2>
-    <p class="note">What to take into the ring for each round, in judging order. A class with one dog only needs a 1st. Best Dog, Bitch, Puppy, Junior and Veteran appear only where the breed has those classes, even when the booklet leaves the line out.</p>
-    <div class="rounds" id="rounds"></div>
-    <div class="totals"><h3 class="note" style="margin:0 0 8px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;font-size:12px">Show totals</h3><div class="stock" id="stock"></div></div>
+    <h2>Show totals</h2>
+    <div class="stock" id="stock"></div>
+    <p class="note">Each round below lists the awards to take into the ring for it. A class with one dog only needs a 1st. Best Dog, Bitch, Puppy, Junior and Veteran appear only where the breed has those classes, even when the booklet leaves the line out.</p>
   </section>
 
   <div id="breeds" style="display:flex;flex-direction:column;gap:14px"></div>
@@ -267,17 +266,17 @@ function render(){
     [["1st ribbons",r1,"r1"],["2nd ribbons",r2,"r2"],["3rd ribbons",r3,"r3"]].map(([t,n,c])=>`<div class="chip"><span class="rib ${c}"></span><b>${n}</b>${t}</div>`).join("")+
     order.filter(t=>cards[t]).map(t=>`<div class="chip"><span class="rib rc"></span><b>${cards[t]}</b>${t.replace(" in Breed","")}</div>`).join("")+
     `<div class="chip"><span class="rib rc" style="background:var(--muted)"></span><b>${gAw.length}</b>Group awards</div>`;
-  const gsecs=[...new Set(gAw.map(a=>a.sec))];
-  const rounds=[...breeds.map(b=>({name:b.name,list:needs(b)})),...gsecs.map(sec=>({name:sec,list:gAw.filter(a=>a.sec===sec).map(a=>({c:"rc",g:1,t:a.t.replace(" Utility / Hound",""),n:1}))}))];
-  document.getElementById("rounds").innerHTML=rounds.map((r,i)=>`<div class="round"><div class="rname"><span>${i+1}</span>${esc(r.name)}</div><div class="needs">${chips(r.list)}</div></div>`).join("");
+
+
+
 
   let total=0,given=0,doneBreeds=0;
-  document.getElementById("breeds").innerHTML=breeds.map(b=>{
+  document.getElementById("breeds").innerHTML=breeds.map((b,bi)=>{
     const aw=breedAwards(b);
     const keys=[...b.classes.flatMap(c=>PLACES.slice(0,Math.min(3,c.entries.length)).map(pl=>ck(b,c,pl.p))),...aw.map(a=>bk(b,a.id))];
     const g=keys.filter(k=>res["g|"+k]).length; total+=keys.length; given+=g;
     const done=g===keys.length; if(done)doneBreeds++;
-    let h=`<article class="breed${done?" done":""}"><div class="bhead"><div><h2>${esc(b.name)}</h2>${b.group?`<small>${esc(b.group)} Group</small>`:""}</div><span class="count">${g} / ${keys.length} given</span></div><div class="bneeds">${chips(needs(b))}</div>`;
+    let h=`<article class="breed${done?" done":""}"><div class="bhead"><div><small>Round ${bi+1}${b.group?` · ${esc(b.group)} Group`:""}</small><h2>${esc(b.name)}</h2></div><span class="count">${g} / ${keys.length} given</span></div><div class="bneeds">${chips(needs(b))}</div>`;
     b.classes.forEach(c=>{
       const n=Math.min(3,c.entries.length);
       const chosen=PLACES.slice(0,n).map(pl=>res[ck(b,c,pl.p)]).filter(Boolean);
@@ -298,10 +297,10 @@ function render(){
 
   // groups
   const secs=[...new Set(gAw.map(a=>a.sec))];
-  document.getElementById("groups").innerHTML=secs.map(sec=>{
+  document.getElementById("groups").innerHTML=secs.map((sec,si)=>{
     const list=gAw.filter(a=>a.sec===sec);
     const g=list.filter(a=>res["g|"+a.k]).length; total+=list.length; given+=g;
-    let h=`<article class="breed${g===list.length?" done":""}"><div class="bhead"><div><h2>${esc(sec)}</h2><small>Group judging</small></div><span class="count">${g} / ${list.length} given</span></div><div class="cls">`;
+    let h=`<article class="breed${g===list.length?" done":""}"><div class="bhead"><div><small>Round ${breeds.length+si+1} · Group judging</small><h2>${esc(sec)}</h2></div><span class="count">${g} / ${list.length} given</span></div><div class="bneeds">${chips(list.map(a=>({c:"rc",g:1,t:a.t.replace(" Utility / Hound",""),n:1})))}</div><div class="cls">`;
     list.forEach(a=>{const cur=res[a.k]||"";
       h+=row(a.k,`<span class="rib rc" style="background:var(--muted)"></span>${a.t.replace(" Utility / Hound","")}`,a.pool.map(x=>opt(x.k,x.l,cur)).join(""),cur,a.decided?"Choose dog…":"Choose after breed awards")});
     return h+`</div></article>`;
