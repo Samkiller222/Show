@@ -1,5 +1,5 @@
 // Google Sheet sync. Paste the Apps Script web app URL between the quotes.
-window.MNCF_SYNC_URL = "";
+window.MNCF_SYNC_URL = "https://script.google.com/macros/s/AKfycbwZXJWqdwfEazAzIQagVfHfXDbVrp-C-BkceyAnUQrkfRpZYexlhKxloQmLPyZ0PAq1/exec";
 (function(){
   let timer=null, pending={}, last={};
   const fmt=()=>new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
