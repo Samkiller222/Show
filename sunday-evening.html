@@ -96,6 +96,7 @@ pre{white-space:pre-wrap;font-size:13px;background:var(--bg);border:1px solid va
     <h1>Sunday evening · Working & Terrier</h1>
     <div class="sub">Sun 1 Nov 2026 · Judging from 2:00pm · Judge: Mr Adrian Bicknell</div>
     <div class="save" id="saveState">Saved on this device</div>
+    <div class="save" id="syncState"></div>
     <div class="bar"><i id="barFill"></i></div>
     <div class="prog"><span id="progText">0 of 0 awards given</span><span id="progBreeds"></span></div>
   </header>
@@ -139,6 +140,7 @@ pre{white-space:pre-wrap;font-size:13px;background:var(--bg);border:1px solid va
 
 <script src="xlsx.full.min.js"></script>
 <script src="data.js"></script>
+<script src="sync.js"></script>
 <script>
 const BASE=(window.SHOW_DATA||{})["sunday-evening"]||[];
 const JUDGE="Mr Adrian Bicknell";
@@ -326,6 +328,7 @@ function render(){
   document.getElementById("resultsText").textContent=resultsText(breeds,gAw);
   const raw=rawBreeds(), abs=raw.flatMap(b=>b.classes.flatMap(c=>c.entries.filter(e=>absent[e.no]).map(e=>e.no)));
   const gone=raw.filter(b=>!breeds.some(x=>x.name===b.name)).map(b=>b.name);
+  try{const lbl=((window.SHOW_SESSIONS||[]).find(x=>x.id==="sunday-evening")||{}).label||"sunday-evening";window.mncfSync&&mncfSync(lbl,sheetRows())}catch(e){}
   const an=document.getElementById("absentNote");
   an.hidden=!abs.length;
   an.innerHTML=abs.length?`<b>Absent:</b> ${abs.map(esc).join(", ")}. They're left out of the classes and award counts.${gone.length?` Not judged, all dogs absent: ${gone.map(esc).join(", ")}.`:""} <a href="absent.html">Change</a>`:"";
@@ -374,6 +377,21 @@ document.getElementById("addBtn").onclick=()=>{
   save(KB,extra);box.value="";msg.textContent=`Added ${got.map(b=>b.name).join(", ")}.`;render();
 };
 function toast(t){const el=document.getElementById("toast");el.textContent=t;el.classList.add("show");setTimeout(()=>el.classList.remove("show"),1800)}
+function sheetRows(){
+  const breeds=allBreeds(), gAw=groupAwards(breeds);
+  const out=[["Round","Section","Class / award","Placing","Ring No","Dog","Breed","Given"]];
+  const val=v=>v===W?"Withheld":"";
+  breeds.forEach((b,i)=>{
+    b.classes.forEach(c=>PLACES.slice(0,nPlaces(b,c)).forEach(pl=>{const k=ck(b,c,pl.p),v=res[k],e=v&&v!==W?findEntry(b,v):null;
+      out.push([i+1,b.name,c.name,pl.t,e?e.no:"",e?e.name:val(v),b.name,res["g|"+k]?"Yes":""])}));
+    breedAwards(b).forEach(a=>{const k=bk(b,a.id),v=res[k],e=v&&v!==W?findEntry(b,v):null;
+      out.push([i+1,b.name,a.t,"Winner",e?e.no:"",e?e.name:val(v),b.name,res["g|"+k]?"Yes":""])});
+  });
+  const secs=[...new Set(gAw.map(a=>a.sec))];
+  gAw.forEach(a=>{const v=res[a.k],x=a.pool.find(p=>p.k===v);
+    out.push([breeds.length+secs.indexOf(a.sec)+1,a.sec,a.t,a.reserve?"Runner-up":"Winner",x?x.e.no:"",x?x.e.name:val(v),x?x.b.name:"",res["g|"+a.k]?"Yes":""])});
+  return out;
+}
 function exportExcel(){
   if(typeof XLSX==="undefined"){toast("Excel export needs an internet connection. Try again.");return}
   const breeds=allBreeds(), gAw=groupAwards(breeds);

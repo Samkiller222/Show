@@ -104,6 +104,7 @@ pre{white-space:pre-wrap;font-size:13px;background:var(--bg);border:1px solid va
     <h1>Absent dogs</h1>
     <div class="sub">Tick a dog to mark it absent. It drops out of its class and the award counts on every page.</div>
     <div class="save" id="absCount"></div>
+    <div class="save" id="syncState"></div>
   </header>
   <section class="panel">
     <h2>Find a dog</h2>
@@ -120,6 +121,7 @@ pre{white-space:pre-wrap;font-size:13px;background:var(--bg);border:1px solid va
 </div>
 <div class="toast" id="toast"></div>
 <script src="data.js"></script>
+<script src="sync.js"></script>
 <script>
 const KA="mncf-absent-v1";
 function load(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
@@ -136,6 +138,7 @@ function toast(t){const el=document.getElementById("toast");el.textContent=t;el.
 function render(){
   const q=document.getElementById("q").value.trim().toLowerCase(), ss=sel.value;
   const n=Object.keys(absent).length;
+  window.mncfSync&&mncfSync("Absent",[["Ring No","Dog","Breed","Class","Session"],...dogs.filter(d=>absent[d.e.no]).map(d=>[d.e.no,d.e.name,d.b.name,d.c.name,d.s.label])]);
   document.getElementById("absCount").textContent=n?`${n} ${n===1?"dog":"dogs"} marked absent`:"No dogs marked absent";
   const shown=dogs.filter(d=>(!ss||d.s.id===ss)&&(!q||d.e.no===q||(d.e.no+" "+d.e.name+" "+d.b.name).toLowerCase().includes(q)));
   const html=[];let lastS=null,lastB=null;
