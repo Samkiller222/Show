@@ -1,6 +1,6 @@
 # MNCF Show Awards Desk
 
-Awards checklist and results recorder for The Maltese National Canine Federation November 2026 Championship Show (Saturday 31 October 2026, judge Mr Adrian Bicknell).
+Awards checklist and results recorder for The Maltese National Canine Federation November 2026 Championship Show — currently loaded with Sunday 1 November 2026 (Gundog and Toy groups). Saturday's version is in `archive/saturday-31-oct.html`.
 
 Open `index.html` in a browser, or turn on GitHub Pages (Settings → Pages → Deploy from branch → `main`) to use it from a phone.
 
@@ -8,3 +8,5 @@ Open `index.html` in a browser, or turn on GitHub Pages (Settings → Pages → 
 - Class winners feed into breed awards, and breed winners feed into the Utility and Hound group awards and Best Veteran Utility / Hound.
 - Results save in the browser on the device you use. Use "Copy results" to keep a copy.
 - Add more schedule pages with the paste box at the bottom.
+- Every group award has a winner and a runner-up.
+- "Export to Excel" downloads all class, breed and group results as an .xlsx file.

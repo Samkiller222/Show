@@ -66,6 +66,7 @@ select:focus,textarea:focus,button:focus-visible,input:focus-visible{outline:2px
 .given input{width:22px;height:22px;accent-color:var(--ok)}
 .row.isgiven .lab,.row.isgiven select{opacity:.6}
 .note{font-size:13px;color:var(--muted);margin:0}
+.save{font-size:12px;color:var(--ok);margin-top:2px}.save.bad{color:var(--red);font-weight:600}
 .warn{font-size:13px;color:var(--red)}
 .btns{display:flex;flex-wrap:wrap;gap:8px}
 button{font:inherit;font-weight:600;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--fg);padding:9px 14px;cursor:pointer}
@@ -88,7 +89,8 @@ pre{white-space:pre-wrap;font-size:13px;background:var(--bg);border:1px solid va
 <div class="wrap">
   <header>
     <h1>MNCF Championship Show · Awards</h1>
-    <div class="sub">Sat 31 Oct 2026 · Judge: Mr Adrian Bicknell</div>
+    <div class="sub">Sun 1 Nov 2026 · Judging from 9:00 · Judge: Mr Adrian Bicknell</div>
+    <div class="save" id="saveState">Saved on this device</div>
     <div class="bar"><i id="barFill"></i></div>
     <div class="prog"><span id="progText">0 of 0 awards given</span><span id="progBreeds"></span></div>
   </header>
@@ -111,7 +113,7 @@ pre{white-space:pre-wrap;font-size:13px;background:var(--bg);border:1px solid va
   <section class="panel">
     <h2>Add more of the schedule</h2>
     <p class="note">Type or paste the next page in this shape: breed name on its own line, class name ending in a colon, then one dog per line starting with its ring number.</p>
-    <textarea id="pasteBox" placeholder="BEAGLE  HOUND GROUP&#10;Open Dog:&#10;45 EXAMPLE DOG NAME&#10;Puppy Bitch:&#10;47 EXAMPLE BITCH NAME"></textarea>
+    <textarea id="pasteBox" placeholder="BORDER COLLIE  PASTORAL GROUP&#10;Open Dog:&#10;45 EXAMPLE DOG NAME&#10;Puppy Bitch:&#10;47 EXAMPLE BITCH NAME"></textarea>
     <div class="btns"><button class="pri" id="addBtn">Add to checklist</button></div>
     <div id="addMsg" class="note"></div>
   </section>
@@ -120,42 +122,53 @@ pre{white-space:pre-wrap;font-size:13px;background:var(--bg);border:1px solid va
     <h2>Results</h2>
     <pre id="resultsText"></pre>
     <div class="btns">
-      <button class="pri" id="copyBtn">Copy results</button>
+      <button class="pri" id="xlsxBtn">Export to Excel</button>
+      <button id="copyBtn">Copy results</button>
       <button class="danger" id="resetBtn">Clear all results</button>
     </div>
-    <p class="note">Results save in this browser on this device. Copy them somewhere safe at the end of the show.</p>
+    <p class="note">Every choice saves straight away on this device and is still there if you close or refresh the page. Export to Excel now and then as a backup.</p>
   </section>
 </div>
 <div class="toast" id="toast"></div>
 
+<script src="xlsx.full.min.js"></script>
 <script>
-const U="Utility", H="Hound";
+const G="Gundog", T="Toy";
 const C=(name,...e)=>({name,entries:e.map(x=>{const m=x.match(/^(\d+)\s+(.+)$/);return {no:m[1],name:m[2]}})});
 const BASE=[
-  {name:"Junior Handler",special:true,classes:[C("Junior Handler","11 KYLIE CILIA","54 FRANCESCA ATTARD")]},
-  {name:"Boston Terrier",group:U,classes:[C("Junior Bitch","36 LARISSA DI NOBILE MORGANA")]},
-  {name:"Bulldog",group:U,classes:[C("Puppy Bitch","17 LILLIBETH THE QUEEN BRIGHT DIAMOND"),C("Open Bitch","16 Ch. KAYLA BRIGHT DIAMOND")]},
-  {name:"French Bulldog",group:U,classes:[C("Junior Bitch","106 KIRA FROM DRACULA'S BLOODLINE"),C("Puppy Dog","127 HUGO BOSS VILLA LENSSTYLE")]},
-  {name:"Japanese Shiba Inu",group:U,classes:[C("Puppy Bitch","21 RICVAS MELEK"),C("Junior Bitch","18 NIK MAJESTIK MIRAI"),C("Open Dog","19 AKAI HANA B'SEIDI MERC","71 Ch. DAMYOSHI BUSHI")]},
-  {name:"Poodle (Miniature)",group:U,classes:[C("Puppy Dog","117 EVIDDENTE OVER THE EDGE")]},
-  {name:"Poodle (Standard)",group:U,classes:[C("Puppy Bitch","83 SHUVALOFF OPPOSITES ATTRACT"),C("Junior Bitch","82 EDIVETTE MI CORAZON NIEVA"),C("Open Dog","81 EDIVETTE COMO MIRARTE")]},
-  {name:"Poodle (Toy)",group:U,classes:[C("Puppy Bitch","112 MALENKAYA LEDI"),C("Open Dog","95 M AND C SIGNATURE ALLURE")]},
-  {name:"Shih Tzu",group:U,classes:[C("Open Bitch","85 DEMITRA INCANTO D'AMORE"),C("Veteran Bitch","84 Ch. PERLA SOLO PER I TUOI OCCHI")]},
-  {name:"Basenji",group:H,classes:[C("Puppy Dog","52 M WAMI'S SINNERS PRAYER"),C("Open Dog","124 Ch. MANICARO DIESEL DAF")]},
-  {name:"Dachshund (Miniature Long Haired)",group:H,classes:[C("Puppy Bitch","108 MARILYN MONROE DI CAMPO LUNGO","110 GRACE KELLY DI CAMPO LUNGO"),C("Open Bitch","20 Ch. ESME HISROYALMAJESTY"),C("Open Dog","22 Ch. GATEAU ROUGE DELLA ROCO DEI PAPI")]},
-  {name:"Dachshund (Miniature Smooth Haired)",group:H,classes:[C("Junior Bitch","109 DIFFERENT STRINGS DARLA")]},
-  {name:"Dachshund (Miniature Wire Haired)",group:H,classes:[C("Open Dog","67 MAGIK RAINBOW FORD TOM")]},
-  {name:"Dachshund (Smooth Haired)",group:H,classes:[C("Puppy Dog","111 WAKYWILKS HERCULES")]},
-  {name:"Irish Wolfhound",group:H,classes:[C("Junior Bitch","23 HAZEL DELLA BASSA PAVESE"),C("Junior Dog","25 FURIA FARGO MITIS ARAFA"),C("Open Dog","24 TOBERCORRAN THUNDER")]},
-  {name:"Pharaoh Hound",group:H,classes:[C("Puppy Dog","26 RAMSEY")]},
-  {name:"Saluki",group:H,classes:[C("Veteran Dog","102 Ch. GABRA CK ALEXANDER HELIOS")]},
-  {name:"Whippet",group:H,classes:[C("Puppy Bitch","34 NOTABLE DHALIA","77 DAKOTA ALEXEM DREAM"),C("Veteran Bitch","119 CHRISOLI DA YA THINK I'M SEXY"),C("Junior Dog","35 NOTABLE CHEDDAR"),C("Open Dog","118 Ch. SUNTACH HE IS")]},
-  {name:"Any Variety Locally Bred Utility",special:true,classes:[C("Open Bitch","86 DEMITRA INCANTO D'AMORE (Shih Tzu)")]}
+  {name:"English Setter",group:G,classes:[C("Open Dog","105 Sh.Ch. DINGLI GEM ELEGY FOR THE ARCTIC")]},
+  {name:"Pointer",group:G,classes:[C("Open Bitch","29 Sh.Ch. BERSEYDALE FULL HOUSE"),C("Junior Dog","30 CHESTERHOPE LANCELOT")]},
+  {name:"Retriever (Flatcoated)",group:G,classes:[C("Open Dog","51 Sh.Ch. BERSIFJOR MODO MIRACOLOSO")]},
+  {name:"Retriever (Golden)",group:G,classes:[
+    C("Puppy Bitch","38 RASHKA.B OF DREAMS KENNEL","65 AMAZING GRACE DE LAR DE CASANOVA","129 UNICA SAKURA DEI VASILEVA"),
+    C("Junior Bitch","59 GOLDEN AURORA DONA SOLECITA PEREGRINA"),
+    C("Open Bitch","61 Sh.Ch. GOLDEN AURORA A STAR IS BORN","91 NAVILIS HOLD ME CLOSE","99 SHIVA'S GOLDEN IL MONDO NUOVO"),
+    C("Puppy Dog","60 GOLDEN AURORA HUGO INVICTUS TRINITATIS"),
+    C("Open Dog","31 Sh.Ch. BLUE LIVES PRINCE BENJI","58 Sh.Ch. GOLDEN AURORA LOVESTORY","62 Sh.Ch. OLVINGLAY TRIQUETRA","98 Sh.Ch. SHIVA'S GOLDEN DON CANDELORO")]},
+  {name:"Retriever (Labrador)",group:G,classes:[C("Open Bitch","56 TOPSKEN LILLY"),C("Junior Dog","33 CRÈME BRULEE FRIEND DEI DUE MARI"),C("Veteran Dog","88 Sh.Ch. NEVILL OPEN HEART")]},
+  {name:"Spaniel (Cocker)",group:G,classes:[C("Open Dog","49 Sh.Ch. CROSSTREE THE ONE AND ONLY"),C("Veteran Dog","50 Sh.Ch. GLENTREE HERITAGE")]},
+  {name:"Spaniel (English Springer)",group:G,classes:[C("Open Dog","55 TAL-PITAZZ DUJAN")]},
+  {name:"Spanish Water Dog",group:G,classes:[C("Puppy Bitch","128 FAIRRAY COTTON CANDY OF ZORRAZO"),C("Open Bitch","9 Sh.Ch. DINGLIGEM BETTY DAVIES EYES","72 DINGLIGEM MINGH MINGH","113 Sh.Ch. DINGLIGEM LOVABLE LUCY"),C("Puppy Dog","114 FAIRRAY BELLO CARAMELLO DI ZORRAZO")]},
+  {name:"Childrens Class",special:true,classes:[C("Childrens Class","12 NICOLE CILIA")]},
+  {name:"Cavalier King Charles Spaniel",group:T,classes:[C("Open Bitch","107 CASSLONG LUNA DOLCE"),C("Open Dog","126 TAURUNUM ANGEL'S TURN OFF LIGHT")]},
+  {name:"Chihuahua (Long Coat)",group:T,classes:[C("Puppy Bitch","87 GOLDEN PAWS LADY IN RED"),C("Open Dog","13 CHICOSTARS A LUCKY WHITE CANDY STAR")]},
+  {name:"Chihuahua (Smooth Coat)",group:T,classes:[C("Puppy Bitch","14 LOGERFOLD KARTANA SWORD DANCE"),C("Puppy Dog","15 GOLDEN PAWS FOLLOW THE WHITE LINE","37 WHY NOT OF DREAMS KENNEL")]},
+  {name:"Lowchen (Little Lion Dog)",group:T,classes:[C("Junior Dog","28 EDENISLE CZAR OF CHARM AND CHAOS")]},
+  {name:"Maltese",group:T,classes:[C("Open Dog","90 SILKWHITE DREAMS GUNS BLAZING")]},
+  {name:"Pekingese",group:T,classes:[C("Puppy Dog","8 PEQUEST PROSECCO")]},
+  {name:"Pomeranian",group:T,classes:[C("Junior Bitch","40 RKRK PRINCESS BJANA"),C("Puppy Dog","75 SULTANA-VALMAR APOLLO","76 SULTANA-VALMAR EROS"),C("Open Dog","41 BORDPOL HUGO THE BOSS","42 THAI SILK MAXIMUM POWER","66 Ch. THAI SILK MR SUGAR DONUT","73 SULTANA-VALMAR STAR ADONIS","74 Ch. DAN-STAR-KOM FLAY DE CRISTAL")]},
+  {name:"Pug",group:T,classes:[C("Puppy Bitch","101 ORNELLA MUTI FAN-FAN FAVORI"),C("Puppy Dog","78 CONNOR DE IALENMAR-ARGENTINA"),C("Open Dog","100 Ch. GABRA CK UNSTOPPABLE LOUIE")]}
 ];
 const JUDGE="Mr Adrian Bicknell";
-const KS="mncf-awards-results-v2", KB="mncf-awards-breeds-v2";
+const KS="mncf-awards-sun-results-v1", KB="mncf-awards-sun-breeds-v1";
 function load(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
-function save(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+let saveOk=null;
+function save(k,v){
+  try{localStorage.setItem(k,JSON.stringify(v));saveOk=new Date()}catch(e){saveOk=false}
+  const el=document.getElementById("saveState"); if(!el) return;
+  if(saveOk===false){el.textContent="Not saving on this device. Export to Excel regularly.";el.className="save bad"}
+  else{el.textContent="Saved on this device "+saveOk.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});el.className="save"}
+}
 let res=load(KS,{}), extra=load(KB,[]);
 function allBreeds(){const m=new Map();BASE.forEach(b=>m.set(b.name.toUpperCase(),b));extra.forEach(b=>m.set(b.name.toUpperCase(),b));return [...m.values()]}
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -205,16 +218,20 @@ function groupAwards(breeds){
       if(decided){if(v&&v!==W){const e=findEntry(b,v);if(e)pool.push({k:GKEY(b,e),l:`${label(e)} (${b.name})`,b,e})}}
       else{const a=breedAwards(b).find(a=>a.id===awardId);a.pool.forEach(e=>pool.push({k:GKEY(b,e),l:`${label(e)} (${b.name})`,b,e}))}
     });
-    out.push({sec,k:`GROUP|${sec}|${id}`,t,pool:uniq(pool,x=>x.k),decided});
+    const p=uniq(pool,x=>x.k), k=`GROUP|${sec}|${id}`;
+    out.push({sec,k,t,pool:p,decided});
+    const win=res[k];
+    out.push({sec,k:k+"|R",t:"Runner-up "+t.replace(/^Best /,"").replace(/^./,c=>c.toLowerCase()),reserve:true,winKey:k,pool:p.filter(x=>x.k!==win),decided:decided&&!!win});
   };
-  [U,H].forEach(g=>{
+  const groups=[...new Set(breeds.map(b=>b.group).filter(Boolean))];
+  groups.forEach(g=>{
     const bs=breeds.filter(b=>b.group===g);
-    if(!bs.length) return;
     mk(g+" Group","BIG","Best in Group",bs,"BOB");
     mk(g+" Group","BJG","Best Junior in Group",bs,"BJ");
     mk(g+" Group","BPG","Best Puppy in Group",bs,"BP");
   });
-  mk("Best Veteran Utility / Hound","BVG","Best Veteran Utility / Hound",breeds.filter(b=>b.group===U||b.group===H),"BV");
+  const vg=groups.filter(g=>breeds.some(b=>b.group===g&&breedAwards(b).some(a=>a.id==="BV")));
+  if(vg.length) mk("Best Veteran "+vg.join(" / "),"BVG","Best Veteran",breeds.filter(b=>vg.includes(b.group)),"BV");
   return out;
 }
 
@@ -233,11 +250,12 @@ function reconcile(breeds){
       if(!res[k]&&a.pool.length===1&&!res["auto-off|"+k]) res[k]=keys[0];
     });
   });
-  groupAwards(breeds).forEach(a=>{
-    const v=res[a.k], keys=a.pool.map(x=>x.k);
+  for(let i=0;;i++){
+    const list=groupAwards(breeds); if(i>=list.length) break;
+    const a=list[i], v=res[a.k], keys=a.pool.map(x=>x.k);
     if(v&&v!==W&&!keys.includes(v)) delete res[a.k];
     if(!res[a.k]&&a.decided&&a.pool.length===1&&!res["auto-off|"+a.k]) res[a.k]=keys[0];
-  });
+  }
 }
 
 function row(k,lab,opts,cur,hint){
@@ -265,7 +283,7 @@ function render(){
   document.getElementById("stock").innerHTML=
     [["1st ribbons",r1,"r1"],["2nd ribbons",r2,"r2"],["3rd ribbons",r3,"r3"]].map(([t,n,c])=>`<div class="chip"><span class="rib ${c}"></span><b>${n}</b>${t}</div>`).join("")+
     order.filter(t=>cards[t]).map(t=>`<div class="chip"><span class="rib rc"></span><b>${cards[t]}</b>${t.replace(" in Breed","")}</div>`).join("")+
-    `<div class="chip"><span class="rib rc" style="background:var(--muted)"></span><b>${gAw.length}</b>Group awards</div>`;
+    `<div class="chip"><span class="rib rc" style="background:var(--muted)"></span><b>${gAw.filter(a=>!a.reserve).length}</b>Group winner awards</div><div class="chip"><span class="rib rc" style="background:var(--muted)"></span><b>${gAw.filter(a=>a.reserve).length}</b>Group runner-up awards</div>`;
 
 
 
@@ -300,9 +318,9 @@ function render(){
   document.getElementById("groups").innerHTML=secs.map((sec,si)=>{
     const list=gAw.filter(a=>a.sec===sec);
     const g=list.filter(a=>res["g|"+a.k]).length; total+=list.length; given+=g;
-    let h=`<article class="breed${g===list.length?" done":""}"><div class="bhead"><div><small>Round ${breeds.length+si+1} · Group judging</small><h2>${esc(sec)}</h2></div><span class="count">${g} / ${list.length} given</span></div><div class="bneeds">${chips(list.map(a=>({c:"rc",g:1,t:a.t.replace(" Utility / Hound",""),n:1})))}</div><div class="cls">`;
+    let h=`<article class="breed${g===list.length?" done":""}"><div class="bhead"><div><small>Round ${breeds.length+si+1} · Group judging</small><h2>${esc(sec)}</h2></div><span class="count">${g} / ${list.length} given</span></div><div class="bneeds">${chips(list.map(a=>({c:"rc",g:1,t:a.t,n:1})))}</div><div class="cls">`;
     list.forEach(a=>{const cur=res[a.k]||"";
-      h+=row(a.k,`<span class="rib rc" style="background:var(--muted)"></span>${a.t.replace(" Utility / Hound","")}`,a.pool.map(x=>opt(x.k,x.l,cur)).join(""),cur,a.decided?"Choose dog…":"Choose after breed awards")});
+      h+=row(a.k,`<span class="rib rc" style="background:var(--muted)${a.reserve?";opacity:.55":""}"></span>${a.t}`,a.pool.map(x=>opt(x.k,x.l,cur)).join(""),cur,a.decided?"Choose dog…":a.reserve?"Choose after the winner":"Choose after breed awards")});
     return h+`</div></article>`;
   }).join("");
 
@@ -318,7 +336,7 @@ function render(){
   document.getElementById("resultsText").textContent=resultsText(breeds,gAw);
 }
 function resultsText(breeds,gAw){
-  const out=[`MNCF Championship Show, 31 October 2026 · Judge: ${JUDGE}`,""];
+  const out=[`MNCF Championship Show, Sunday 1 November 2026 · Judge: ${JUDGE}`,""];
   breeds.forEach(b=>{
     out.push(b.name.toUpperCase());
     b.classes.forEach(c=>{
@@ -361,6 +379,32 @@ document.getElementById("addBtn").onclick=()=>{
   save(KB,extra);box.value="";msg.textContent=`Added ${got.map(b=>b.name).join(", ")}.`;render();
 };
 function toast(t){const el=document.getElementById("toast");el.textContent=t;el.classList.add("show");setTimeout(()=>el.classList.remove("show"),1800)}
+function exportExcel(){
+  if(typeof XLSX==="undefined"){toast("Excel export needs an internet connection. Try again.");return}
+  const breeds=allBreeds(), gAw=groupAwards(breeds);
+  const val=v=>v===W?"Withheld":"";
+  const cls=[["Round","Breed","Group","Class","Entries","Place","Ring No","Dog","Given"]];
+  const ba=[["Breed","Group","Award","Ring No","Dog","Given"]];
+  breeds.forEach((b,i)=>{
+    b.classes.forEach(c=>PLACES.slice(0,Math.min(3,c.entries.length)).forEach(pl=>{
+      const k=ck(b,c,pl.p),v=res[k],e=v&&v!==W?findEntry(b,v):null;
+      cls.push([i+1,b.name,b.group||"",c.name,c.entries.length,pl.t,e?(+e.no||e.no):"",e?e.name:val(v),res["g|"+k]?"Yes":""]);
+    }));
+    breedAwards(b).forEach(a=>{const k=bk(b,a.id),v=res[k],e=v&&v!==W?findEntry(b,v):null;
+      ba.push([b.name,b.group||"",a.t,e?(+e.no||e.no):"",e?e.name:val(v),res["g|"+k]?"Yes":""])});
+  });
+  const ga=[["Round","Award","Placing","Ring No","Dog","Breed","Given"]];
+  gAw.forEach(a=>{const v=res[a.k],x=a.pool.find(p=>p.k===v);
+    ga.push([a.sec,a.t,a.reserve?"Runner-up":"Winner",x?(+x.e.no||x.e.no):"",x?x.e.name:val(v),x?x.b.name:"",res["g|"+a.k]?"Yes":""])});
+  const wb=XLSX.utils.book_new();
+  const add=(rows,name,w)=>{const ws=XLSX.utils.aoa_to_sheet(rows);ws["!cols"]=w.map(n=>({wch:n}));XLSX.utils.book_append_sheet(wb,ws,name)};
+  add(cls,"Class results",[7,32,10,16,8,7,8,44,7]);
+  add(ba,"Breed awards",[32,10,24,8,44,7]);
+  add(ga,"Group awards",[28,26,11,8,44,32,7]);
+  try{XLSX.writeFile(wb,"MNCF-Show-Results-1-Nov-2026.xlsx");toast("Excel file downloaded")}
+  catch(e){toast("Download blocked here. Open the GitHub version to export.")}
+}
+document.getElementById("xlsxBtn").onclick=exportExcel;
 document.getElementById("copyBtn").onclick=()=>{
   const txt=document.getElementById("resultsText").textContent;
   const fb=()=>{const r=document.createRange();r.selectNodeContents(document.getElementById("resultsText"));const s=getSelection();s.removeAllRanges();s.addRange(r);toast("Selected. Use your phone's Copy")};

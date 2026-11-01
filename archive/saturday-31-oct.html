@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>MNCF Show Awards Desk</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
+<style>
+/* Layout: one column of breed cards under a sticky progress bar; ribbon colours match the real rosettes */
+:root{
+  --bg:#f3f4f7; --card:#ffffff; --fg:#1b1f2a; --muted:#5d6475; --line:#dde0e8;
+  --accent:#4b2fa3; --accent-soft:#ece8f9;
+  --red:#c8322f; --blue:#1f2d5c; --gold:#e9a62b; --ok:#1f8a4c; --ok-soft:#e3f4ea;
+  --display:"Barlow Condensed","Arial Narrow",sans-serif; --body:"Barlow",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#12141b; --card:#1b1e28; --fg:#e9ebf2; --muted:#9aa1b4; --line:#2c3040;
+  --accent:#a995ff; --accent-soft:#2a2445; --red:#e5544f; --blue:#7f95e0; --gold:#f2b84a; --ok:#4cc483; --ok-soft:#173326; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12141b; --card:#1b1e28; --fg:#e9ebf2; --muted:#9aa1b4; --line:#2c3040;
+  --accent:#a995ff; --accent-soft:#2a2445; --red:#e5544f; --blue:#7f95e0; --gold:#f2b84a; --ok:#4cc483; --ok-soft:#173326; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.45}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--card)}
+.wrap{max-width:760px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 48px;display:flex;flex-direction:column;gap:18px}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--card);border-bottom:1px solid var(--line);padding-block:12px;margin-inline:calc(-1 * max(16px,env(safe-area-inset-left,0px)));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1{font-family:var(--display);font-size:24px;margin:0;letter-spacing:.01em;line-height:1.1}
+.sub{color:var(--muted);font-size:13px}
+.bar{height:6px;border-radius:3px;background:var(--line);margin-top:8px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--ok);width:0;transition:width .3s}
+.prog{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-top:4px;font-variant-numeric:tabular-nums}
+h2{font-family:var(--display);font-size:20px;margin:0;text-transform:uppercase;letter-spacing:.03em}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.stock{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.rounds{display:flex;flex-direction:column}
+.round{display:grid;grid-template-columns:minmax(0,13em) minmax(0,1fr);gap:6px 12px;padding-block:9px;border-top:1px solid var(--line);align-items:start}
+.round:first-child{border-top:0;padding-top:0}
+.rname{font-weight:600;font-size:14px;display:flex;gap:8px}
+.rname span{color:var(--muted);font-variant-numeric:tabular-nums;min-width:1.6em}
+.needs{display:flex;flex-wrap:wrap;gap:6px}
+.need{display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:3px 9px 3px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);white-space:nowrap}
+.need .rib{width:8px;height:16px}
+.bneeds{padding:8px 14px 10px;background:var(--accent-soft);display:flex;flex-wrap:wrap;gap:6px}
+.breed.done .bneeds{background:var(--ok-soft)}
+.totals{border-top:1px solid var(--line);padding-top:10px}
+@media (max-width:520px){.round{grid-template-columns:minmax(0,1fr)}}
+.chip{display:flex;align-items:center;gap:8px;font-size:14px;font-variant-numeric:tabular-nums}
+.chip b{font-family:var(--display);font-size:20px;min-width:22px;text-align:right}
+.rib{width:12px;height:26px;border-radius:2px;flex:none;clip-path:polygon(0 0,100% 0,100% 100%,50% 82%,0 100%)}
+.r1{background:var(--red)}.r2{background:var(--blue)}.r3{background:var(--gold)}.rc{background:var(--accent)}
+.breed{background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.breed.done{border-color:var(--ok)}
+.bhead{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:12px 14px;background:var(--accent-soft)}
+.breed.done .bhead{background:var(--ok-soft)}
+.bhead small{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.06em}
+.count{font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.cls{padding:10px 14px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
+.cls h3{margin:0;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+.row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center}
+.lab{font-size:13px;font-weight:600;min-width:92px;display:flex;align-items:center;gap:8px}
+select,input[type=text],textarea{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 10px;width:100%;min-width:0}
+select:focus,textarea:focus,button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.given{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);cursor:pointer;user-select:none}
+.given input{width:22px;height:22px;accent-color:var(--ok)}
+.row.isgiven .lab,.row.isgiven select{opacity:.6}
+.note{font-size:13px;color:var(--muted);margin:0}
+.warn{font-size:13px;color:var(--red)}
+.btns{display:flex;flex-wrap:wrap;gap:8px}
+button{font:inherit;font-weight:600;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--fg);padding:9px 14px;cursor:pointer}
+button.pri{background:var(--accent);border-color:var(--accent);color:var(--card)}
+button.danger{color:var(--red)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+td,th{text-align:left;padding:7px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+.tw{overflow-x:auto}
+textarea{min-height:140px;font-size:14px}
+pre{white-space:pre-wrap;font-size:13px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px;margin:0;max-height:300px;overflow:auto}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:8px 14px;border-radius:8px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+@media (max-width:460px){.row{grid-template-columns:minmax(0,1fr) auto}.lab{grid-column:1/-1}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>MNCF Championship Show · Awards</h1>
+    <div class="sub">Sat 31 Oct 2026 · Judge: Mr Adrian Bicknell</div>
+    <div class="bar"><i id="barFill"></i></div>
+    <div class="prog"><span id="progText">0 of 0 awards given</span><span id="progBreeds"></span></div>
+  </header>
+
+  <section class="panel">
+    <h2>Show totals</h2>
+    <div class="stock" id="stock"></div>
+    <p class="note">Each round below lists the awards to take into the ring for it. A class with one dog only needs a 1st. Best Dog, Bitch, Puppy, Junior and Veteran appear only where the breed has those classes, even when the booklet leaves the line out.</p>
+  </section>
+
+  <div id="breeds" style="display:flex;flex-direction:column;gap:14px"></div>
+  <div id="groups" style="display:flex;flex-direction:column;gap:14px"></div>
+
+  <section class="panel">
+    <h2>Best of Breed certificates</h2>
+    <p class="note">What to write on each card. Judge and date are already printed.</p>
+    <div class="tw"><table><thead><tr><th>Breed</th><th>Name</th></tr></thead><tbody id="bobList"></tbody></table></div>
+  </section>
+
+  <section class="panel">
+    <h2>Add more of the schedule</h2>
+    <p class="note">Type or paste the next page in this shape: breed name on its own line, class name ending in a colon, then one dog per line starting with its ring number.</p>
+    <textarea id="pasteBox" placeholder="BEAGLE  HOUND GROUP&#10;Open Dog:&#10;45 EXAMPLE DOG NAME&#10;Puppy Bitch:&#10;47 EXAMPLE BITCH NAME"></textarea>
+    <div class="btns"><button class="pri" id="addBtn">Add to checklist</button></div>
+    <div id="addMsg" class="note"></div>
+  </section>
+
+  <section class="panel">
+    <h2>Results</h2>
+    <pre id="resultsText"></pre>
+    <div class="btns">
+      <button class="pri" id="copyBtn">Copy results</button>
+      <button class="danger" id="resetBtn">Clear all results</button>
+    </div>
+    <p class="note">Results save in this browser on this device. Copy them somewhere safe at the end of the show.</p>
+  </section>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const U="Utility", H="Hound";
+const C=(name,...e)=>({name,entries:e.map(x=>{const m=x.match(/^(\d+)\s+(.+)$/);return {no:m[1],name:m[2]}})});
+const BASE=[
+  {name:"Junior Handler",special:true,classes:[C("Junior Handler","11 KYLIE CILIA","54 FRANCESCA ATTARD")]},
+  {name:"Boston Terrier",group:U,classes:[C("Junior Bitch","36 LARISSA DI NOBILE MORGANA")]},
+  {name:"Bulldog",group:U,classes:[C("Puppy Bitch","17 LILLIBETH THE QUEEN BRIGHT DIAMOND"),C("Open Bitch","16 Ch. KAYLA BRIGHT DIAMOND")]},
+  {name:"French Bulldog",group:U,classes:[C("Junior Bitch","106 KIRA FROM DRACULA'S BLOODLINE"),C("Puppy Dog","127 HUGO BOSS VILLA LENSSTYLE")]},
+  {name:"Japanese Shiba Inu",group:U,classes:[C("Puppy Bitch","21 RICVAS MELEK"),C("Junior Bitch","18 NIK MAJESTIK MIRAI"),C("Open Dog","19 AKAI HANA B'SEIDI MERC","71 Ch. DAMYOSHI BUSHI")]},
+  {name:"Poodle (Miniature)",group:U,classes:[C("Puppy Dog","117 EVIDDENTE OVER THE EDGE")]},
+  {name:"Poodle (Standard)",group:U,classes:[C("Puppy Bitch","83 SHUVALOFF OPPOSITES ATTRACT"),C("Junior Bitch","82 EDIVETTE MI CORAZON NIEVA"),C("Open Dog","81 EDIVETTE COMO MIRARTE")]},
+  {name:"Poodle (Toy)",group:U,classes:[C("Puppy Bitch","112 MALENKAYA LEDI"),C("Open Dog","95 M AND C SIGNATURE ALLURE")]},
+  {name:"Shih Tzu",group:U,classes:[C("Open Bitch","85 DEMITRA INCANTO D'AMORE"),C("Veteran Bitch","84 Ch. PERLA SOLO PER I TUOI OCCHI")]},
+  {name:"Basenji",group:H,classes:[C("Puppy Dog","52 M WAMI'S SINNERS PRAYER"),C("Open Dog","124 Ch. MANICARO DIESEL DAF")]},
+  {name:"Dachshund (Miniature Long Haired)",group:H,classes:[C("Puppy Bitch","108 MARILYN MONROE DI CAMPO LUNGO","110 GRACE KELLY DI CAMPO LUNGO"),C("Open Bitch","20 Ch. ESME HISROYALMAJESTY"),C("Open Dog","22 Ch. GATEAU ROUGE DELLA ROCO DEI PAPI")]},
+  {name:"Dachshund (Miniature Smooth Haired)",group:H,classes:[C("Junior Bitch","109 DIFFERENT STRINGS DARLA")]},
+  {name:"Dachshund (Miniature Wire Haired)",group:H,classes:[C("Open Dog","67 MAGIK RAINBOW FORD TOM")]},
+  {name:"Dachshund (Smooth Haired)",group:H,classes:[C("Puppy Dog","111 WAKYWILKS HERCULES")]},
+  {name:"Irish Wolfhound",group:H,classes:[C("Junior Bitch","23 HAZEL DELLA BASSA PAVESE"),C("Junior Dog","25 FURIA FARGO MITIS ARAFA"),C("Open Dog","24 TOBERCORRAN THUNDER")]},
+  {name:"Pharaoh Hound",group:H,classes:[C("Puppy Dog","26 RAMSEY")]},
+  {name:"Saluki",group:H,classes:[C("Veteran Dog","102 Ch. GABRA CK ALEXANDER HELIOS")]},
+  {name:"Whippet",group:H,classes:[C("Puppy Bitch","34 NOTABLE DHALIA","77 DAKOTA ALEXEM DREAM"),C("Veteran Bitch","119 CHRISOLI DA YA THINK I'M SEXY"),C("Junior Dog","35 NOTABLE CHEDDAR"),C("Open Dog","118 Ch. SUNTACH HE IS")]},
+  {name:"Any Variety Locally Bred Utility",special:true,classes:[C("Open Bitch","86 DEMITRA INCANTO D'AMORE (Shih Tzu)")]}
+];
+const JUDGE="Mr Adrian Bicknell";
+const KS="mncf-awards-results-v2", KB="mncf-awards-breeds-v2";
+function load(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
+function save(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+let res=load(KS,{}), extra=load(KB,[]);
+function allBreeds(){const m=new Map();BASE.forEach(b=>m.set(b.name.toUpperCase(),b));extra.forEach(b=>m.set(b.name.toUpperCase(),b));return [...m.values()]}
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const keyOf=e=>e.no||e.name, label=e=>(e.no?e.no+" · ":"")+e.name;
+const sexOf=c=>/bitch/i.test(c)?"B":/\bdog\b/i.test(c)?"D":"";
+const PLACES=[{p:1,t:"1st",c:"r1"},{p:2,t:"2nd",c:"r2"},{p:3,t:"3rd",c:"r3"}];
+const W="__W";
+const ck=(b,c,p)=>`${b.name}|${c.name}|${p}`, bk=(b,id)=>`${b.name}|*|${id}`;
+function findEntry(b,key){for(const c of b.classes)for(const e of c.entries)if(keyOf(e)===key)return e;return null}
+
+// Candidates for a breed award: winners of the feeding classes once they're decided, otherwise every dog in them
+function fromClasses(b,f){
+  const cls=b.classes.filter(c=>f(c.name));
+  if(!cls.length) return null;
+  const decided=cls.every(c=>res[ck(b,c,1)]);
+  if(decided) return {pool:cls.map(c=>res[ck(b,c,1)]).filter(v=>v!==W).map(k=>findEntry(b,k)).filter(Boolean),decided};
+  return {pool:cls.flatMap(c=>c.entries),decided};
+}
+function breedAwards(b){
+  if(b.special) return [];
+  const out=[];
+  const add=(id,t,f)=>{const r=fromClasses(b,f);if(r)out.push({id,t,...r})};
+  add("BD","Best Dog in Breed",c=>sexOf(c)==="D");
+  add("BB","Best Bitch in Breed",c=>sexOf(c)==="B");
+  add("BP","Best Puppy in Breed",c=>/puppy/i.test(c));
+  add("BJ","Best Junior in Breed",c=>/junior/i.test(c));
+  add("BV","Best Veteran in Breed",c=>/veteran/i.test(c));
+  // Best of Breed is chosen between Best Dog and Best Bitch
+  const feeders=out.filter(a=>a.id==="BD"||a.id==="BB");
+  const decided=feeders.every(a=>res[bk(b,a.id)]);
+  const pool=decided?feeders.map(a=>res[bk(b,a.id)]).filter(v=>v&&v!==W).map(k=>findEntry(b,k)).filter(Boolean):b.classes.flatMap(c=>c.entries);
+  out.push({id:"BOB",t:"Best of Breed",pool,decided});
+  return out;
+}
+function uniq(list,kf){const s=new Set();return list.filter(x=>{const k=kf(x);if(s.has(k))return false;s.add(k);return true})}
+
+// Group-level awards draw from breed winners
+const GKEY=(b,e)=>b.name+"::"+keyOf(e);
+function groupAwards(breeds){
+  const out=[];
+  const mk=(sec,id,t,breedsIn,awardId)=>{
+    const rel=breedsIn.filter(b=>breedAwards(b).some(a=>a.id===awardId));
+    if(!rel.length) return;
+    const decided=rel.every(b=>res[bk(b,awardId)]);
+    const pool=[];
+    rel.forEach(b=>{const v=res[bk(b,awardId)];
+      if(decided){if(v&&v!==W){const e=findEntry(b,v);if(e)pool.push({k:GKEY(b,e),l:`${label(e)} (${b.name})`,b,e})}}
+      else{const a=breedAwards(b).find(a=>a.id===awardId);a.pool.forEach(e=>pool.push({k:GKEY(b,e),l:`${label(e)} (${b.name})`,b,e}))}
+    });
+    out.push({sec,k:`GROUP|${sec}|${id}`,t,pool:uniq(pool,x=>x.k),decided});
+  };
+  [U,H].forEach(g=>{
+    const bs=breeds.filter(b=>b.group===g);
+    if(!bs.length) return;
+    mk(g+" Group","BIG","Best in Group",bs,"BOB");
+    mk(g+" Group","BJG","Best Junior in Group",bs,"BJ");
+    mk(g+" Group","BPG","Best Puppy in Group",bs,"BP");
+  });
+  mk("Best Veteran Utility / Hound","BVG","Best Veteran Utility / Hound",breeds.filter(b=>b.group===U||b.group===H),"BV");
+  return out;
+}
+
+// Clear choices that no longer fit, and fill in any award with only one possible dog
+function reconcile(breeds){
+  breeds.forEach(b=>{
+    b.classes.forEach(c=>{
+      PLACES.slice(0,Math.min(3,c.entries.length)).forEach(pl=>{const k=ck(b,c,pl.p);const v=res[k];if(v&&v!==W&&!c.entries.some(e=>keyOf(e)===v))delete res[k]});
+      if(c.entries.length===1&&!res[ck(b,c,1)]&&!res["auto-off|"+ck(b,c,1)]) res[ck(b,c,1)]=keyOf(c.entries[0]);
+    });
+    // awards depend on earlier ones, so recompute after each
+    ["BD","BB","BP","BJ","BV","BOB"].forEach(id=>{
+      const a=breedAwards(b).find(x=>x.id===id); if(!a) return;
+      const k=bk(b,id), v=res[k], keys=a.pool.map(keyOf);
+      if(v&&v!==W&&!keys.includes(v)) delete res[k];
+      if(!res[k]&&a.pool.length===1&&!res["auto-off|"+k]) res[k]=keys[0];
+    });
+  });
+  groupAwards(breeds).forEach(a=>{
+    const v=res[a.k], keys=a.pool.map(x=>x.k);
+    if(v&&v!==W&&!keys.includes(v)) delete res[a.k];
+    if(!res[a.k]&&a.decided&&a.pool.length===1&&!res["auto-off|"+a.k]) res[a.k]=keys[0];
+  });
+}
+
+function row(k,lab,opts,cur,hint){
+  const g=!!res["g|"+k];
+  return `<div class="row${g?" isgiven":""}"><span class="lab">${lab}</span><select data-k="${esc(k)}" aria-label="${esc(k)}"><option value="">${hint||"Choose dog…"}</option>${opts}<option value="${W}"${cur===W?" selected":""}>Withheld</option></select><label class="given"><input type="checkbox" data-g="${esc(k)}"${g?" checked":""}>Given</label></div>`;
+}
+const opt=(v,l,cur,dis)=>`<option value="${esc(v)}"${v===cur?" selected":""}${dis?" disabled":""}>${esc(l)}</option>`;
+
+function needs(b){
+  const n=[],r=[0,0,0];
+  b.classes.forEach(c=>{const k=c.entries.length;if(k>=1)r[0]++;if(k>=2)r[1]++;if(k>=3)r[2]++});
+  [["1st","r1"],["2nd","r2"],["3rd","r3"]].forEach(([t,c],i)=>{if(r[i])n.push({c,t:t+" ribbon",n:r[i]})});
+  breedAwards(b).forEach(a=>n.push({c:"rc",t:a.t.replace(" in Breed",""),n:1}));
+  return n;
+}
+const chips=list=>list.map(x=>`<span class="need"><span class="rib ${x.c}"${x.g?' style="background:var(--muted)"':''}></span>${x.n>1?x.n+" × ":""}${esc(x.t)}</span>`).join("");
+function render(){
+  const breeds=allBreeds();
+  reconcile(breeds); save(KS,res);
+  const gAw=groupAwards(breeds);
+
+  let r1=0,r2=0,r3=0;const cards={};
+  breeds.forEach(b=>{b.classes.forEach(c=>{const n=c.entries.length;if(n>=1)r1++;if(n>=2)r2++;if(n>=3)r3++});breedAwards(b).forEach(a=>cards[a.t]=(cards[a.t]||0)+1)});
+  const order=["Best of Breed","Best Dog in Breed","Best Bitch in Breed","Best Puppy in Breed","Best Junior in Breed","Best Veteran in Breed"];
+  document.getElementById("stock").innerHTML=
+    [["1st ribbons",r1,"r1"],["2nd ribbons",r2,"r2"],["3rd ribbons",r3,"r3"]].map(([t,n,c])=>`<div class="chip"><span class="rib ${c}"></span><b>${n}</b>${t}</div>`).join("")+
+    order.filter(t=>cards[t]).map(t=>`<div class="chip"><span class="rib rc"></span><b>${cards[t]}</b>${t.replace(" in Breed","")}</div>`).join("")+
+    `<div class="chip"><span class="rib rc" style="background:var(--muted)"></span><b>${gAw.length}</b>Group awards</div>`;
+
+
+
+
+  let total=0,given=0,doneBreeds=0;
+  document.getElementById("breeds").innerHTML=breeds.map((b,bi)=>{
+    const aw=breedAwards(b);
+    const keys=[...b.classes.flatMap(c=>PLACES.slice(0,Math.min(3,c.entries.length)).map(pl=>ck(b,c,pl.p))),...aw.map(a=>bk(b,a.id))];
+    const g=keys.filter(k=>res["g|"+k]).length; total+=keys.length; given+=g;
+    const done=g===keys.length; if(done)doneBreeds++;
+    let h=`<article class="breed${done?" done":""}"><div class="bhead"><div><small>Round ${bi+1}${b.group?` · ${esc(b.group)} Group`:""}</small><h2>${esc(b.name)}</h2></div><span class="count">${g} / ${keys.length} given</span></div><div class="bneeds">${chips(needs(b))}</div>`;
+    b.classes.forEach(c=>{
+      const n=Math.min(3,c.entries.length);
+      const chosen=PLACES.slice(0,n).map(pl=>res[ck(b,c,pl.p)]).filter(Boolean);
+      h+=`<div class="cls"><h3>${esc(c.name)} · ${c.entries.length} ${c.entries.length===1?"entry":"entries"}</h3>`;
+      PLACES.slice(0,n).forEach(pl=>{const k=ck(b,c,pl.p),cur=res[k]||"";
+        h+=row(k,`<span class="rib ${pl.c}"></span>${pl.t}`,c.entries.map(e=>opt(keyOf(e),label(e),cur,keyOf(e)!==cur&&chosen.includes(keyOf(e)))).join(""),cur)});
+      h+=`</div>`;
+    });
+    if(aw.length){
+      h+=`<div class="cls"><h3>Breed awards</h3>`;
+      aw.forEach(a=>{const k=bk(b,a.id),cur=res[k]||"";
+        const hint=a.decided?"Choose dog…":(a.id==="BOB"?"Choose after Best Dog / Bitch":"Choose after class winners");
+        h+=row(k,`<span class="rib rc"></span>${a.t.replace(" in Breed","")}`,uniq(a.pool,keyOf).map(e=>opt(keyOf(e),label(e),cur)).join(""),cur,hint)});
+      h+=`</div>`;
+    }
+    return h+`</article>`;
+  }).join("");
+
+  // groups
+  const secs=[...new Set(gAw.map(a=>a.sec))];
+  document.getElementById("groups").innerHTML=secs.map((sec,si)=>{
+    const list=gAw.filter(a=>a.sec===sec);
+    const g=list.filter(a=>res["g|"+a.k]).length; total+=list.length; given+=g;
+    let h=`<article class="breed${g===list.length?" done":""}"><div class="bhead"><div><small>Round ${breeds.length+si+1} · Group judging</small><h2>${esc(sec)}</h2></div><span class="count">${g} / ${list.length} given</span></div><div class="bneeds">${chips(list.map(a=>({c:"rc",g:1,t:a.t.replace(" Utility / Hound",""),n:1})))}</div><div class="cls">`;
+    list.forEach(a=>{const cur=res[a.k]||"";
+      h+=row(a.k,`<span class="rib rc" style="background:var(--muted)"></span>${a.t.replace(" Utility / Hound","")}`,a.pool.map(x=>opt(x.k,x.l,cur)).join(""),cur,a.decided?"Choose dog…":"Choose after breed awards")});
+    return h+`</div></article>`;
+  }).join("");
+
+  document.getElementById("barFill").style.width=(total?given/total*100:0)+"%";
+  document.getElementById("progText").textContent=`${given} of ${total} awards given`;
+  document.getElementById("progBreeds").textContent=`${doneBreeds} / ${breeds.length} breeds done`;
+
+  document.getElementById("bobList").innerHTML=breeds.filter(b=>!b.special).map(b=>{
+    const v=res[bk(b,"BOB")];const e=v&&v!==W?findEntry(b,v):null;
+    return `<tr><td>${esc(b.name)}</td><td>${v===W?"Withheld":e?esc(e.name):'<span class="note">Not chosen yet</span>'}</td></tr>`;
+  }).join("");
+
+  document.getElementById("resultsText").textContent=resultsText(breeds,gAw);
+}
+function resultsText(breeds,gAw){
+  const out=[`MNCF Championship Show, 31 October 2026 · Judge: ${JUDGE}`,""];
+  breeds.forEach(b=>{
+    out.push(b.name.toUpperCase());
+    b.classes.forEach(c=>{
+      const parts=PLACES.slice(0,Math.min(3,c.entries.length)).map(pl=>{const v=res[ck(b,c,pl.p)];if(!v)return null;if(v===W)return `${pl.t}: withheld`;const e=findEntry(b,v);return `${pl.t}: ${e?label(e):v}`}).filter(Boolean);
+      out.push(`  ${c.name}: ${parts.length?parts.join(", "):"—"}`);
+    });
+    breedAwards(b).forEach(a=>{const v=res[bk(b,a.id)];const e=v&&v!==W?findEntry(b,v):null;out.push(`  ${a.t}: ${v===W?"withheld":e?label(e):"—"}`)});
+    out.push("");
+  });
+  out.push("GROUP JUDGING");
+  gAw.forEach(a=>{const v=res[a.k];const x=a.pool.find(p=>p.k===v);out.push(`  ${a.sec} · ${a.t}: ${v===W?"withheld":x?x.l:"—"}`)});
+  return out.join("\n");
+}
+document.addEventListener("change",ev=>{
+  const t=ev.target;
+  if(t.dataset.k){const k=t.dataset.k;if(t.value){res[k]=t.value;delete res["auto-off|"+k]}else{delete res[k];res["auto-off|"+k]=1}save(KS,res);render()}
+  if(t.dataset.g){if(t.checked)res["g|"+t.dataset.g]=1;else delete res["g|"+t.dataset.g];save(KS,res);render()}
+});
+function parse(text){
+  const lines=text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+  const breeds=[];let cur=null,cls=null;
+  for(const line of lines){
+    if(/^best\b/i.test(line))continue;
+    const m=line.match(/^(\d+)\s+(.+)$/);
+    if(m){if(!cur)continue;if(!cls){cls={name:cur.special?cur.name:"Entries",entries:[]};cur.classes.push(cls)}cls.entries.push({no:m[1],name:m[2].trim()});continue}
+    if(/:\s*$/.test(line)&&cur){cls={name:line.replace(/:\s*$/,"").trim(),entries:[]};cur.classes.push(cls);continue}
+    const gm=line.match(/^(.*?)\s*\b(utility|hound|gundog|terrier|toy|working|pastoral)\s+group\s*$/i);
+    if(gm&&!gm[1]&&cur){cur.group=gm[2][0].toUpperCase()+gm[2].slice(1).toLowerCase();continue}
+    const name=(gm?gm[1]:line).replace(/\b\w+/g,w=>w[0].toUpperCase()+w.slice(1).toLowerCase());
+    cur={name,group:gm?gm[2][0].toUpperCase()+gm[2].slice(1).toLowerCase():"",classes:[]};
+    if(/handler|any variety/i.test(name))cur.special=true;
+    cls=null;breeds.push(cur);
+  }
+  return breeds.map(b=>({...b,classes:b.classes.filter(c=>c.entries.length)})).filter(b=>b.classes.length);
+}
+document.getElementById("addBtn").onclick=()=>{
+  const box=document.getElementById("pasteBox");const got=parse(box.value);const msg=document.getElementById("addMsg");
+  if(!got.length){msg.textContent="No dogs found. Check each dog line starts with its ring number and each class name ends with a colon.";return}
+  got.forEach(nb=>{extra=extra.filter(b=>b.name.toUpperCase()!==nb.name.toUpperCase());extra.push(nb)});
+  save(KB,extra);box.value="";msg.textContent=`Added ${got.map(b=>b.name).join(", ")}.`;render();
+};
+function toast(t){const el=document.getElementById("toast");el.textContent=t;el.classList.add("show");setTimeout(()=>el.classList.remove("show"),1800)}
+document.getElementById("copyBtn").onclick=()=>{
+  const txt=document.getElementById("resultsText").textContent;
+  const fb=()=>{const r=document.createRange();r.selectNodeContents(document.getElementById("resultsText"));const s=getSelection();s.removeAllRanges();s.addRange(r);toast("Selected. Use your phone's Copy")};
+  try{navigator.clipboard.writeText(txt).then(()=>toast("Results copied"),fb)}catch(e){fb()}
+};
+let armed=false;
+document.getElementById("resetBtn").onclick=ev=>{
+  const b=ev.currentTarget;
+  if(!armed){armed=true;b.textContent="Tap again to clear everything";setTimeout(()=>{armed=false;b.textContent="Clear all results"},3000);return}
+  armed=false;b.textContent="Clear all results";res={};save(KS,res);render();toast("Results cleared");
+};
+render();
+</script>
+</body>
+</html>
