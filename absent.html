@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>MNCF Awards · Absent dogs</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
+<style>
+/* Layout: one column of breed cards under a sticky progress bar; ribbon colours match the real rosettes */
+:root{
+  --bg:#f3f4f7; --card:#ffffff; --fg:#1b1f2a; --muted:#5d6475; --line:#dde0e8;
+  --accent:#4b2fa3; --accent-soft:#ece8f9;
+  --red:#c8322f; --blue:#1f2d5c; --gold:#e9a62b; --ok:#1f8a4c; --ok-soft:#e3f4ea;
+  --display:"Barlow Condensed","Arial Narrow",sans-serif; --body:"Barlow",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#12141b; --card:#1b1e28; --fg:#e9ebf2; --muted:#9aa1b4; --line:#2c3040;
+  --accent:#a995ff; --accent-soft:#2a2445; --red:#e5544f; --blue:#7f95e0; --gold:#f2b84a; --ok:#4cc483; --ok-soft:#173326; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12141b; --card:#1b1e28; --fg:#e9ebf2; --muted:#9aa1b4; --line:#2c3040;
+  --accent:#a995ff; --accent-soft:#2a2445; --red:#e5544f; --blue:#7f95e0; --gold:#f2b84a; --ok:#4cc483; --ok-soft:#173326; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.45}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--card)}
+.wrap{max-width:760px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 48px;display:flex;flex-direction:column;gap:18px}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--card);border-bottom:1px solid var(--line);padding-block:12px;margin-inline:calc(-1 * max(16px,env(safe-area-inset-left,0px)));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1{font-family:var(--display);font-size:24px;margin:0;letter-spacing:.01em;line-height:1.1}
+.sub{color:var(--muted);font-size:13px}
+.bar{height:6px;border-radius:3px;background:var(--line);margin-top:8px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--ok);width:0;transition:width .3s}
+.prog{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-top:4px;font-variant-numeric:tabular-nums}
+h2{font-family:var(--display);font-size:20px;margin:0;text-transform:uppercase;letter-spacing:.03em}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.stock{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.rounds{display:flex;flex-direction:column}
+.round{display:grid;grid-template-columns:minmax(0,13em) minmax(0,1fr);gap:6px 12px;padding-block:9px;border-top:1px solid var(--line);align-items:start}
+.round:first-child{border-top:0;padding-top:0}
+.rname{font-weight:600;font-size:14px;display:flex;gap:8px}
+.rname span{color:var(--muted);font-variant-numeric:tabular-nums;min-width:1.6em}
+.needs{display:flex;flex-wrap:wrap;gap:6px}
+.need{display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:3px 9px 3px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);white-space:nowrap}
+.need .rib{width:8px;height:16px}
+.bneeds{padding:8px 14px 10px;background:var(--accent-soft);display:flex;flex-wrap:wrap;gap:6px}
+.breed.done .bneeds{background:var(--ok-soft)}
+.totals{border-top:1px solid var(--line);padding-top:10px}
+@media (max-width:520px){.round{grid-template-columns:minmax(0,1fr)}}
+.chip{display:flex;align-items:center;gap:8px;font-size:14px;font-variant-numeric:tabular-nums}
+.chip b{font-family:var(--display);font-size:20px;min-width:22px;text-align:right}
+.rib{width:12px;height:26px;border-radius:2px;flex:none;clip-path:polygon(0 0,100% 0,100% 100%,50% 82%,0 100%)}
+.r1{background:var(--red)}.r2{background:var(--blue)}.r3{background:var(--gold)}.rc{background:var(--accent)}
+.breed{background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.breed.done{border-color:var(--ok)}
+.bhead{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:12px 14px;background:var(--accent-soft)}
+.breed.done .bhead{background:var(--ok-soft)}
+.bhead small{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.06em}
+.count{font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.cls{padding:10px 14px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
+.cls h3{margin:0;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+.row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center}
+.lab{font-size:13px;font-weight:600;min-width:92px;display:flex;align-items:center;gap:8px}
+select,input[type=text],textarea{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 10px;width:100%;min-width:0}
+select:focus,textarea:focus,button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.given{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);cursor:pointer;user-select:none}
+.given input{width:22px;height:22px;accent-color:var(--ok)}
+.row.isgiven .lab,.row.isgiven select{opacity:.6}
+.note{font-size:13px;color:var(--muted);margin:0}
+.save{font-size:12px;color:var(--ok);margin-top:2px}.save.bad{color:var(--red);font-weight:600}
+.warn{font-size:13px;color:var(--red)}
+.btns{display:flex;flex-wrap:wrap;gap:8px}
+button{font:inherit;font-weight:600;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--fg);padding:9px 14px;cursor:pointer}
+button.pri{background:var(--accent);border-color:var(--accent);color:var(--card)}
+button.danger{color:var(--red)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+td,th{text-align:left;padding:7px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+.tw{overflow-x:auto}
+textarea{min-height:140px;font-size:14px}
+pre{white-space:pre-wrap;font-size:13px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px;margin:0;max-height:300px;overflow:auto}
+.nav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.nav a{font-size:13px;font-weight:600;text-decoration:none;color:var(--fg);border:1px solid var(--line);border-radius:999px;padding:5px 12px;background:var(--bg)}
+.nav a[aria-current="page"]{background:var(--accent);border-color:var(--accent);color:var(--card)}
+.empty{background:var(--card);border:1px dashed var(--line);border-radius:10px;padding:18px 14px;color:var(--muted);font-size:14px}
+.find{display:flex;gap:8px;flex-wrap:wrap}.find input{flex:1 1 180px}
+.dog{display:grid;grid-template-columns:3.2em minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 14px;border-top:1px solid var(--line);cursor:pointer}
+.dog .no{font-family:var(--display);font-size:20px;font-variant-numeric:tabular-nums}
+.dog small{display:block;color:var(--muted);font-size:12px}
+.dog input{width:22px;height:22px;accent-color:var(--red)}
+.dog.isabs{background:color-mix(in srgb,var(--red) 10%,transparent)}
+.dog.isabs .nm{text-decoration:line-through;color:var(--muted)}
+.abs-tag{font-size:12px;font-weight:600;color:var(--red)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:8px 14px;border-radius:8px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+@media (max-width:460px){.row{grid-template-columns:minmax(0,1fr) auto}.lab{grid-column:1/-1}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <nav class="nav" aria-label="Show days"><a href="index.html">All days</a><a href="saturday.html">Sat 31 Oct</a><a href="sunday-morning.html">Sun morning</a><a href="sunday-evening.html">Sun evening</a><a href="absent.html" aria-current="page">Absent dogs</a></nav>
+    <h1>Absent dogs</h1>
+    <div class="sub">Tick a dog to mark it absent. It drops out of its class and the award counts on every page.</div>
+    <div class="save" id="absCount"></div>
+  </header>
+  <section class="panel">
+    <h2>Find a dog</h2>
+    <div class="find">
+      <input type="text" id="q" inputmode="search" placeholder="Ring number, dog or breed" autocomplete="off">
+      <select id="sess" aria-label="Session" style="flex:0 1 200px"></select>
+    </div>
+    <p class="note">Type a ring number and press Enter to mark that dog absent straight away.</p>
+  </section>
+  <div id="list" style="display:flex;flex-direction:column;gap:14px"></div>
+  <section class="panel">
+    <div class="btns"><button class="danger" id="clearAbs">Clear all absent marks</button></div>
+  </section>
+</div>
+<div class="toast" id="toast"></div>
+<script src="data.js"></script>
+<script>
+const KA="mncf-absent-v1";
+function load(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
+function save(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}}
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let absent=load(KA,{});
+const S=window.SHOW_SESSIONS||[], D=window.SHOW_DATA||{};
+const sel=document.getElementById("sess");
+sel.innerHTML='<option value="">All sessions</option>'+S.map(s=>`<option value="${s.id}">${esc(s.label)}</option>`).join("");
+try{const h=new Date().getHours();sel.value=new Date().getDay()===0?(h<14?"sunday-morning":"sunday-evening"):""}catch(e){}
+const dogs=[];
+S.forEach(s=>(D[s.id]||[]).forEach(b=>b.classes.forEach(c=>c.entries.forEach(e=>dogs.push({s,b,c,e})))));
+function toast(t){const el=document.getElementById("toast");el.textContent=t;el.classList.add("show");setTimeout(()=>el.classList.remove("show"),1800)}
+function render(){
+  const q=document.getElementById("q").value.trim().toLowerCase(), ss=sel.value;
+  const n=Object.keys(absent).length;
+  document.getElementById("absCount").textContent=n?`${n} ${n===1?"dog":"dogs"} marked absent`:"No dogs marked absent";
+  const shown=dogs.filter(d=>(!ss||d.s.id===ss)&&(!q||d.e.no===q||(d.e.no+" "+d.e.name+" "+d.b.name).toLowerCase().includes(q)));
+  const html=[];let lastS=null,lastB=null;
+  shown.forEach(d=>{
+    if(d.b!==lastB){if(lastB)html.push("</article>");
+      if(d.s!==lastS){html.push(`<h2 style="margin-top:6px">${esc(d.s.title)}</h2>`);lastS=d.s}
+      const na=d.b.classes.reduce((t,c)=>t+c.entries.filter(e=>absent[e.no]).length,0);
+      html.push(`<article class="breed"><div class="bhead"><div><small>${esc(d.b.group?d.b.group+" Group":"Special class")}</small><h2>${esc(d.b.name)}</h2></div><span class="count">${na?`<span class="abs-tag">${na} absent</span>`:""}</span></div>`);lastB=d.b}
+    const a=!!absent[d.e.no];
+    html.push(`<label class="dog${a?" isabs":""}"><span class="no">${esc(d.e.no)}</span><span><span class="nm">${esc(d.e.name)}</span><small>${esc(d.c.name)}</small></span><span style="display:flex;align-items:center;gap:6px"><span class="abs-tag">${a?"Absent":""}</span><input type="checkbox" data-no="${esc(d.e.no)}"${a?" checked":""} aria-label="Mark ${esc(d.e.no)} absent"></span></label>`);
+  });
+  if(lastB)html.push("</article>");
+  document.getElementById("list").innerHTML=html.join("")||'<div class="panel"><p class="note">No dogs match that search.</p></div>';
+}
+function setAbs(no,on){if(on)absent[no]=true;else delete absent[no];if(!save(KA,absent))toast("Couldn't save on this device");render()}
+document.addEventListener("change",ev=>{const no=ev.target.dataset&&ev.target.dataset.no;if(no)setAbs(no,ev.target.checked)});
+document.getElementById("q").addEventListener("input",render);
+sel.addEventListener("change",render);
+document.getElementById("q").addEventListener("keydown",ev=>{
+  if(ev.key!=="Enter")return;const v=ev.target.value.trim();
+  const d=dogs.find(x=>x.e.no===v);if(!d){toast("No dog with ring number "+v);return}
+  setAbs(v,true);toast(`${v} ${d.e.name} marked absent`);ev.target.value="";render();
+});
+let armed=false;
+document.getElementById("clearAbs").onclick=ev=>{const b=ev.currentTarget;
+  if(!armed){armed=true;b.textContent="Tap again to clear all";setTimeout(()=>{armed=false;b.textContent="Clear all absent marks"},3000);return}
+  armed=false;b.textContent="Clear all absent marks";absent={};save(KA,absent);render();toast("All absent marks cleared")};
+render();
+</script>
+</body>
+</html>

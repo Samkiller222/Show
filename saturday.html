@@ -92,7 +92,7 @@ pre{white-space:pre-wrap;font-size:13px;background:var(--bg);border:1px solid va
 
 <div class="wrap">
   <header>
-    <nav class="nav" aria-label="Show days"><a href="index.html">All days</a><a href="saturday.html" aria-current="page">Sat 31 Oct</a><a href="sunday-morning.html">Sun morning</a><a href="sunday-evening.html">Sun evening</a></nav>
+    <nav class="nav" aria-label="Show days"><a href="index.html">All days</a><a href="saturday.html" aria-current="page">Sat 31 Oct</a><a href="sunday-morning.html">Sun morning</a><a href="sunday-evening.html">Sun evening</a><a href="absent.html">Absent dogs</a></nav>
     <h1>Saturday · Utility & Hound</h1>
     <div class="sub">Sat 31 Oct 2026 · Judging from 3:00pm · Judge: Mr Adrian Bicknell</div>
     <div class="save" id="saveState">Saved on this device</div>
@@ -103,7 +103,8 @@ pre{white-space:pre-wrap;font-size:13px;background:var(--bg);border:1px solid va
   <section class="panel">
     <h2>Show totals</h2>
     <div class="stock" id="stock"></div>
-    <p class="note">Each round below lists the awards to take into the ring for it. A class with one dog only needs a 1st. Best Dog, Bitch, Puppy, Junior and Veteran appear only where the breed has those classes, even when the booklet leaves the line out.</p>
+    <p class="note" id="absentNote" hidden></p>
+    <p class="note">Each round below lists the awards to take into the ring for it. A class with one dog only needs a 1st. AV Locally Bred and Best Veteran give a 1st only. Best Dog, Bitch, Puppy, Junior and Veteran appear only where the breed has those classes, even when the booklet leaves the line out.</p>
   </section>
 
   <div id="breeds" style="display:flex;flex-direction:column;gap:14px"></div>
@@ -137,30 +138,9 @@ pre{white-space:pre-wrap;font-size:13px;background:var(--bg);border:1px solid va
 <div class="toast" id="toast"></div>
 
 <script src="xlsx.full.min.js"></script>
+<script src="data.js"></script>
 <script>
-const U="Utility", H="Hound";
-const C=(name,...e)=>({name,entries:e.map(x=>{const m=x.match(/^(\d+)\s+(.+)$/);return {no:m[1],name:m[2]}})});
-const BASE=[
-  {name:"Junior Handler",special:true,classes:[C("Junior Handler","11 KYLIE CILIA","54 FRANCESCA ATTARD")]},
-  {name:"Boston Terrier",group:U,classes:[C("Junior Bitch","36 LARISSA DI NOBILE MORGANA")]},
-  {name:"Bulldog",group:U,classes:[C("Puppy Bitch","17 LILLIBETH THE QUEEN BRIGHT DIAMOND"),C("Open Bitch","16 Ch. KAYLA BRIGHT DIAMOND")]},
-  {name:"French Bulldog",group:U,classes:[C("Junior Bitch","106 KIRA FROM DRACULA'S BLOODLINE"),C("Puppy Dog","127 HUGO BOSS VILLA LENSSTYLE")]},
-  {name:"Japanese Shiba Inu",group:U,classes:[C("Puppy Bitch","21 RICVAS MELEK"),C("Junior Bitch","18 NIK MAJESTIK MIRAI"),C("Open Dog","19 AKAI HANA B'SEIDI MERC","71 Ch. DAMYOSHI BUSHI")]},
-  {name:"Poodle (Miniature)",group:U,classes:[C("Puppy Dog","117 EVIDDENTE OVER THE EDGE")]},
-  {name:"Poodle (Standard)",group:U,classes:[C("Puppy Bitch","83 SHUVALOFF OPPOSITES ATTRACT"),C("Junior Bitch","82 EDIVETTE MI CORAZON NIEVA"),C("Open Dog","81 EDIVETTE COMO MIRARTE")]},
-  {name:"Poodle (Toy)",group:U,classes:[C("Puppy Bitch","112 MALENKAYA LEDI"),C("Open Dog","95 M AND C SIGNATURE ALLURE")]},
-  {name:"Shih Tzu",group:U,classes:[C("Open Bitch","85 DEMITRA INCANTO D'AMORE"),C("Veteran Bitch","84 Ch. PERLA SOLO PER I TUOI OCCHI")]},
-  {name:"Basenji",group:H,classes:[C("Puppy Dog","52 M WAMI'S SINNERS PRAYER"),C("Open Dog","124 Ch. MANICARO DIESEL DAF")]},
-  {name:"Dachshund (Miniature Long Haired)",group:H,classes:[C("Puppy Bitch","108 MARILYN MONROE DI CAMPO LUNGO","110 GRACE KELLY DI CAMPO LUNGO"),C("Open Bitch","20 Ch. ESME HISROYALMAJESTY"),C("Open Dog","22 Ch. GATEAU ROUGE DELLA ROCO DEI PAPI")]},
-  {name:"Dachshund (Miniature Smooth Haired)",group:H,classes:[C("Junior Bitch","109 DIFFERENT STRINGS DARLA")]},
-  {name:"Dachshund (Miniature Wire Haired)",group:H,classes:[C("Open Dog","67 MAGIK RAINBOW FORD TOM")]},
-  {name:"Dachshund (Smooth Haired)",group:H,classes:[C("Puppy Dog","111 WAKYWILKS HERCULES")]},
-  {name:"Irish Wolfhound",group:H,classes:[C("Junior Bitch","23 HAZEL DELLA BASSA PAVESE"),C("Junior Dog","25 FURIA FARGO MITIS ARAFA"),C("Open Dog","24 TOBERCORRAN THUNDER")]},
-  {name:"Pharaoh Hound",group:H,classes:[C("Puppy Dog","26 RAMSEY")]},
-  {name:"Saluki",group:H,classes:[C("Veteran Dog","102 Ch. GABRA CK ALEXANDER HELIOS")]},
-  {name:"Whippet",group:H,classes:[C("Puppy Bitch","34 NOTABLE DHALIA","77 DAKOTA ALEXEM DREAM"),C("Veteran Bitch","119 CHRISOLI DA YA THINK I'M SEXY"),C("Junior Dog","35 NOTABLE CHEDDAR"),C("Open Dog","118 Ch. SUNTACH HE IS")]},
-  {name:"Any Variety Locally Bred Utility",special:true,classes:[C("Open Bitch","86 DEMITRA INCANTO D'AMORE (Shih Tzu)")]}
-];
+const BASE=(window.SHOW_DATA||{})["saturday"]||[];
 const JUDGE="Mr Adrian Bicknell";
 const KS="mncf-awards-results-v2", KB="mncf-awards-breeds-v2";
 function load(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
@@ -172,12 +152,19 @@ function save(k,v){
   else{el.textContent="Saved on this device "+saveOk.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});el.className="save"}
 }
 let res=load(KS,{}), extra=load(KB,[]);
-function allBreeds(){const m=new Map();BASE.forEach(b=>m.set(b.name.toUpperCase(),b));extra.forEach(b=>m.set(b.name.toUpperCase(),b));return [...m.values()]}
+const KA="mncf-absent-v1";
+let absent=load(KA,{});
+function rawBreeds(){const m=new Map();BASE.forEach(b=>m.set(b.name.toUpperCase(),b));extra.forEach(b=>m.set(b.name.toUpperCase(),b));return [...m.values()]}
+function withoutAbsent(b){return {...b,classes:b.classes.map(c=>({...c,entries:c.entries.filter(e=>!absent[e.no])})).filter(c=>c.entries.length)}}
+function allBreeds(){return rawBreeds().map(withoutAbsent).filter(b=>b.classes.length)}
+window.addEventListener("storage",ev=>{if(ev.key===KA){absent=load(KA,{});render()}});
+window.addEventListener("pageshow",()=>{const a=load(KA,{});if(JSON.stringify(a)!==JSON.stringify(absent)){absent=a;render()}});
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const keyOf=e=>e.no||e.name, label=e=>(e.no?e.no+" · ":"")+e.name;
 const sexOf=c=>/bitch/i.test(c)?"B":/\bdog\b/i.test(c)?"D":"";
 const PLACES=[{p:1,t:"1st",c:"r1"},{p:2,t:"2nd",c:"r2"},{p:3,t:"3rd",c:"r3"}];
 const W="__W";
+const nPlaces=(b,c)=>Math.min(b.firstOnly?1:3,c.entries.length);
 const ck=(b,c,p)=>`${b.name}|${c.name}|${p}`, bk=(b,id)=>`${b.name}|*|${id}`;
 function findEntry(b,key){for(const c of b.classes)for(const e of c.entries)if(keyOf(e)===key)return e;return null}
 
@@ -211,7 +198,7 @@ function uniq(list,kf){const s=new Set();return list.filter(x=>{const k=kf(x);if
 const GKEY=(b,e)=>b.name+"::"+keyOf(e);
 function groupAwards(breeds){
   const out=[];
-  const mk=(sec,id,t,breedsIn,awardId)=>{
+  const mk=(sec,id,t,breedsIn,awardId,noReserve)=>{
     const rel=breedsIn.filter(b=>breedAwards(b).some(a=>a.id===awardId));
     if(!rel.length) return;
     const decided=rel.every(b=>res[bk(b,awardId)]);
@@ -222,6 +209,7 @@ function groupAwards(breeds){
     });
     const p=uniq(pool,x=>x.k), k=`GROUP|${sec}|${id}`;
     out.push({sec,k,t,pool:p,decided});
+    if(noReserve) return;
     const win=res[k];
     out.push({sec,k:k+"|R",t:"Runner-up "+t.replace(/^Best /,"").replace(/^./,c=>c.toLowerCase()),reserve:true,winKey:k,pool:p.filter(x=>x.k!==win),decided:decided&&!!win});
   };
@@ -233,7 +221,7 @@ function groupAwards(breeds){
     mk(g+" Group","BPG","Best Puppy in Group",bs,"BP");
   });
   const vg=groups.filter(g=>breeds.some(b=>b.group===g&&breedAwards(b).some(a=>a.id==="BV")));
-  if(vg.length) mk("Best Veteran "+vg.join(" / "),"BVG","Best Veteran",breeds.filter(b=>vg.includes(b.group)),"BV");
+  if(vg.length) mk("Best Veteran "+vg.join(" / "),"BVG","Best Veteran",breeds.filter(b=>vg.includes(b.group)),"BV",true);
   return out;
 }
 
@@ -241,7 +229,7 @@ function groupAwards(breeds){
 function reconcile(breeds){
   breeds.forEach(b=>{
     b.classes.forEach(c=>{
-      PLACES.slice(0,Math.min(3,c.entries.length)).forEach(pl=>{const k=ck(b,c,pl.p);const v=res[k];if(v&&v!==W&&!c.entries.some(e=>keyOf(e)===v))delete res[k]});
+      PLACES.slice(0,nPlaces(b,c)).forEach(pl=>{const k=ck(b,c,pl.p);const v=res[k];if(v&&v!==W&&!c.entries.some(e=>keyOf(e)===v))delete res[k]});
       if(c.entries.length===1&&!res[ck(b,c,1)]&&!res["auto-off|"+ck(b,c,1)]) res[ck(b,c,1)]=keyOf(c.entries[0]);
     });
     // awards depend on earlier ones, so recompute after each
@@ -268,7 +256,7 @@ const opt=(v,l,cur,dis)=>`<option value="${esc(v)}"${v===cur?" selected":""}${di
 
 function needs(b){
   const n=[],r=[0,0,0];
-  b.classes.forEach(c=>{const k=c.entries.length;if(k>=1)r[0]++;if(k>=2)r[1]++;if(k>=3)r[2]++});
+  b.classes.forEach(c=>{const k=nPlaces(b,c);if(k>=1)r[0]++;if(k>=2)r[1]++;if(k>=3)r[2]++});
   [["1st","r1"],["2nd","r2"],["3rd","r3"]].forEach(([t,c],i)=>{if(r[i])n.push({c,t:t+" ribbon",n:r[i]})});
   breedAwards(b).forEach(a=>n.push({c:"rc",t:a.t.replace(" in Breed",""),n:1}));
   return n;
@@ -280,7 +268,7 @@ function render(){
   const gAw=groupAwards(breeds);
 
   let r1=0,r2=0,r3=0;const cards={};
-  breeds.forEach(b=>{b.classes.forEach(c=>{const n=c.entries.length;if(n>=1)r1++;if(n>=2)r2++;if(n>=3)r3++});breedAwards(b).forEach(a=>cards[a.t]=(cards[a.t]||0)+1)});
+  breeds.forEach(b=>{b.classes.forEach(c=>{const n=nPlaces(b,c);if(n>=1)r1++;if(n>=2)r2++;if(n>=3)r3++});breedAwards(b).forEach(a=>cards[a.t]=(cards[a.t]||0)+1)});
   const order=["Best of Breed","Best Dog in Breed","Best Bitch in Breed","Best Puppy in Breed","Best Junior in Breed","Best Veteran in Breed"];
   document.getElementById("stock").innerHTML=
     [["1st ribbons",r1,"r1"],["2nd ribbons",r2,"r2"],["3rd ribbons",r3,"r3"]].map(([t,n,c])=>`<div class="chip"><span class="rib ${c}"></span><b>${n}</b>${t}</div>`).join("")+
@@ -293,12 +281,12 @@ function render(){
   let total=0,given=0,doneBreeds=0;
   document.getElementById("breeds").innerHTML=breeds.map((b,bi)=>{
     const aw=breedAwards(b);
-    const keys=[...b.classes.flatMap(c=>PLACES.slice(0,Math.min(3,c.entries.length)).map(pl=>ck(b,c,pl.p))),...aw.map(a=>bk(b,a.id))];
+    const keys=[...b.classes.flatMap(c=>PLACES.slice(0,nPlaces(b,c)).map(pl=>ck(b,c,pl.p))),...aw.map(a=>bk(b,a.id))];
     const g=keys.filter(k=>res["g|"+k]).length; total+=keys.length; given+=g;
     const done=g===keys.length; if(done)doneBreeds++;
     let h=`<article class="breed${done?" done":""}"><div class="bhead"><div><small>Round ${bi+1}${b.group?` · ${esc(b.group)} Group`:""}</small><h2>${esc(b.name)}</h2></div><span class="count">${g} / ${keys.length} given</span></div><div class="bneeds">${chips(needs(b))}</div>`;
     b.classes.forEach(c=>{
-      const n=Math.min(3,c.entries.length);
+      const n=nPlaces(b,c);
       const chosen=PLACES.slice(0,n).map(pl=>res[ck(b,c,pl.p)]).filter(Boolean);
       h+=`<div class="cls"><h3>${esc(c.name)} · ${c.entries.length} ${c.entries.length===1?"entry":"entries"}</h3>`;
       PLACES.slice(0,n).forEach(pl=>{const k=ck(b,c,pl.p),cur=res[k]||"";
@@ -336,13 +324,18 @@ function render(){
   }).join("");
 
   document.getElementById("resultsText").textContent=resultsText(breeds,gAw);
+  const raw=rawBreeds(), abs=raw.flatMap(b=>b.classes.flatMap(c=>c.entries.filter(e=>absent[e.no]).map(e=>e.no)));
+  const gone=raw.filter(b=>!breeds.some(x=>x.name===b.name)).map(b=>b.name);
+  const an=document.getElementById("absentNote");
+  an.hidden=!abs.length;
+  an.innerHTML=abs.length?`<b>Absent:</b> ${abs.map(esc).join(", ")}. They're left out of the classes and award counts.${gone.length?` Not judged, all dogs absent: ${gone.map(esc).join(", ")}.`:""} <a href="absent.html">Change</a>`:"";
 }
 function resultsText(breeds,gAw){
   const out=[`MNCF Championship Show, Saturday 31 October 2026 · Judge: ${JUDGE}`,""];
   breeds.forEach(b=>{
     out.push(b.name.toUpperCase());
     b.classes.forEach(c=>{
-      const parts=PLACES.slice(0,Math.min(3,c.entries.length)).map(pl=>{const v=res[ck(b,c,pl.p)];if(!v)return null;if(v===W)return `${pl.t}: withheld`;const e=findEntry(b,v);return `${pl.t}: ${e?label(e):v}`}).filter(Boolean);
+      const parts=PLACES.slice(0,nPlaces(b,c)).map(pl=>{const v=res[ck(b,c,pl.p)];if(!v)return null;if(v===W)return `${pl.t}: withheld`;const e=findEntry(b,v);return `${pl.t}: ${e?label(e):v}`}).filter(Boolean);
       out.push(`  ${c.name}: ${parts.length?parts.join(", "):"—"}`);
     });
     breedAwards(b).forEach(a=>{const v=res[bk(b,a.id)];const e=v&&v!==W?findEntry(b,v):null;out.push(`  ${a.t}: ${v===W?"withheld":e?label(e):"—"}`)});
@@ -388,7 +381,7 @@ function exportExcel(){
   const cls=[["Round","Breed","Group","Class","Entries","Place","Ring No","Dog","Given"]];
   const ba=[["Breed","Group","Award","Ring No","Dog","Given"]];
   breeds.forEach((b,i)=>{
-    b.classes.forEach(c=>PLACES.slice(0,Math.min(3,c.entries.length)).forEach(pl=>{
+    b.classes.forEach(c=>PLACES.slice(0,nPlaces(b,c)).forEach(pl=>{
       const k=ck(b,c,pl.p),v=res[k],e=v&&v!==W?findEntry(b,v):null;
       cls.push([i+1,b.name,b.group||"",c.name,c.entries.length,pl.t,e?(+e.no||e.no):"",e?e.name:val(v),res["g|"+k]?"Yes":""]);
     }));
