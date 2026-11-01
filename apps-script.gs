@@ -1,8 +1,9 @@
-// MNCF show results sync. Paste into Extensions > Apps Script in the results Google Sheet,
+// MNCF show results sync. Writes to the "MNCF November 2026 Show Results" Google Sheet.
+// Paste into a new Apps Script project (script.new),
 // then Deploy > New deployment > Web app, Execute as: Me, Who has access: Anyone.
 function doPost(e) {
   var data = JSON.parse(e.postData.contents);
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = SpreadsheetApp.openById("1WUewn_cLPeipR-GvvWqZRtmhWd59T8NYRQAh9n6VsgI");
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
