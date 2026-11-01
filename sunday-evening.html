@@ -133,6 +133,14 @@ pre{white-space:pre-wrap;font-size:13px;background:var(--bg);border:1px solid va
       <button id="copyBtn">Copy results</button>
       <button class="danger" id="resetBtn">Clear all results</button>
     </div>
+    <details style="margin-top:4px"><summary style="cursor:pointer;font-weight:600;font-size:14px">Restore results from copied text</summary>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+        <p class="note">Paste results copied with "Copy results" (from this page or another phone). Matching results are filled in and marked as given. Anything already recorded here is overwritten.</p>
+        <textarea id="importBox" placeholder="MNCF Championship Show, …&#10;&#10;ENGLISH SETTER&#10;  Open Dog: 1st: 105 · …"></textarea>
+        <div class="btns"><button class="pri" id="importBtn">Restore results</button></div>
+        <p class="note" id="importMsg"></p>
+      </div>
+    </details>
     <p class="note">Every choice saves straight away on this device and is still there if you close or refresh the page. Export to Excel now and then as a backup.</p>
   </section>
 </div>
@@ -418,6 +426,40 @@ function exportExcel(){
   catch(e){toast("Download blocked here. Open the GitHub version to export.")}
 }
 document.getElementById("xlsxBtn").onclick=exportExcel;
+function importText(txt){
+  const breeds=allBreeds();let cur=null,n=0;const miss=[];
+  const valOf=(b,str)=>{str=str.trim();if(/^withheld$/i.test(str))return W;const m=str.match(/^(\d+)\s*·/);if(!m)return null;return b&&findEntry(b,m[1])?m[1]:null};
+  const set=(k,v)=>{res[k]=v;delete res["auto-off|"+k];if(v!==W)res["g|"+k]=1;n++};
+  for(const raw of txt.split(/\r?\n/)){
+    const line=raw.replace(/\s+$/,"");if(!line.trim())continue;
+    if(/^MNCF Championship Show/.test(line))continue;
+    if(!/^\s/.test(line)){cur=line.trim()==="GROUP JUDGING"?"GROUP":breeds.find(b=>b.name.toUpperCase()===line.trim().toUpperCase())||null;if(!cur&&line.trim())miss.push(line.trim());continue}
+    if(!cur)continue;
+    const t=line.trim();
+    if(cur==="GROUP"){
+      const m=t.match(/^(.+?) · (.+?): (.+)$/);if(!m)continue;
+      const a=groupAwards(allBreeds()).find(x=>x.sec===m[1]&&x.t===m[2]);if(!a)continue;
+      if(/^withheld$/i.test(m[3].trim())){set(a.k,W);continue}
+      const no=(m[3].match(/^(\d+)\s*·/)||[])[1];const b=no&&breeds.find(b=>findEntry(b,no));
+      if(b)set(a.k,b.name+"::"+no);continue;
+    }
+    const i=t.indexOf(": ");if(i<0)continue;
+    const name=t.slice(0,i),rest=t.slice(i+2);
+    const c=cur.classes.find(c=>c.name===name);
+    if(c){rest.split(/, (?=(?:1st|2nd|3rd): )/).forEach(part=>{const m=part.match(/^(1st|2nd|3rd): (.+)$/);if(!m)return;const p={"1st":1,"2nd":2,"3rd":3}[m[1]];const v=valOf(cur,m[2]);if(v)set(ck(cur,c,p),v)});continue}
+    const aw=breedAwards(cur).find(a=>a.t===name);
+    if(aw){const v=valOf(cur,rest);if(v)set(bk(cur,aw.id),v)}
+  }
+  save(KS,res);render();
+  return {n,miss};
+}
+document.getElementById("importBtn").onclick=()=>{
+  const box=document.getElementById("importBox"),msg=document.getElementById("importMsg");
+  if(!box.value.trim()){msg.textContent="Paste the copied results first.";return}
+  const r=importText(box.value);
+  msg.textContent=r.n?`Restored ${r.n} results.${r.miss.length?" Not on this page: "+r.miss.join(", ")+".":""}`:"No results matched this page. Check you're on the right day.";
+  if(r.n){box.value="";toast("Results restored")}
+};
 document.getElementById("copyBtn").onclick=()=>{
   const txt=document.getElementById("resultsText").textContent;
   const fb=()=>{const r=document.createRange();r.selectNodeContents(document.getElementById("resultsText"));const s=getSelection();s.removeAllRanges();s.addRange(r);toast("Selected. Use your phone's Copy")};
