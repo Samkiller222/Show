@@ -1,6 +1,6 @@
 # MNCF Show Awards Desk
 
-Awards checklist and results recorder for The Maltese National Canine Federation November 2026 Championship Show — currently loaded with Sunday 1 November 2026 (Gundog and Toy groups). Saturday's version is in `archive/saturday-31-oct.html`.
+Awards checklist and results recorder for The Maltese National Canine Federation November 2026 Championship Show — currently loaded with Sunday 1 November 2026 (Gundog and Toy groups). Each session has its own page: `saturday.html`, `sunday-morning.html` and `sunday-evening.html`, linked from `index.html`.
 
 Open `index.html` in a browser, or turn on GitHub Pages (Settings → Pages → Deploy from branch → `main`) to use it from a phone.
 
