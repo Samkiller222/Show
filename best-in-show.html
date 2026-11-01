@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>MNCF Awards · Best in Show</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
+<style>
+/* Layout: one column of breed cards under a sticky progress bar; ribbon colours match the real rosettes */
+:root{
+  --bg:#f3f4f7; --card:#ffffff; --fg:#1b1f2a; --muted:#5d6475; --line:#dde0e8;
+  --accent:#4b2fa3; --accent-soft:#ece8f9;
+  --red:#c8322f; --blue:#1f2d5c; --gold:#e9a62b; --ok:#1f8a4c; --ok-soft:#e3f4ea;
+  --display:"Barlow Condensed","Arial Narrow",sans-serif; --body:"Barlow",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#12141b; --card:#1b1e28; --fg:#e9ebf2; --muted:#9aa1b4; --line:#2c3040;
+  --accent:#a995ff; --accent-soft:#2a2445; --red:#e5544f; --blue:#7f95e0; --gold:#f2b84a; --ok:#4cc483; --ok-soft:#173326; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12141b; --card:#1b1e28; --fg:#e9ebf2; --muted:#9aa1b4; --line:#2c3040;
+  --accent:#a995ff; --accent-soft:#2a2445; --red:#e5544f; --blue:#7f95e0; --gold:#f2b84a; --ok:#4cc483; --ok-soft:#173326; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.45}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--card)}
+.wrap{max-width:760px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 48px;display:flex;flex-direction:column;gap:18px}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--card);border-bottom:1px solid var(--line);padding-block:12px;margin-inline:calc(-1 * max(16px,env(safe-area-inset-left,0px)));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1{font-family:var(--display);font-size:24px;margin:0;letter-spacing:.01em;line-height:1.1}
+.sub{color:var(--muted);font-size:13px}
+.bar{height:6px;border-radius:3px;background:var(--line);margin-top:8px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--ok);width:0;transition:width .3s}
+.prog{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-top:4px;font-variant-numeric:tabular-nums}
+h2{font-family:var(--display);font-size:20px;margin:0;text-transform:uppercase;letter-spacing:.03em}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.stock{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.rounds{display:flex;flex-direction:column}
+.round{display:grid;grid-template-columns:minmax(0,13em) minmax(0,1fr);gap:6px 12px;padding-block:9px;border-top:1px solid var(--line);align-items:start}
+.round:first-child{border-top:0;padding-top:0}
+.rname{font-weight:600;font-size:14px;display:flex;gap:8px}
+.rname span{color:var(--muted);font-variant-numeric:tabular-nums;min-width:1.6em}
+.needs{display:flex;flex-wrap:wrap;gap:6px}
+.need{display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:3px 9px 3px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);white-space:nowrap}
+.need .rib{width:8px;height:16px}
+.bneeds{padding:8px 14px 10px;background:var(--accent-soft);display:flex;flex-wrap:wrap;gap:6px}
+.breed.done .bneeds{background:var(--ok-soft)}
+.totals{border-top:1px solid var(--line);padding-top:10px}
+@media (max-width:520px){.round{grid-template-columns:minmax(0,1fr)}}
+.chip{display:flex;align-items:center;gap:8px;font-size:14px;font-variant-numeric:tabular-nums}
+.chip b{font-family:var(--display);font-size:20px;min-width:22px;text-align:right}
+.rib{width:12px;height:26px;border-radius:2px;flex:none;clip-path:polygon(0 0,100% 0,100% 100%,50% 82%,0 100%)}
+.r1{background:var(--red)}.r2{background:var(--blue)}.r3{background:var(--gold)}.rc{background:var(--accent)}
+.breed{background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.breed.done{border-color:var(--ok)}
+.bhead{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:12px 14px;background:var(--accent-soft)}
+.breed.done .bhead{background:var(--ok-soft)}
+.bhead small{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.06em}
+.count{font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.cls{padding:10px 14px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
+.cls h3{margin:0;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+.row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center}
+.lab{font-size:13px;font-weight:600;min-width:92px;display:flex;align-items:center;gap:8px}
+select,input[type=text],textarea{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 10px;width:100%;min-width:0}
+select:focus,textarea:focus,button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.given{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);cursor:pointer;user-select:none}
+.given input{width:22px;height:22px;accent-color:var(--ok)}
+.row.isgiven .lab,.row.isgiven select{opacity:.6}
+.note{font-size:13px;color:var(--muted);margin:0}
+.save{font-size:12px;color:var(--ok);margin-top:2px}.save.bad{color:var(--red);font-weight:600}
+.warn{font-size:13px;color:var(--red)}
+.btns{display:flex;flex-wrap:wrap;gap:8px}
+button{font:inherit;font-weight:600;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--fg);padding:9px 14px;cursor:pointer}
+button.pri{background:var(--accent);border-color:var(--accent);color:var(--card)}
+button.danger{color:var(--red)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+td,th{text-align:left;padding:7px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+.tw{overflow-x:auto}
+textarea{min-height:140px;font-size:14px}
+pre{white-space:pre-wrap;font-size:13px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px;margin:0;max-height:300px;overflow:auto}
+.nav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.nav a{font-size:13px;font-weight:600;text-decoration:none;color:var(--fg);border:1px solid var(--line);border-radius:999px;padding:5px 12px;background:var(--bg)}
+.nav a[aria-current="page"]{background:var(--accent);border-color:var(--accent);color:var(--card)}
+.empty{background:var(--card);border:1px dashed var(--line);border-radius:10px;padding:18px 14px;color:var(--muted);font-size:14px}
+.find{display:flex;gap:8px;flex-wrap:wrap}.find input{flex:1 1 180px}
+.dog{display:grid;grid-template-columns:3.2em minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 14px;border-top:1px solid var(--line);cursor:pointer}
+.dog .no{font-family:var(--display);font-size:20px;font-variant-numeric:tabular-nums}
+.dog small{display:block;color:var(--muted);font-size:12px}
+.dog input{width:22px;height:22px;accent-color:var(--red)}
+.dog.isabs{background:color-mix(in srgb,var(--red) 10%,transparent)}
+.dog.isabs .nm{text-decoration:line-through;color:var(--muted)}
+.abs-tag{font-size:12px;font-weight:600;color:var(--red)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:8px 14px;border-radius:8px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+@media (max-width:460px){.row{grid-template-columns:minmax(0,1fr) auto}.lab{grid-column:1/-1}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <nav class="nav" aria-label="Show days"><a href="index.html">All days</a><a href="saturday.html">Sat 31 Oct</a><a href="sunday-morning.html">Sun morning</a><a href="sunday-evening.html">Sun evening</a><a href="best-in-show.html" aria-current="page">Best in Show</a><a href="absent.html">Absent dogs</a></nav>
+    <h1>Best in Show finals</h1>
+    <div class="sub">Sun 1 Nov 2026 · Judge: Mr Adrian Bicknell</div>
+    <div class="save" id="saveState">Saved on this device</div>
+    <div class="save" id="syncState"></div>
+    <div class="bar"><i id="barFill"></i></div>
+    <div class="prog"><span id="progText"></span><span></span></div>
+  </header>
+  <section class="panel">
+    <h2>How this works</h2>
+    <p class="note">Finalists are filled in from the booklet. Working and Terrier come from the Sunday evening results once their groups are judged on this device. Change any finalist with its dropdown. Then pick the winner (and runner-up where there is one) and tick Given.</p>
+    <p class="note">If any of the six Best in Show finalists is a puppy, junior or veteran, Best in Show is judged before Best Puppy, Best Junior or Best Veteran in Show.</p>
+  </section>
+  <div id="finals" style="display:flex;flex-direction:column;gap:14px"></div>
+  <section class="panel">
+    <h2>Results</h2>
+    <pre id="resultsText"></pre>
+    <div class="btns"><button class="pri" id="copyBtn">Copy results</button><button class="danger" id="resetBtn">Clear finals</button></div>
+  </section>
+</div>
+<div class="toast" id="toast"></div>
+<script src="data.js"></script>
+<script src="sync.js"></script>
+<script>
+const KF="mncf-finals-v1", KA="mncf-absent-v1", W="__W", ABS="__ABS";
+function load(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
+function save(k,v){let ok=true;try{localStorage.setItem(k,JSON.stringify(v))}catch(e){ok=false}
+  const el=document.getElementById("saveState");el.textContent=ok?"Saved on this device "+new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):"Not saving on this device. Copy results regularly.";el.className="save"+(ok?"":" bad")}
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let fin=load(KF,{}), absent=load(KA,{});
+const D=window.SHOW_DATA||{};
+const STORE={"saturday":"mncf-awards-results-v2","sunday-morning":"mncf-awards-sun-results-v1","sunday-evening":"mncf-awards-sunpm-results-v1"};
+const SESS_OF={Utility:"saturday",Hound:"saturday",Gundog:"sunday-morning",Toy:"sunday-morning",Working:"sunday-evening",Terrier:"sunday-evening"};
+// every dog with its breed, group, class
+const DOGS=[];
+Object.entries(D).forEach(([sid,bs])=>bs.forEach(b=>b.classes.forEach(c=>c.entries.forEach(e=>DOGS.push({sid,no:e.no,name:e.name,breed:b.name,group:b.group||"",special:!!b.special,cls:c.name})))));
+const dogByNo=no=>DOGS.find(d=>d.no===no);
+const pool=f=>DOGS.filter(f);
+const stored=(sid,key)=>{const v=(load(STORE[sid],{})||{})[key];if(!v||v===W)return null;return String(v).includes("::")?v.split("::").pop():v};
+const avlb=sid=>{const b=(D[sid]||[]).find(b=>b.firstOnly);if(!b)return null;return stored(sid,`${b.name}|${b.classes[0].name}|1`)};
+const G6=["Utility","Hound","Gundog","Toy","Working","Terrier"];
+// finalists from the booklet (page 24)
+const BOOK={
+  BVIS:{"Utility / Hound":"102","Gundog":"88"},
+  AVLB:{"Utility":ABS,"Gundog / Toy":"32"},
+  BPIS:{Utility:"17",Hound:"108",Gundog:"114",Toy:"87"},
+  BJIS:{Utility:"36",Hound:"23",Gundog:"33",Toy:"40"},
+  BIS:{Utility:"95",Hound:"102",Gundog:"105",Toy:"90"}
+};
+const FINALS=[
+  {id:"BVIS",t:"Best Veteran in Show",reserve:false,slots:[
+    {lab:"Utility / Hound",sid:"saturday",key:"GROUP|Best Veteran Utility / Hound|BVG",pool:()=>pool(d=>(d.group==="Utility"||d.group==="Hound")&&/veteran/i.test(d.cls))},
+    {lab:"Gundog",sid:"sunday-morning",key:"GROUP|Best Veteran Gundog|BVG",pool:()=>pool(d=>d.group==="Gundog"&&/veteran/i.test(d.cls))},
+    {lab:"Working",sid:"sunday-evening",key:"GROUP|Best Veteran Working|BVG",pool:()=>pool(d=>d.group==="Working"&&/veteran/i.test(d.cls))}]},
+  {id:"AVLB",t:"Best in Any Variety Locally Bred",reserve:false,slots:[
+    {lab:"Utility",avlb:"saturday",pool:()=>pool(d=>d.sid==="saturday"&&d.special&&/locally/i.test(d.breed))},
+    {lab:"Gundog / Toy",avlb:"sunday-morning",pool:()=>pool(d=>d.sid==="sunday-morning"&&d.special&&/locally/i.test(d.breed))},
+    {lab:"Working",avlb:"sunday-evening",pool:()=>pool(d=>d.sid==="sunday-evening"&&d.special&&/locally/i.test(d.breed))}]},
+  ...[["BPIS","Best Puppy in Show","BPG",/puppy/i],["BJIS","Best Junior in Show","BJG",/junior/i],["BIS","Best in Show","BIG",null]].map(([id,t,gid,re])=>({id,t,reserve:true,
+    slots:G6.map(g=>({lab:g,sid:SESS_OF[g],key:`GROUP|${g} Group|${gid}`,pool:()=>pool(d=>d.group===g&&(!re||re.test(d.cls)))}))}))
+];
+// judging order: Best in Show goes first if any of its finalists is a puppy, junior or veteran
+function finalist(F,s){
+  const k=`${F.id}|${s.lab}`;
+  if(fin[k]!==undefined) return {v:fin[k],src:"chosen here"};
+  const b=(BOOK[F.id]||{})[s.lab];
+  if(b) return {v:b,src:"from booklet"};
+  const st=s.avlb?avlb(s.avlb):stored(s.sid,s.key);
+  if(st) return {v:st,src:"from "+(window.SHOW_SESSIONS||[]).find(x=>x.id===(s.avlb||s.sid)).label+" results"};
+  return {v:"",src:""};
+}
+const dlabel=no=>{const d=dogByNo(no);return d?(d.special?`${d.no} · ${d.name}`:`${d.no} · ${d.name} (${d.breed})`):no};
+function finalistsOf(F){return F.slots.map(s=>({s,...finalist(F,s)})).filter(x=>x.v&&x.v!==ABS&&!absent[x.v])}
+function row(k,lab,opts,cur,hint,extra){
+  const g=!!fin["g|"+k];
+  return `<div class="row${g?" isgiven":""}"><span class="lab">${lab}</span><select data-k="${esc(k)}" aria-label="${esc(k)}"><option value="">${hint}</option>${opts}${extra||""}</select><label class="given"><input type="checkbox" data-g="${esc(k)}"${g?" checked":""}>Given</label></div>`;
+}
+const opt=(v,l,cur)=>`<option value="${esc(v)}"${v===cur?" selected":""}>${esc(l)}</option>`;
+function render(){
+  absent=load(KA,{});
+  let total=0,given=0;const lines=["MNCF Championship Show, November 2026 · Best in Show finals · Judge: Mr Adrian Bicknell",""];
+  const rows=[["Final","Placing","Ring No","Dog","Breed","Group","Given"]];
+  const bisF=finalistsOf(FINALS.find(f=>f.id==="BIS"));
+  const early=bisF.some(x=>{const d=dogByNo(x.v);return d&&/puppy|junior|veteran/i.test(d.cls)});
+  document.getElementById("finals").innerHTML=FINALS.map(F=>{
+    const fl=finalistsOf(F);
+    const ready=F.slots.every(s=>finalist(F,s).v);
+    let h=`<article class="breed"><div class="bhead"><div><small>${F.reserve?"Winner and runner-up":"Winner only"}${F.id==="BIS"&&early?" · judge this before the puppy, junior and veteran finals":""}</small><h2>${esc(F.t)}</h2></div><span class="count">${fl.length} finalist${fl.length===1?"":"s"}</span></div>`;
+    h+=`<div class="cls"><h3>Finalists</h3>`;
+    F.slots.forEach(s=>{
+      const f=finalist(F,s),k=`${F.id}|${s.lab}`,p=s.pool();
+      const isAbs=f.v===ABS||(f.v&&absent[f.v]);
+      h+=`<div class="row"><span class="lab">${esc(s.lab)}</span><select data-f="${esc(k)}" aria-label="${esc(F.t+" "+s.lab)} finalist"><option value="">No finalist</option>${p.map(d=>opt(d.no,dlabel(d.no),f.v)).join("")}<option value="${ABS}"${f.v===ABS?" selected":""}>Absent</option></select><span class="note" style="white-space:nowrap">${isAbs?'<span class="abs-tag">Absent</span>':esc(f.src)}</span></div>`;
+    });
+    h+=`</div><div class="cls"><h3>Result</h3>`;
+    const wk=`${F.id}|WIN`,rk=`${F.id}|RES`;
+    let win=fin[wk]||""; if(win&&win!==W&&!fl.some(x=>x.v===win)){delete fin[wk];win=""}
+    if(!win&&ready&&fl.length===1&&!fin["auto-off|"+wk]){win=fl[0].v;fin[wk]=win}
+    h+=row(wk,`<span class="rib r1"></span>${esc(F.t)}`,fl.map(x=>opt(x.v,dlabel(x.v),win)).join(""),win,fl.length?"Choose winner…":"Add finalists first",opt(W,"Withheld",win));
+    total++;if(fin["g|"+wk])given++;
+    const wd=win&&win!==W?dogByNo(win):null;
+    lines.push(`${F.t}: ${win===W?"withheld":wd?dlabel(win):"—"}`);
+    rows.push([F.t,"Winner",wd?wd.no:"",wd?wd.name:(win===W?"Withheld":""),wd?(wd.special?"":wd.breed):"",wd?wd.group:"",fin["g|"+wk]?"Yes":""]);
+    if(F.reserve){
+      let rs=fin[rk]||"";const rp=fl.filter(x=>x.v!==win);
+      if(rs&&rs!==W&&!rp.some(x=>x.v===rs)){delete fin[rk];rs=""}
+      if(!rs&&win&&rp.length===1&&!fin["auto-off|"+rk]){rs=rp[0].v;fin[rk]=rs}
+      h+=row(rk,`<span class="rib r2"></span>Runner-up`,rp.map(x=>opt(x.v,dlabel(x.v),rs)).join(""),rs,win?"Choose runner-up…":"Choose after the winner",opt(W,"Withheld",rs));
+      total++;if(fin["g|"+rk])given++;
+      const rd=rs&&rs!==W?dogByNo(rs):null;
+      lines.push(`  Runner-up: ${rs===W?"withheld":rd?dlabel(rs):"—"}`);
+      rows.push([F.t,"Runner-up",rd?rd.no:"",rd?rd.name:(rs===W?"Withheld":""),rd?rd.breed:"",rd?rd.group:"",fin["g|"+rk]?"Yes":""]);
+    }
+    lines.push("  Finalists: "+(fl.map(x=>dlabel(x.v)).join("; ")||"—"),"");
+    return h+`</div></article>`;
+  }).join("");
+  save(KF,fin);
+  document.getElementById("barFill").style.width=(given/total*100)+"%";
+  document.getElementById("progText").textContent=`${given} of ${total} awards given`;
+  document.getElementById("resultsText").textContent=lines.join("\n");
+  window.mncfSync&&mncfSync("Best in Show",rows);
+}
+document.addEventListener("change",ev=>{const t=ev.target;
+  if(t.dataset.f){fin[t.dataset.f]=t.value;render()}
+  if(t.dataset.k){const k=t.dataset.k;if(t.value){fin[k]=t.value;delete fin["auto-off|"+k]}else{delete fin[k];fin["auto-off|"+k]=1}render()}
+  if(t.dataset.g){if(t.checked)fin["g|"+t.dataset.g]=1;else delete fin["g|"+t.dataset.g];render()}
+});
+window.addEventListener("pageshow",render);
+function toast(t){const el=document.getElementById("toast");el.textContent=t;el.classList.add("show");setTimeout(()=>el.classList.remove("show"),1800)}
+document.getElementById("copyBtn").onclick=()=>{const txt=document.getElementById("resultsText").textContent;
+  const fb=()=>{const r=document.createRange();r.selectNodeContents(document.getElementById("resultsText"));const s=getSelection();s.removeAllRanges();s.addRange(r);toast("Selected. Use your phone's Copy")};
+  try{navigator.clipboard.writeText(txt).then(()=>toast("Results copied"),fb)}catch(e){fb()}};
+let armed=false;
+document.getElementById("resetBtn").onclick=ev=>{const b=ev.currentTarget;
+  if(!armed){armed=true;b.textContent="Tap again to clear finals";setTimeout(()=>{armed=false;b.textContent="Clear finals"},3000);return}
+  armed=false;b.textContent="Clear finals";fin={};render();toast("Finals cleared")};
+render();
+</script>
+</body>
+</html>
