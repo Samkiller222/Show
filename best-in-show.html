@@ -110,7 +110,7 @@ pre{white-space:pre-wrap;font-size:13px;background:var(--bg);border:1px solid va
   </header>
   <section class="panel">
     <h2>How this works</h2>
-    <p class="note">Finalists are filled in from the booklet. Working and Terrier come from the Sunday evening results once their groups are judged on this device. Change any finalist with its dropdown. Then pick the winner (and runner-up where there is one) and tick Given.</p>
+    <p class="note">The competitors in each final are the group winners: Best in Group goes to Best in Show, Best Junior in Group to Best Junior in Show, Best Puppy in Group to Best Puppy in Show, the Best Veteran group winners to Best Veteran in Show, and each AV Locally Bred 1st to Best in AV Locally Bred. They fill in from each day's group results on this phone. Where a day's results aren't on this phone, the booklet's list is used. Change any competitor with its dropdown, then pick the winner (and runner-up where there is one) and tick Given.</p>
     <p class="note">If any of the six Best in Show finalists is a puppy, junior or veteran, Best in Show is judged before Best Puppy, Best Junior or Best Veteran in Show.</p>
   </section>
   <div id="finals" style="display:flex;flex-direction:column;gap:14px"></div>
@@ -165,10 +165,10 @@ const FINALS=[
 function finalist(F,s){
   const k=`${F.id}|${s.lab}`;
   if(fin[k]!==undefined) return {v:fin[k],src:"chosen here"};
+  const st=s.avlb?avlb(s.avlb):stored(s.sid,s.key);
+  if(st) return {v:st,src:"group winner, "+(window.SHOW_SESSIONS||[]).find(x=>x.id===(s.avlb||s.sid)).label};
   const b=(BOOK[F.id]||{})[s.lab];
   if(b) return {v:b,src:"from booklet"};
-  const st=s.avlb?avlb(s.avlb):stored(s.sid,s.key);
-  if(st) return {v:st,src:"from "+(window.SHOW_SESSIONS||[]).find(x=>x.id===(s.avlb||s.sid)).label+" results"};
   return {v:"",src:""};
 }
 const dlabel=no=>{const d=dogByNo(no);return d?(d.special?`${d.no} · ${d.name}`:`${d.no} · ${d.name} (${d.breed})`):no};
@@ -187,18 +187,18 @@ function render(){
   document.getElementById("finals").innerHTML=FINALS.map(F=>{
     const fl=finalistsOf(F);
     const ready=F.slots.every(s=>finalist(F,s).v);
-    let h=`<article class="breed"><div class="bhead"><div><small>${F.reserve?"Winner and runner-up":"Winner only"}${F.id==="BIS"&&early?" · judge this before the puppy, junior and veteran finals":""}</small><h2>${esc(F.t)}</h2></div><span class="count">${fl.length} finalist${fl.length===1?"":"s"}</span></div>`;
-    h+=`<div class="cls"><h3>Finalists</h3>`;
+    let h=`<article class="breed"><div class="bhead"><div><small>${F.reserve?"Winner and runner-up":"Winner only"}${F.id==="BIS"&&early?" · judge this before the puppy, junior and veteran finals":""}</small><h2>${esc(F.t)}</h2></div><span class="count">${fl.length} competitor${fl.length===1?"":"s"}</span></div>`;
+    h+=`<div class="cls"><h3>Competitors (group winners)</h3>`;
     F.slots.forEach(s=>{
       const f=finalist(F,s),k=`${F.id}|${s.lab}`,p=s.pool();
       const isAbs=f.v===ABS||(f.v&&absent[f.v]);
-      h+=`<div class="row"><span class="lab">${esc(s.lab)}</span><select data-f="${esc(k)}" aria-label="${esc(F.t+" "+s.lab)} finalist"><option value="">No finalist</option>${p.map(d=>opt(d.no,dlabel(d.no),f.v)).join("")}<option value="${ABS}"${f.v===ABS?" selected":""}>Absent</option></select><span class="note" style="white-space:nowrap">${isAbs?'<span class="abs-tag">Absent</span>':esc(f.src)}</span></div>`;
+      h+=`<div class="row"><span class="lab">${esc(s.lab)}</span><select data-f="${esc(k)}" aria-label="${esc(F.t+" "+s.lab)} finalist"><option value="">Not decided yet</option>${p.map(d=>opt(d.no,dlabel(d.no),f.v)).join("")}<option value="${ABS}"${f.v===ABS?" selected":""}>Absent</option></select><span class="note" style="white-space:nowrap">${isAbs?'<span class="abs-tag">Absent</span>':esc(f.src)}</span></div>`;
     });
     h+=`</div><div class="cls"><h3>Result</h3>`;
     const wk=`${F.id}|WIN`,rk=`${F.id}|RES`;
     let win=fin[wk]||""; if(win&&win!==W&&!fl.some(x=>x.v===win)){delete fin[wk];win=""}
     if(!win&&ready&&fl.length===1&&!fin["auto-off|"+wk]){win=fl[0].v;fin[wk]=win}
-    h+=row(wk,`<span class="rib r1"></span>${esc(F.t)}`,fl.map(x=>opt(x.v,dlabel(x.v),win)).join(""),win,fl.length?"Choose winner…":"Add finalists first",opt(W,"Withheld",win));
+    h+=row(wk,`<span class="rib r1"></span>${esc(F.t)}`,fl.map(x=>opt(x.v,dlabel(x.v),win)).join(""),win,fl.length?"Choose winner…":"Add competitors first",opt(W,"Withheld",win));
     total++;if(fin["g|"+wk])given++;
     const wd=win&&win!==W?dogByNo(win):null;
     lines.push(`${F.t}: ${win===W?"withheld":wd?dlabel(win):"—"}`);
@@ -213,7 +213,7 @@ function render(){
       lines.push(`  Runner-up: ${rs===W?"withheld":rd?dlabel(rs):"—"}`);
       rows.push([F.t,"Runner-up",rd?rd.no:"",rd?rd.name:(rs===W?"Withheld":""),rd?rd.breed:"",rd?rd.group:"",fin["g|"+rk]?"Yes":""]);
     }
-    lines.push("  Finalists: "+(fl.map(x=>dlabel(x.v)).join("; ")||"—"),"");
+    lines.push("  Competitors: "+(fl.map(x=>dlabel(x.v)).join("; ")||"—"),"");
     return h+`</div></article>`;
   }).join("");
   save(KF,fin);
