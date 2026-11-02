@@ -104,6 +104,7 @@ function doPost(e) {
       case "setAbsent": return json_(setAbsent_(d));
       case "saveResults": return json_(saveResults_(d));
       case "extract": return json_(extract_(d));
+      case "syncState": return json_(syncState_(d));
       case "importEntries": return json_(importEntries_(d));
       default: return json_({ ok: false, error: "Unknown action" });
     }
@@ -217,6 +218,46 @@ function saveResults_(d) {
     sh.getRange(start, 8, rows.length, 1).insertCheckboxes();
   }
   return { ok: true };
+}
+
+// ---------- Live results shared between phones ----------
+// One row per award per show: the chosen dog (as JSON), when the phone changed it, and when the sheet saved it.
+function liveTab_() {
+  var ss = ss_(), sh = ss.getSheetByName("Live results");
+  if (!sh) {
+    sh = ss.insertSheet("Live results");
+    sh.getRange(1, 1, 1, 5).setValues([["Show", "Award key", "Value", "Changed (ms)", "Saved (ms)"]]).setFontWeight("bold");
+    sh.setFrozenRows(1);
+    sh.getRange("C:C").setNumberFormat("@");
+    sh.hideSheet();
+  }
+  return sh;
+}
+function syncState_(d) {
+  var show = String(d.show || "").trim();
+  if (!findShow_(show)) return { ok: false, error: "That show isn't in the Shows tab." };
+  var sh = liveTab_(), n = sh.getLastRow();
+  var vals = n > 1 ? sh.getRange(2, 1, n - 1, 5).getValues() : [];
+  var idx = {}, now = Date.now(), changed = false;
+  vals.forEach(function (r, i) { if (norm_(r[0]) === norm_(show)) idx[String(r[1])] = i; });
+  (d.changes || []).forEach(function (c) {
+    var k = String(c[0]), v = (c[1] === null || c[1] === undefined) ? "" : JSON.stringify(c[1]), t = Number(c[2]) || now;
+    var i = idx[k];
+    if (i === undefined) { vals.push([show, k, v, t, now]); idx[k] = vals.length - 1; changed = true; }
+    else if (t >= Number(vals[i][3])) { vals[i][2] = v; vals[i][3] = t; vals[i][4] = now; changed = true; }
+  });
+  if (changed && vals.length) {
+    sh.getRange(2, 3, vals.length, 1).setNumberFormat("@");
+    sh.getRange(2, 1, vals.length, 5).setValues(vals);
+  }
+  var since = Number(d.since) || 0, rows = [];
+  vals.forEach(function (r) {
+    if (norm_(r[0]) !== norm_(show) || Number(r[4]) <= since) return;
+    var v = null;
+    if (r[2] !== "" && r[2] !== null) { try { v = JSON.parse(String(r[2])); } catch (e) { v = r[2]; } }
+    rows.push([String(r[1]), v, Number(r[3])]);
+  });
+  return { ok: true, rows: rows, now: now };
 }
 
 // ---------- Claude: read an uploaded document ----------

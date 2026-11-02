@@ -97,6 +97,7 @@ pre{white-space:pre-wrap;font-size:13px;background:var(--bg);border:1px solid va
     <div class="sub" id="showSub">Loading the show…</div>
     <div class="save" id="saveState">Saved on this device</div>
     <div class="save" id="syncState"></div>
+    <div class="save" id="liveState"></div>
     <div class="bar"><i id="barFill"></i></div>
     <div class="prog"><span id="progText">0 of 0 awards given</span><span id="progBreeds"></span></div>
   </header>
@@ -152,6 +153,7 @@ function load(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}
 let saveOk=null;
 function save(k,v){
   try{localStorage.setItem(k,JSON.stringify(v));saveOk=new Date()}catch(e){saveOk=false}
+  if(k===KS&&window.mncfOnSave)window.mncfOnSave(v);
   const el=document.getElementById("saveState"); if(!el) return;
   if(saveOk===false){el.textContent="Not saving on this device. Export to Excel regularly.";el.className="save bad"}
   else{el.textContent="Saved on this device "+saveOk.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});el.className="save"}
@@ -479,8 +481,62 @@ document.getElementById("resetBtn").onclick=ev=>{
   if(!armed){armed=true;b.textContent="Tap again to clear everything";setTimeout(()=>{armed=false;b.textContent="Clear all results"},3000);return}
   armed=false;b.textContent="Clear all results";res={};save(KS,res);render();toast("Results cleared");
 };
+window.mncfEngine={res:()=>res,render};
 render();
+window.mncfLive&&window.mncfLive.start();
 }
+</script>
+<script>
+// Live results: every change goes to the sheet, and changes from other phones are pulled in.
+window.mncfLive=(function(){
+  let show="",META="",meta={t:{},snap:{},since:0},queue={},timer=null,pulling=false,started=false;
+  const loadMeta=()=>{try{meta=JSON.parse(localStorage.getItem(META))||meta}catch(e){}meta.t=meta.t||{};meta.snap=meta.snap||{};meta.since=meta.since||0};
+  const saveMeta=()=>{try{localStorage.setItem(META,JSON.stringify(meta))}catch(e){}};
+  const st=(t,bad)=>{const el=document.getElementById("liveState");if(el){el.textContent=t;el.className="save"+(bad?" bad":"")}};
+  // called by the engine after every local save: record what changed, with the time it changed
+  window.mncfOnSave=function(res){
+    if(!started) return;
+    const now=Date.now(),keys=new Set([...Object.keys(res),...Object.keys(meta.snap)]);
+    let n=0;
+    keys.forEach(k=>{const a=res[k]===undefined?null:res[k],b=meta.snap[k]===undefined?null:meta.snap[k];
+      if(JSON.stringify(a)!==JSON.stringify(b)){meta.t[k]=now;if(a===null)delete meta.snap[k];else meta.snap[k]=a;queue[k]=[k,a,now];n++}});
+    if(n){saveMeta();schedule(1200)}
+  };
+  function schedule(ms){clearTimeout(timer);timer=setTimeout(sync,ms)}
+  async function sync(){
+    if(pulling){schedule(2000);return}
+    pulling=true;
+    const changes=Object.values(queue);queue={};
+    try{
+      const j=await mncfApi("syncState",{show,changes,since:meta.since});
+      const E=window.mncfEngine;let applied=0;
+      if(E){const res=E.res();
+        (j.rows||[]).forEach(([k,v,t])=>{if((meta.t[k]||0)>=t)return;meta.t[k]=t;
+          if(v===null||v===undefined){delete res[k];delete meta.snap[k]}else{res[k]=v;meta.snap[k]=v}applied++});
+      }
+      meta.since=j.now||meta.since;saveMeta();
+      if(applied&&E){E.render();}
+      st(`Shared with other phones · ${new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit",second:"2-digit"})}${applied?` · ${applied} update${applied>1?"s":""} from another phone`:""}`);
+    }catch(e){
+      changes.forEach(c=>{if(!queue[c[0]])queue[c[0]]=c});
+      st("Not shared yet: "+e.message+" Retrying…",true);
+    }
+    pulling=false;
+    schedule(Object.keys(queue).length?3000:document.hidden?60000:15000);
+  }
+  document.addEventListener("visibilitychange",()=>{if(!document.hidden&&started)schedule(300)});
+  window.addEventListener("online",()=>started&&schedule(300));
+  return {
+    init(name){show=name;META="mncf-live::"+name;loadMeta()},
+    start(){
+      if(started) return; started=true;
+      // first time on this phone: anything already recorded here counts as a local change to share
+      const res=(window.mncfEngine&&window.mncfEngine.res())||{};
+      if(!meta.since){Object.keys(res).forEach(k=>{if(meta.snap[k]===undefined){meta.snap[k]=res[k];meta.t[k]=meta.t[k]||1;queue[k]=[k,res[k],meta.t[k]]}})}
+      saveMeta();st("Connecting to the show sheet…");schedule(200);
+    }
+  };
+})();
 </script>
 <script>
 (function(){
@@ -511,7 +567,7 @@ render();
   }
   window.mncfBuildBase=build;
   function start(info,entries,note){
-    window.SHOW_INFO=info;window.SHOW_BASE=build(entries);
+    window.SHOW_INFO=info;window.SHOW_BASE=build(entries);window.mncfLive.init(info.Show);
     document.getElementById("showTitle").textContent=info.Show;
     document.getElementById("showSub").textContent=[info.Date,info.Venue,info.Judge?"Judge: "+info.Judge:""].filter(Boolean).join(" · ");
     document.title="Awards · "+info.Show;
