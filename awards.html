@@ -1,0 +1,535 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>MNCF Show Awards</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
+<style>
+/* Layout: one column of breed cards under a sticky progress bar; ribbon colours match the real rosettes */
+:root{
+  --bg:#f3f4f7; --card:#ffffff; --fg:#1b1f2a; --muted:#5d6475; --line:#dde0e8;
+  --accent:#4b2fa3; --accent-soft:#ece8f9;
+  --red:#c8322f; --blue:#1f2d5c; --gold:#e9a62b; --ok:#1f8a4c; --ok-soft:#e3f4ea;
+  --display:"Barlow Condensed","Arial Narrow",sans-serif; --body:"Barlow",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#12141b; --card:#1b1e28; --fg:#e9ebf2; --muted:#9aa1b4; --line:#2c3040;
+  --accent:#a995ff; --accent-soft:#2a2445; --red:#e5544f; --blue:#7f95e0; --gold:#f2b84a; --ok:#4cc483; --ok-soft:#173326; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12141b; --card:#1b1e28; --fg:#e9ebf2; --muted:#9aa1b4; --line:#2c3040;
+  --accent:#a995ff; --accent-soft:#2a2445; --red:#e5544f; --blue:#7f95e0; --gold:#f2b84a; --ok:#4cc483; --ok-soft:#173326; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.45}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--card)}
+.wrap{max-width:760px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 48px;display:flex;flex-direction:column;gap:18px}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--card);border-bottom:1px solid var(--line);padding-block:12px;margin-inline:calc(-1 * max(16px,env(safe-area-inset-left,0px)));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1{font-family:var(--display);font-size:24px;margin:0;letter-spacing:.01em;line-height:1.1}
+.sub{color:var(--muted);font-size:13px}
+.bar{height:6px;border-radius:3px;background:var(--line);margin-top:8px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--ok);width:0;transition:width .3s}
+.prog{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-top:4px;font-variant-numeric:tabular-nums}
+h2{font-family:var(--display);font-size:20px;margin:0;text-transform:uppercase;letter-spacing:.03em}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.stock{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.rounds{display:flex;flex-direction:column}
+.round{display:grid;grid-template-columns:minmax(0,13em) minmax(0,1fr);gap:6px 12px;padding-block:9px;border-top:1px solid var(--line);align-items:start}
+.round:first-child{border-top:0;padding-top:0}
+.rname{font-weight:600;font-size:14px;display:flex;gap:8px}
+.rname span{color:var(--muted);font-variant-numeric:tabular-nums;min-width:1.6em}
+.needs{display:flex;flex-wrap:wrap;gap:6px}
+.need{display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:3px 9px 3px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);white-space:nowrap}
+.need .rib{width:8px;height:16px}
+.bneeds{padding:8px 14px 10px;background:var(--accent-soft);display:flex;flex-wrap:wrap;gap:6px}
+.breed.done .bneeds{background:var(--ok-soft)}
+.totals{border-top:1px solid var(--line);padding-top:10px}
+@media (max-width:520px){.round{grid-template-columns:minmax(0,1fr)}}
+.chip{display:flex;align-items:center;gap:8px;font-size:14px;font-variant-numeric:tabular-nums}
+.chip b{font-family:var(--display);font-size:20px;min-width:22px;text-align:right}
+.rib{width:12px;height:26px;border-radius:2px;flex:none;clip-path:polygon(0 0,100% 0,100% 100%,50% 82%,0 100%)}
+.r1{background:var(--red)}.r2{background:var(--blue)}.r3{background:var(--gold)}.rc{background:var(--accent)}
+.breed{background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.breed.done{border-color:var(--ok)}
+.bhead{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:12px 14px;background:var(--accent-soft)}
+.breed.done .bhead{background:var(--ok-soft)}
+.bhead small{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.06em}
+.count{font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.cls{padding:10px 14px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
+.cls h3{margin:0;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+.row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center}
+.lab{font-size:13px;font-weight:600;min-width:92px;display:flex;align-items:center;gap:8px}
+select,input[type=text],textarea{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 10px;width:100%;min-width:0}
+select:focus,textarea:focus,button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.given{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);cursor:pointer;user-select:none}
+.given input{width:22px;height:22px;accent-color:var(--ok)}
+.row.isgiven .lab,.row.isgiven select{opacity:.6}
+.note{font-size:13px;color:var(--muted);margin:0}
+.save{font-size:12px;color:var(--ok);margin-top:2px}.save.bad{color:var(--red);font-weight:600}
+.warn{font-size:13px;color:var(--red)}
+.btns{display:flex;flex-wrap:wrap;gap:8px}
+button{font:inherit;font-weight:600;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--fg);padding:9px 14px;cursor:pointer}
+button.pri{background:var(--accent);border-color:var(--accent);color:var(--card)}
+button.danger{color:var(--red)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+td,th{text-align:left;padding:7px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+.tw{overflow-x:auto}
+textarea{min-height:140px;font-size:14px}
+pre{white-space:pre-wrap;font-size:13px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px;margin:0;max-height:300px;overflow:auto}
+.nav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.nav a{font-size:13px;font-weight:600;text-decoration:none;color:var(--fg);border:1px solid var(--line);border-radius:999px;padding:5px 12px;background:var(--bg)}
+.nav a[aria-current="page"]{background:var(--accent);border-color:var(--accent);color:var(--card)}
+.empty{background:var(--card);border:1px dashed var(--line);border-radius:10px;padding:18px 14px;color:var(--muted);font-size:14px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:8px 14px;border-radius:8px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+@media (max-width:460px){.row{grid-template-columns:minmax(0,1fr) auto}.lab{grid-column:1/-1}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <nav class="nav" aria-label="Pages"><a href="index.html">All shows</a><a id="regLink" href="register.html">Register dogs</a><a id="awLink" href="awards.html" aria-current="page">Awards</a></nav>
+    <h1 id="showTitle">Awards</h1>
+    <div class="sub" id="showSub">Loading the show…</div>
+    <div class="save" id="saveState">Saved on this device</div>
+    <div class="save" id="syncState"></div>
+    <div class="bar"><i id="barFill"></i></div>
+    <div class="prog"><span id="progText">0 of 0 awards given</span><span id="progBreeds"></span></div>
+  </header>
+
+  <section class="panel">
+    <h2>Show totals</h2>
+    <div class="stock" id="stock"></div>
+    <p class="note" id="absentNote" hidden></p>
+    <p class="note">Built from this show's entries in the sheet. Each round lists the awards to take into the ring. A class with one dog only needs a 1st. AV Locally Bred and Best Veteran give a 1st only. Best in Show finals at the end take the group winners as their competitors.</p>
+    <p class="note" id="loadNote"></p>
+  </section>
+
+  <div id="breeds" style="display:flex;flex-direction:column;gap:14px"></div>
+  <div id="groups" style="display:flex;flex-direction:column;gap:14px"></div>
+
+  <section class="panel">
+    <h2>Best of Breed certificates</h2>
+    <p class="note">What to write on each card. Judge and date are already printed.</p>
+    <div class="tw"><table><thead><tr><th>Breed</th><th>Name</th></tr></thead><tbody id="bobList"></tbody></table></div>
+  </section>
+
+
+  <section class="panel">
+    <h2>Results</h2>
+    <pre id="resultsText"></pre>
+    <div class="btns">
+      <button class="pri" id="xlsxBtn">Export to Excel</button>
+      <button id="copyBtn">Copy results</button>
+      <button class="danger" id="resetBtn">Clear all results</button>
+    </div>
+    <details style="margin-top:4px"><summary style="cursor:pointer;font-weight:600;font-size:14px">Restore results from copied text</summary>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+        <p class="note">Paste results copied with "Copy results" (from this page or another phone). Matching results are filled in and marked as given. Anything already recorded here is overwritten.</p>
+        <textarea id="importBox" placeholder="MNCF Championship Show, …&#10;&#10;ENGLISH SETTER&#10;  Open Dog: 1st: 105 · …"></textarea>
+        <div class="btns"><button class="pri" id="importBtn">Restore results</button></div>
+        <p class="note" id="importMsg"></p>
+      </div>
+    </details>
+    <p class="note">Every choice saves straight away on this device and is still there if you close or refresh the page. Export to Excel now and then as a backup.</p>
+  </section>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="xlsx.full.min.js"></script>
+<script src="api.js"></script>
+<script>
+function startEngine(){
+const BASE=window.SHOW_BASE||[];
+const JUDGE=(window.SHOW_INFO||{}).Judge||"";
+const KS="mncf-show-results::"+(window.SHOW_INFO||{}).Show, KB="mncf-show-extra::"+(window.SHOW_INFO||{}).Show;
+function load(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
+let saveOk=null;
+function save(k,v){
+  try{localStorage.setItem(k,JSON.stringify(v));saveOk=new Date()}catch(e){saveOk=false}
+  const el=document.getElementById("saveState"); if(!el) return;
+  if(saveOk===false){el.textContent="Not saving on this device. Export to Excel regularly.";el.className="save bad"}
+  else{el.textContent="Saved on this device "+saveOk.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});el.className="save"}
+}
+let res=load(KS,{}), extra=load(KB,[]);
+const KA="mncf-show-absent::"+(window.SHOW_INFO||{}).Show;
+let absent=load(KA,{});
+function rawBreeds(){const m=new Map();BASE.forEach(b=>m.set(b.name.toUpperCase(),b));extra.forEach(b=>m.set(b.name.toUpperCase(),b));return [...m.values()]}
+function withoutAbsent(b){return {...b,classes:b.classes.map(c=>({...c,entries:c.entries.filter(e=>!absent[e.no])})).filter(c=>c.entries.length)}}
+function allBreeds(){return rawBreeds().map(withoutAbsent).filter(b=>b.classes.length)}
+window.addEventListener("storage",ev=>{if(ev.key===KA){absent=load(KA,{});render()}});
+window.addEventListener("pageshow",()=>{const a=load(KA,{});if(JSON.stringify(a)!==JSON.stringify(absent)){absent=a;render()}});
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const keyOf=e=>e.no||e.name, label=e=>(e.no?e.no+" · ":"")+e.name;
+const sexOf=c=>/bitch/i.test(c)?"B":/\bdog\b/i.test(c)?"D":"";
+const PLACES=[{p:1,t:"1st",c:"r1"},{p:2,t:"2nd",c:"r2"},{p:3,t:"3rd",c:"r3"}];
+const W="__W";
+const nPlaces=(b,c)=>Math.min(b.firstOnly?1:3,c.entries.length);
+const ck=(b,c,p)=>`${b.name}|${c.name}|${p}`, bk=(b,id)=>`${b.name}|*|${id}`;
+function findEntry(b,key){for(const c of b.classes)for(const e of c.entries)if(keyOf(e)===key)return e;return null}
+
+// Candidates for a breed award: winners of the feeding classes once they're decided, otherwise every dog in them
+function fromClasses(b,f){
+  const cls=b.classes.filter(c=>f(c.name));
+  if(!cls.length) return null;
+  const decided=cls.every(c=>res[ck(b,c,1)]);
+  if(decided) return {pool:cls.map(c=>res[ck(b,c,1)]).filter(v=>v!==W).map(k=>findEntry(b,k)).filter(Boolean),decided};
+  return {pool:cls.flatMap(c=>c.entries),decided};
+}
+function breedAwards(b){
+  if(b.special) return [];
+  const out=[];
+  const add=(id,t,f)=>{const r=fromClasses(b,f);if(r)out.push({id,t,...r})};
+  add("BD","Best Dog in Breed",c=>sexOf(c)==="D");
+  add("BB","Best Bitch in Breed",c=>sexOf(c)==="B");
+  add("BP","Best Puppy in Breed",c=>/puppy/i.test(c));
+  add("BJ","Best Junior in Breed",c=>/junior/i.test(c));
+  add("BV","Best Veteran in Breed",c=>/veteran/i.test(c));
+  // Best of Breed is chosen between Best Dog and Best Bitch
+  const feeders=out.filter(a=>a.id==="BD"||a.id==="BB");
+  const decided=feeders.every(a=>res[bk(b,a.id)]);
+  const pool=decided?feeders.map(a=>res[bk(b,a.id)]).filter(v=>v&&v!==W).map(k=>findEntry(b,k)).filter(Boolean):b.classes.flatMap(c=>c.entries);
+  out.push({id:"BOB",t:"Best of Breed",pool,decided});
+  return out;
+}
+function uniq(list,kf){const s=new Set();return list.filter(x=>{const k=kf(x);if(s.has(k))return false;s.add(k);return true})}
+
+// Group-level awards draw from breed winners
+const GKEY=(b,e)=>b.name+"::"+keyOf(e);
+function groupAwards(breeds){
+  const out=[];
+  const mk=(sec,id,t,breedsIn,awardId,noReserve)=>{
+    const rel=breedsIn.filter(b=>breedAwards(b).some(a=>a.id===awardId));
+    if(!rel.length) return;
+    const decided=rel.every(b=>res[bk(b,awardId)]);
+    const pool=[];
+    rel.forEach(b=>{const v=res[bk(b,awardId)];
+      if(decided){if(v&&v!==W){const e=findEntry(b,v);if(e)pool.push({k:GKEY(b,e),l:`${label(e)} (${b.name})`,b,e})}}
+      else{const a=breedAwards(b).find(a=>a.id===awardId);a.pool.forEach(e=>pool.push({k:GKEY(b,e),l:`${label(e)} (${b.name})`,b,e}))}
+    });
+    const p=uniq(pool,x=>x.k), k=`GROUP|${sec}|${id}`;
+    out.push({sec,k,t,pool:p,decided});
+    if(noReserve) return;
+    const win=res[k];
+    out.push({sec,k:k+"|R",t:"Runner-up "+t.replace(/^Best /,"").replace(/^./,c=>c.toLowerCase()),reserve:true,winKey:k,pool:p.filter(x=>x.k!==win),decided:decided&&!!win});
+  };
+  const groups=[...new Set(breeds.map(b=>b.group).filter(Boolean))];
+  groups.forEach(g=>{
+    const bs=breeds.filter(b=>b.group===g);
+    mk(g+" Group","BIG","Best in Group",bs,"BOB");
+    mk(g+" Group","BJG","Best Junior in Group",bs,"BJ");
+    mk(g+" Group","BPG","Best Puppy in Group",bs,"BP");
+  });
+  groups.forEach(g=>mk("Best Veteran "+g,"BVG","Best Veteran in Group",breeds.filter(b=>b.group===g),"BV",true));
+  // Best in Show finals: the competitors are the group winners
+  const fin=(id,t,src,noReserve)=>{
+    if(!src.length) return;
+    const decided=src.every(a=>res[a.k]);
+    let pool=decided?src.map(a=>a.pool.find(x=>x.k===res[a.k])).filter(Boolean):src.flatMap(a=>a.pool);
+    pool=uniq(pool,x=>x.k);
+    const sec="Best in Show finals", k=`SHOW|${id}`;
+    out.push({sec,k,t,pool,decided});
+    if(noReserve) return;
+    const win=res[k];
+    out.push({sec,k:k+"|R",t:"Runner-up "+t.replace(/^Best /,"").replace(/^./,c=>c.toLowerCase()),reserve:true,winKey:k,pool:pool.filter(x=>x.k!==win),decided:decided&&!!win});
+  };
+  const winners=id=>out.filter(a=>!a.reserve&&a.k.endsWith("|"+id));
+  const av=breeds.filter(b=>b.firstOnly).map(b=>{const c=b.classes[0];return {k:ck(b,c,1),pool:c.entries.map(e=>({k:keyOf(e),l:`${label(e)} (${b.name})`,b,e}))}});
+  if(av.length){
+    const decided=av.every(a=>res[a.k]);
+    let pool=decided?av.map(a=>a.pool.find(x=>x.k===res[a.k])).filter(Boolean):av.flatMap(a=>a.pool);
+    pool=pool.map(x=>({...x,k:GKEY(x.b,x.e)}));
+    out.push({sec:"Best in Show finals",k:"SHOW|AVLB",t:"Best in AV Locally Bred",pool,decided});
+  }
+  fin("BVIS","Best Veteran in Show",winners("BVG"),true);
+  fin("BPIS","Best Puppy in Show",winners("BPG"));
+  fin("BJIS","Best Junior in Show",winners("BJG"));
+  fin("BIS","Best in Show",winners("BIG"));
+  return out;
+}
+
+// Clear choices that no longer fit, and fill in any award with only one possible dog
+function reconcile(breeds){
+  breeds.forEach(b=>{
+    b.classes.forEach(c=>{
+      PLACES.slice(0,nPlaces(b,c)).forEach(pl=>{const k=ck(b,c,pl.p);const v=res[k];if(v&&v!==W&&!c.entries.some(e=>keyOf(e)===v))delete res[k]});
+      if(c.entries.length===1&&!res[ck(b,c,1)]&&!res["auto-off|"+ck(b,c,1)]) res[ck(b,c,1)]=keyOf(c.entries[0]);
+    });
+    // awards depend on earlier ones, so recompute after each
+    ["BD","BB","BP","BJ","BV","BOB"].forEach(id=>{
+      const a=breedAwards(b).find(x=>x.id===id); if(!a) return;
+      const k=bk(b,id), v=res[k], keys=a.pool.map(keyOf);
+      if(v&&v!==W&&!keys.includes(v)) delete res[k];
+      if(!res[k]&&a.pool.length===1&&!res["auto-off|"+k]) res[k]=keys[0];
+    });
+  });
+  for(let i=0;;i++){
+    const list=groupAwards(breeds); if(i>=list.length) break;
+    const a=list[i], v=res[a.k], keys=a.pool.map(x=>x.k);
+    if(v&&v!==W&&!keys.includes(v)) delete res[a.k];
+    if(!res[a.k]&&a.decided&&a.pool.length===1&&!res["auto-off|"+a.k]) res[a.k]=keys[0];
+  }
+}
+
+function row(k,lab,opts,cur,hint){
+  const g=!!res["g|"+k];
+  return `<div class="row${g?" isgiven":""}"><span class="lab">${lab}</span><select data-k="${esc(k)}" aria-label="${esc(k)}"><option value="">${hint||"Choose dog…"}</option>${opts}<option value="${W}"${cur===W?" selected":""}>Withheld</option></select><label class="given"><input type="checkbox" data-g="${esc(k)}"${g?" checked":""}>Given</label></div>`;
+}
+const opt=(v,l,cur,dis)=>`<option value="${esc(v)}"${v===cur?" selected":""}${dis?" disabled":""}>${esc(l)}</option>`;
+
+function needs(b){
+  const n=[],r=[0,0,0];
+  b.classes.forEach(c=>{const k=nPlaces(b,c);if(k>=1)r[0]++;if(k>=2)r[1]++;if(k>=3)r[2]++});
+  [["1st","r1"],["2nd","r2"],["3rd","r3"]].forEach(([t,c],i)=>{if(r[i])n.push({c,t:t+" ribbon",n:r[i]})});
+  breedAwards(b).forEach(a=>n.push({c:"rc",t:a.t.replace(" in Breed",""),n:1}));
+  return n;
+}
+const chips=list=>list.map(x=>`<span class="need"><span class="rib ${x.c}"${x.g?' style="background:var(--muted)"':''}></span>${x.n>1?x.n+" × ":""}${esc(x.t)}</span>`).join("");
+function render(){
+  const breeds=allBreeds();
+  reconcile(breeds); save(KS,res);
+  const gAw=groupAwards(breeds);
+
+  let r1=0,r2=0,r3=0;const cards={};
+  breeds.forEach(b=>{b.classes.forEach(c=>{const n=nPlaces(b,c);if(n>=1)r1++;if(n>=2)r2++;if(n>=3)r3++});breedAwards(b).forEach(a=>cards[a.t]=(cards[a.t]||0)+1)});
+  const order=["Best of Breed","Best Dog in Breed","Best Bitch in Breed","Best Puppy in Breed","Best Junior in Breed","Best Veteran in Breed"];
+  document.getElementById("stock").innerHTML=
+    [["1st ribbons",r1,"r1"],["2nd ribbons",r2,"r2"],["3rd ribbons",r3,"r3"]].map(([t,n,c])=>`<div class="chip"><span class="rib ${c}"></span><b>${n}</b>${t}</div>`).join("")+
+    order.filter(t=>cards[t]).map(t=>`<div class="chip"><span class="rib rc"></span><b>${cards[t]}</b>${t.replace(" in Breed","")}</div>`).join("")+
+    `<div class="chip"><span class="rib rc" style="background:var(--muted)"></span><b>${gAw.filter(a=>!a.reserve).length}</b>Group winner awards</div><div class="chip"><span class="rib rc" style="background:var(--muted)"></span><b>${gAw.filter(a=>a.reserve).length}</b>Group runner-up awards</div>`;
+
+
+
+
+  let total=0,given=0,doneBreeds=0;
+  document.getElementById("breeds").innerHTML=breeds.map((b,bi)=>{
+    const aw=breedAwards(b);
+    const keys=[...b.classes.flatMap(c=>PLACES.slice(0,nPlaces(b,c)).map(pl=>ck(b,c,pl.p))),...aw.map(a=>bk(b,a.id))];
+    const g=keys.filter(k=>res["g|"+k]).length; total+=keys.length; given+=g;
+    const done=g===keys.length; if(done)doneBreeds++;
+    let h=`<article class="breed${done?" done":""}"><div class="bhead"><div><small>Round ${bi+1}${b.group?` · ${esc(b.group)} Group`:""}</small><h2>${esc(b.name)}</h2></div><span class="count">${g} / ${keys.length} given</span></div><div class="bneeds">${chips(needs(b))}</div>`;
+    b.classes.forEach(c=>{
+      const n=nPlaces(b,c);
+      const chosen=PLACES.slice(0,n).map(pl=>res[ck(b,c,pl.p)]).filter(Boolean);
+      h+=`<div class="cls"><h3>${esc(c.name)} · ${c.entries.length} ${c.entries.length===1?"entry":"entries"}</h3>`;
+      PLACES.slice(0,n).forEach(pl=>{const k=ck(b,c,pl.p),cur=res[k]||"";
+        h+=row(k,`<span class="rib ${pl.c}"></span>${pl.t}`,c.entries.map(e=>opt(keyOf(e),label(e),cur,keyOf(e)!==cur&&chosen.includes(keyOf(e)))).join(""),cur)});
+      h+=`</div>`;
+    });
+    if(aw.length){
+      h+=`<div class="cls"><h3>Breed awards</h3>`;
+      aw.forEach(a=>{const k=bk(b,a.id),cur=res[k]||"";
+        const hint=a.decided?"Choose dog…":(a.id==="BOB"?"Choose after Best Dog / Bitch":"Choose after class winners");
+        h+=row(k,`<span class="rib rc"></span>${a.t.replace(" in Breed","")}`,uniq(a.pool,keyOf).map(e=>opt(keyOf(e),label(e),cur)).join(""),cur,hint)});
+      h+=`</div>`;
+    }
+    return h+`</article>`;
+  }).join("");
+
+  // groups
+  const secs=[...new Set(gAw.map(a=>a.sec))];
+  document.getElementById("groups").innerHTML=secs.map((sec,si)=>{
+    const list=gAw.filter(a=>a.sec===sec);
+    const g=list.filter(a=>res["g|"+a.k]).length; total+=list.length; given+=g;
+    let h=`<article class="breed${g===list.length?" done":""}"><div class="bhead"><div><small>Round ${breeds.length+si+1} · Group judging</small><h2>${esc(sec)}</h2></div><span class="count">${g} / ${list.length} given</span></div><div class="bneeds">${chips(list.map(a=>({c:"rc",g:1,t:a.t,n:1})))}</div><div class="cls">`;
+    list.forEach(a=>{const cur=res[a.k]||"";
+      h+=row(a.k,`<span class="rib rc" style="background:var(--muted)${a.reserve?";opacity:.55":""}"></span>${a.t}`,a.pool.map(x=>opt(x.k,x.l,cur)).join(""),cur,a.decided?"Choose dog…":a.reserve?"Choose after the winner":"Choose after breed awards")});
+    return h+`</div></article>`;
+  }).join("");
+
+  document.getElementById("barFill").style.width=(total?given/total*100:0)+"%";
+  document.getElementById("progText").textContent=`${given} of ${total} awards given`;
+  document.getElementById("progBreeds").textContent=`${doneBreeds} / ${breeds.length} breeds done`;
+
+  document.getElementById("bobList").innerHTML=breeds.filter(b=>!b.special).map(b=>{
+    const v=res[bk(b,"BOB")];const e=v&&v!==W?findEntry(b,v):null;
+    return `<tr><td>${esc(b.name)}</td><td>${v===W?"Withheld":e?esc(e.name):'<span class="note">Not chosen yet</span>'}</td></tr>`;
+  }).join("");
+
+  document.getElementById("resultsText").textContent=resultsText(breeds,gAw);
+  const raw=rawBreeds(), abs=raw.flatMap(b=>b.classes.flatMap(c=>c.entries.filter(e=>absent[e.no]).map(e=>e.no)));
+  const gone=raw.filter(b=>!breeds.some(x=>x.name===b.name)).map(b=>b.name);
+  try{queueResults()}catch(e){}
+  const an=document.getElementById("absentNote");
+  an.hidden=!abs.length;
+  an.innerHTML=abs.length?`<b>Absent:</b> ${abs.map(esc).join(", ")}. They're left out of the classes and award counts.${gone.length?` Not judged, all dogs absent: ${gone.map(esc).join(", ")}.`:""} <a href="register.html?show=${encodeURIComponent((window.SHOW_INFO||{}).Show)}">Change</a>`:"";
+}
+function resultsText(breeds,gAw){
+  const out=[`${(window.SHOW_INFO||{}).Show}${(window.SHOW_INFO||{}).Date?", "+window.SHOW_INFO.Date:""}${JUDGE?" · Judge: "+JUDGE:""}`,""];
+  breeds.forEach(b=>{
+    out.push(b.name.toUpperCase());
+    b.classes.forEach(c=>{
+      const parts=PLACES.slice(0,nPlaces(b,c)).map(pl=>{const v=res[ck(b,c,pl.p)];if(!v)return null;if(v===W)return `${pl.t}: withheld`;const e=findEntry(b,v);return `${pl.t}: ${e?label(e):v}`}).filter(Boolean);
+      out.push(`  ${c.name}: ${parts.length?parts.join(", "):"—"}`);
+    });
+    breedAwards(b).forEach(a=>{const v=res[bk(b,a.id)];const e=v&&v!==W?findEntry(b,v):null;out.push(`  ${a.t}: ${v===W?"withheld":e?label(e):"—"}`)});
+    out.push("");
+  });
+  out.push("GROUP JUDGING");
+  gAw.forEach(a=>{const v=res[a.k];const x=a.pool.find(p=>p.k===v);out.push(`  ${a.sec} · ${a.t}: ${v===W?"withheld":x?x.l:"—"}`)});
+  return out.join("\n");
+}
+document.addEventListener("change",ev=>{
+  const t=ev.target;
+  if(t.dataset.k){const k=t.dataset.k;if(t.value){res[k]=t.value;delete res["auto-off|"+k]}else{delete res[k];res["auto-off|"+k]=1}save(KS,res);render()}
+  if(t.dataset.g){if(t.checked)res["g|"+t.dataset.g]=1;else delete res["g|"+t.dataset.g];save(KS,res);render()}
+});
+function toast(t){const el=document.getElementById("toast");el.textContent=t;el.classList.add("show");setTimeout(()=>el.classList.remove("show"),1800)}
+let rq=null,rlast="";
+function queueResults(){
+  const rows=sheetRows().slice(1).map(r=>r.slice(1));
+  const sig=JSON.stringify(rows);
+  if(sig===rlast) return;
+  if(!rlast){rlast=sig;if(!rows.some(r=>r[4]))return}
+  const st=document.getElementById("syncState");st.textContent="Sending to the show sheet…";st.className="save";
+  clearTimeout(rq);rq=setTimeout(async()=>{
+    try{await mncfApi("saveResults",{show:window.SHOW_INFO.Show,rows});rlast=sig;st.textContent="Saved to the show sheet "+new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}
+    catch(e){st.textContent="Not saved to the sheet yet: "+e.message+" Retrying…";st.className="save bad";rlast="";setTimeout(queueResults,20000)}
+  },2500);
+}
+window.addEventListener("online",()=>{rlast="";queueResults()});
+function sheetRows(){
+  const breeds=allBreeds(), gAw=groupAwards(breeds);
+  const out=[["Round","Section","Class / award","Placing","Ring No","Dog","Breed","Given"]];
+  const val=v=>v===W?"Withheld":"";
+  breeds.forEach((b,i)=>{
+    b.classes.forEach(c=>PLACES.slice(0,nPlaces(b,c)).forEach(pl=>{const k=ck(b,c,pl.p),v=res[k],e=v&&v!==W?findEntry(b,v):null;
+      out.push([i+1,b.name,c.name,pl.t,e?e.no:"",e?e.name:val(v),b.name,res["g|"+k]?"Yes":""])}));
+    breedAwards(b).forEach(a=>{const k=bk(b,a.id),v=res[k],e=v&&v!==W?findEntry(b,v):null;
+      out.push([i+1,b.name,a.t,"Winner",e?e.no:"",e?e.name:val(v),b.name,res["g|"+k]?"Yes":""])});
+  });
+  const secs=[...new Set(gAw.map(a=>a.sec))];
+  gAw.forEach(a=>{const v=res[a.k],x=a.pool.find(p=>p.k===v);
+    out.push([breeds.length+secs.indexOf(a.sec)+1,a.sec,a.t,a.reserve?"Runner-up":"Winner",x?x.e.no:"",x?x.e.name:val(v),x?x.b.name:"",res["g|"+a.k]?"Yes":""])});
+  return out;
+}
+function exportExcel(){
+  if(typeof XLSX==="undefined"){toast("Excel export needs an internet connection. Try again.");return}
+  const breeds=allBreeds(), gAw=groupAwards(breeds);
+  const val=v=>v===W?"Withheld":"";
+  const cls=[["Round","Breed","Group","Class","Entries","Place","Ring No","Dog","Given"]];
+  const ba=[["Breed","Group","Award","Ring No","Dog","Given"]];
+  breeds.forEach((b,i)=>{
+    b.classes.forEach(c=>PLACES.slice(0,nPlaces(b,c)).forEach(pl=>{
+      const k=ck(b,c,pl.p),v=res[k],e=v&&v!==W?findEntry(b,v):null;
+      cls.push([i+1,b.name,b.group||"",c.name,c.entries.length,pl.t,e?(+e.no||e.no):"",e?e.name:val(v),res["g|"+k]?"Yes":""]);
+    }));
+    breedAwards(b).forEach(a=>{const k=bk(b,a.id),v=res[k],e=v&&v!==W?findEntry(b,v):null;
+      ba.push([b.name,b.group||"",a.t,e?(+e.no||e.no):"",e?e.name:val(v),res["g|"+k]?"Yes":""])});
+  });
+  const ga=[["Round","Award","Placing","Ring No","Dog","Breed","Given"]];
+  gAw.forEach(a=>{const v=res[a.k],x=a.pool.find(p=>p.k===v);
+    ga.push([a.sec,a.t,a.reserve?"Runner-up":"Winner",x?(+x.e.no||x.e.no):"",x?x.e.name:val(v),x?x.b.name:"",res["g|"+a.k]?"Yes":""])});
+  const wb=XLSX.utils.book_new();
+  const add=(rows,name,w)=>{const ws=XLSX.utils.aoa_to_sheet(rows);ws["!cols"]=w.map(n=>({wch:n}));XLSX.utils.book_append_sheet(wb,ws,name)};
+  add(cls,"Class results",[7,32,10,16,8,7,8,44,7]);
+  add(ba,"Breed awards",[32,10,24,8,44,7]);
+  add(ga,"Group awards",[28,26,11,8,44,32,7]);
+  try{XLSX.writeFile(wb,((window.SHOW_INFO||{}).Show||"Show").replace(/[^A-Za-z0-9]+/g,"-")+"-Results.xlsx");toast("Excel file downloaded")}
+  catch(e){toast("Download blocked here. Open the GitHub version to export.")}
+}
+document.getElementById("xlsxBtn").onclick=exportExcel;
+function importText(txt){
+  const breeds=allBreeds();let cur=null,n=0;const miss=[];
+  const valOf=(b,str)=>{str=str.trim();if(/^withheld$/i.test(str))return W;const m=str.match(/^(\d+)\s*·/);if(!m)return null;return b&&findEntry(b,m[1])?m[1]:null};
+  const set=(k,v)=>{res[k]=v;delete res["auto-off|"+k];if(v!==W)res["g|"+k]=1;n++};
+  for(const raw of txt.split(/\r?\n/)){
+    const line=raw.replace(/\s+$/,"");if(!line.trim())continue;
+    if(/^MNCF Championship Show/.test(line))continue;
+    if(!/^\s/.test(line)){cur=line.trim()==="GROUP JUDGING"?"GROUP":breeds.find(b=>b.name.toUpperCase()===line.trim().toUpperCase())||null;if(!cur&&line.trim())miss.push(line.trim());continue}
+    if(!cur)continue;
+    const t=line.trim();
+    if(cur==="GROUP"){
+      const m=t.match(/^(.+?) · (.+?): (.+)$/);if(!m)continue;
+      const a=groupAwards(allBreeds()).find(x=>x.sec===m[1]&&x.t===m[2]);if(!a)continue;
+      if(/^withheld$/i.test(m[3].trim())){set(a.k,W);continue}
+      const no=(m[3].match(/^(\d+)\s*·/)||[])[1];const b=no&&breeds.find(b=>findEntry(b,no));
+      if(b)set(a.k,b.name+"::"+no);continue;
+    }
+    const i=t.indexOf(": ");if(i<0)continue;
+    const name=t.slice(0,i),rest=t.slice(i+2);
+    const c=cur.classes.find(c=>c.name===name);
+    if(c){rest.split(/, (?=(?:1st|2nd|3rd): )/).forEach(part=>{const m=part.match(/^(1st|2nd|3rd): (.+)$/);if(!m)return;const p={"1st":1,"2nd":2,"3rd":3}[m[1]];const v=valOf(cur,m[2]);if(v)set(ck(cur,c,p),v)});continue}
+    const aw=breedAwards(cur).find(a=>a.t===name);
+    if(aw){const v=valOf(cur,rest);if(v)set(bk(cur,aw.id),v)}
+  }
+  save(KS,res);render();
+  return {n,miss};
+}
+document.getElementById("importBtn").onclick=()=>{
+  const box=document.getElementById("importBox"),msg=document.getElementById("importMsg");
+  if(!box.value.trim()){msg.textContent="Paste the copied results first.";return}
+  const r=importText(box.value);
+  msg.textContent=r.n?`Restored ${r.n} results.${r.miss.length?" Not on this page: "+r.miss.join(", ")+".":""}`:"No results matched this page. Check you're on the right day.";
+  if(r.n){box.value="";toast("Results restored")}
+};
+document.getElementById("copyBtn").onclick=()=>{
+  const txt=document.getElementById("resultsText").textContent;
+  const fb=()=>{const r=document.createRange();r.selectNodeContents(document.getElementById("resultsText"));const s=getSelection();s.removeAllRanges();s.addRange(r);toast("Selected. Use your phone's Copy")};
+  try{navigator.clipboard.writeText(txt).then(()=>toast("Results copied"),fb)}catch(e){fb()}
+};
+let armed=false;
+document.getElementById("resetBtn").onclick=ev=>{
+  const b=ev.currentTarget;
+  if(!armed){armed=true;b.textContent="Tap again to clear everything";setTimeout(()=>{armed=false;b.textContent="Clear all results"},3000);return}
+  armed=false;b.textContent="Clear all results";res={};save(KS,res);render();toast("Results cleared");
+};
+render();
+}
+</script>
+<script>
+(function(){
+  const esc=mncfEsc, show=mncfQuery("show");
+  const GROUP_ORDER=["Utility","Hound","Gundog","Toy","Working","Terrier","Pastoral"];
+  const CLASS_ORDER=["Puppy Bitch","Junior Bitch","Open Bitch","Veteran Bitch","Puppy Dog","Junior Dog","Open Dog","Veteran Dog"];
+  const q=encodeURIComponent(show);
+  document.getElementById("regLink").href="register.html?show="+q;document.getElementById("awLink").href="awards.html?show="+q;
+  function build(entries){
+    const live=entries.filter(e=>e.Absent!==true&&String(e["Dog name"]).trim());
+    const byBreed={},specials={},avlb={};
+    const E=e=>({no:String(e["Ring No"]).trim(),name:String(e["Dog name"]).trim()});
+    live.forEach(e=>{
+      if(e.Class==="Junior Handler"||e.Class==="Childrens Class"){(specials[e.Class]=specials[e.Class]||[]).push(E(e));return}
+      if(e.Class==="AV Locally Bred"){const g=e.Group||"Other";(avlb[g]=avlb[g]||[]).push({no:E(e).no,name:`${E(e).name} (${e.Breed||"breed not set"})`});return}
+      const br=e.Breed||"Breed not set";const b=byBreed[br]=byBreed[br]||{name:br,group:e.Group||"Other",classes:{}};
+      (b.classes[e.Class]=b.classes[e.Class]||[]).push(E(e));
+    });
+    const sortE=a=>a.sort((x,y)=>(+x.no||1e9)-(+y.no||1e9));
+    const base=[];
+    ["Junior Handler","Childrens Class"].forEach(c=>{if(specials[c])base.push({name:c,special:true,classes:[{name:c,entries:sortE(specials[c])}]})});
+    const gi=g=>{const i=GROUP_ORDER.indexOf(g);return i<0?99:i};
+    Object.values(byBreed).sort((a,b)=>gi(a.group)-gi(b.group)||a.name.localeCompare(b.name)).forEach(b=>{
+      base.push({name:b.name,group:b.group,classes:Object.keys(b.classes).sort((x,y)=>CLASS_ORDER.indexOf(x)-CLASS_ORDER.indexOf(y)).map(c=>({name:c,entries:sortE(b.classes[c])}))});
+    });
+    Object.keys(avlb).sort((a,b)=>gi(a)-gi(b)).forEach(g=>base.push({name:"Any Variety Locally Bred "+g,special:true,firstOnly:true,classes:[{name:"Any Variety Locally Bred",entries:sortE(avlb[g])}]}));
+    return base;
+  }
+  window.mncfBuildBase=build;
+  function start(info,entries,note){
+    window.SHOW_INFO=info;window.SHOW_BASE=build(entries);
+    document.getElementById("showTitle").textContent=info.Show;
+    document.getElementById("showSub").textContent=[info.Date,info.Venue,info.Judge?"Judge: "+info.Judge:""].filter(Boolean).join(" · ");
+    document.title="Awards · "+info.Show;
+    const ab=entries.filter(e=>e.Absent===true).length;
+    document.getElementById("loadNote").innerHTML=`${entries.length} entries${ab?`, ${ab} marked absent and left out`:""}. ${note||""}`;
+    startEngine();
+    if(!entries.length) document.getElementById("breeds").innerHTML=`<div class="empty">This show has no entries yet. <a href="register.html?show=${q}">Register dogs</a> first.</div>`;
+  }
+  if(!show){document.getElementById("showSub").innerHTML='No show picked. <a href="index.html">Choose a show</a>.';return}
+  const cached=mncfCache.get("show::"+show);
+  mncfApi("show",{show}).then(j=>{
+    if(!j.show){document.getElementById("showSub").innerHTML='That show isn\'t in the sheet. <a href="index.html">Choose a show</a>.';return}
+    mncfCache.set("show::"+show,{show:j.show,entries:j.entries,at:Date.now()});
+    start(j.show,j.entries,"");
+  }).catch(e=>{
+    if(cached) start(cached.show,cached.entries,`<span class="err">Offline: using entries saved on this phone (${new Date(cached.at).toLocaleString()}).</span>`);
+    else document.getElementById("showSub").innerHTML=`<span class="err">${esc(e.message)}</span>`;
+  });
+})();
+</script>
+</body>
+</html>

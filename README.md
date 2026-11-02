@@ -1,12 +1,14 @@
-# MNCF Show Awards Desk
+# MNCF Show Desk
 
-Awards checklist and results recorder for The Maltese National Canine Federation November 2026 Championship Show — currently loaded with Sunday 1 November 2026 (Gundog and Toy groups). Each session has its own page: `saturday.html`, `sunday-morning.html` and `sunday-evening.html`, linked from `index.html`.
+Website: https://samkiller222.github.io/Show/
 
-Open `index.html` in a browser, or turn on GitHub Pages (Settings → Pages → Deploy from branch → `main`) to use it from a phone.
+A small show-management system for MNCF dog shows. The Google Sheet "MNCF November 2026 Show Results" is the database; the website reads from and writes to it through a Google Apps Script web app (`apps-script.gs`). Everyone using the site types the team password from the sheet's Settings tab once per phone.
 
-- Every breed's class placings (1st, 2nd, 3rd as entries allow) and breed awards (Best Dog, Best Bitch, Best Puppy, Best Junior, Best Veteran, Best of Breed), worked out from the classes entered.
-- Class winners feed into breed awards, and breed winners feed into the Utility and Hound group awards and Best Veteran Utility / Hound.
-- Results save in the browser on the device you use. Use "Copy results" to keep a copy.
-- Add more schedule pages with the paste box at the bottom.
-- Every group award has a winner and a runner-up.
-- "Export to Excel" downloads all class, breed and group results as an .xlsx file.
+## Pages
+- `index.html`: all shows, and a form to add a new one.
+- `register.html?show=…`: enter dogs into a show. Dogs are remembered by name and breed, so a dog registered once fills in its details at later shows. Ring numbers are typed by hand. Mark absent, edit or remove entries.
+- `awards.html?show=…`: the awards checklist, built from the show's entries: class placings, breed awards, group awards with runner-up, Best Veteran per group, AV Locally Bred (1st only), and Best in Show finals whose competitors are the group winners. Results save on the phone, go to the Results tab, and export to Excel.
+- `nov-2026.html` and the pages it links: the first version used at the November 2026 show.
+
+## The sheet
+Tabs: Start here, Shows, Dogs, Entries, Results, Breeds, Settings. Grey columns fill in by themselves. After changing `apps-script.gs`, paste it into the Apps Script project, run `setupSheet` once, and deploy a new version of the existing web app deployment so the URL stays the same.
