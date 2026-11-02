@@ -545,7 +545,11 @@ window.mncfLive=(function(){
   const CLASS_ORDER=["Puppy Bitch","Junior Bitch","Open Bitch","Veteran Bitch","Puppy Dog","Junior Dog","Open Dog","Veteran Dog"];
   const q=encodeURIComponent(show);
   document.getElementById("regLink").href="register.html?show="+q;document.getElementById("impLink").href="import.html?show="+q;document.getElementById("awLink").href="awards.html?show="+q;
+  const KNOWN_GROUPS={"Boston Terrier": "Utility", "Bulldog": "Utility", "French Bulldog": "Utility", "Japanese Shiba Inu": "Utility", "Poodle (Miniature)": "Utility", "Poodle (Standard)": "Utility", "Poodle (Toy)": "Utility", "Shih Tzu": "Utility", "Basenji": "Hound", "Dachshund (Miniature Long Haired)": "Hound", "Dachshund (Miniature Smooth Haired)": "Hound", "Dachshund (Miniature Wire Haired)": "Hound", "Dachshund (Smooth Haired)": "Hound", "Irish Wolfhound": "Hound", "Pharaoh Hound": "Hound", "Saluki": "Hound", "Whippet": "Hound", "English Setter": "Gundog", "Pointer": "Gundog", "Retriever (Flatcoated)": "Gundog", "Retriever (Golden)": "Gundog", "Retriever (Labrador)": "Gundog", "Spaniel (Cocker)": "Gundog", "Spaniel (English Springer)": "Gundog", "Spanish Water Dog": "Gundog", "Cavalier King Charles Spaniel": "Toy", "Chihuahua (Long Coat)": "Toy", "Chihuahua (Smooth Coat)": "Toy", "Lowchen (Little Lion Dog)": "Toy", "Maltese": "Toy", "Pekingese": "Toy", "Pomeranian": "Toy", "Pug": "Toy", "Border Collie": "Working", "Boxer": "Working", "Bullmastiff": "Working", "Canadian Eskimo Dog": "Working", "Dobermann": "Working", "German Shepherd Dog": "Working", "Rottweiler": "Working", "Siberian Husky": "Working", "Welsh Corgi (Pembroke)": "Working", "Bull Terrier": "Terrier", "Fox Terrier (Wire)": "Terrier", "Staffordshire Bull Terrier": "Terrier"};
+  let BREED_GROUPS={};
   function build(entries){
+    const gOf=br=>BREED_GROUPS[String(br||"").trim().toLowerCase()]||"";
+    entries.forEach(e=>{if(!e.Group)e.Group=gOf(e.Breed)});
     const live=entries.filter(e=>e.Absent!==true&&String(e["Dog name"]).trim());
     const byBreed={},specials={},avlb={};
     const E=e=>({no:String(e["Ring No"]).trim(),name:String(e["Dog name"]).trim()});
@@ -578,9 +582,12 @@ window.mncfLive=(function(){
   }
   if(!show){document.getElementById("showSub").innerHTML='No show picked. <a href="index.html">Choose a show</a>.';return}
   const cached=mncfCache.get("show::"+show);
+  const setBreeds=list=>{BREED_GROUPS={};Object.entries(KNOWN_GROUPS).forEach(([b,g])=>BREED_GROUPS[b.toLowerCase()]=g);(list||[]).forEach(b=>{if(b&&b.Breed&&b.Group)BREED_GROUPS[String(b.Breed).trim().toLowerCase()]=b.Group})};
+  setBreeds((cached||{}).breeds);
   mncfApi("show",{show}).then(j=>{
+    setBreeds(j.breeds);
     if(!j.show){document.getElementById("showSub").innerHTML='That show isn\'t in the sheet. <a href="index.html">Choose a show</a>.';return}
-    mncfCache.set("show::"+show,{show:j.show,entries:j.entries,at:Date.now()});
+    mncfCache.set("show::"+show,{show:j.show,entries:j.entries,breeds:j.breeds,at:Date.now()});
     start(j.show,j.entries,"");
   }).catch(e=>{
     if(cached) start(cached.show,cached.entries,`<span class="err">Offline: using entries saved on this phone (${new Date(cached.at).toLocaleString()}).</span>`);

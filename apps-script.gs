@@ -61,10 +61,15 @@ function read_(name) {
 // Write one row, skipping formula columns.
 function writeRow_(name, row, obj) {
   var sh = tab_(name), cols = COLS[name], skip = FORMULA[name] || {};
+  ensureRows_(sh, row);
   cols.forEach(function (c, j) {
     if (skip[c] || !(c in obj)) return;
     sh.getRange(row, j + 1).setValue(obj[c] == null ? "" : obj[c]);
   });
+}
+function ensureRows_(sh, lastRow) {
+  var max = sh.getMaxRows();
+  if (lastRow > max) sh.insertRowsAfter(max, lastRow - max + 50);
 }
 function firstEmptyRow_(name) {
   var sh = tab_(name);
@@ -95,6 +100,7 @@ function doPost(e) {
 
   var lock = LockService.getScriptLock(); lock.waitLock(20000);
   try {
+    ensureBreeds_();
     switch (d.action) {
       case "bootstrap": return json_({ ok: true, shows: read_("Shows"), breeds: read_("Breeds"), dogs: read_("Dogs"), groups: GROUPS, classes: CLASSES });
       case "show": return json_({ ok: true, show: findShow_(d.show), entries: entriesFor_(d.show), dogs: read_("Dogs"), breeds: read_("Breeds") });
@@ -119,7 +125,22 @@ function findShow_(name) {
   return read_("Shows").filter(function (s) { return norm_(s.Show) === norm_(name); })[0] || null;
 }
 function entriesFor_(show) {
-  return read_("Entries").filter(function (e) { return norm_(e.Show) === norm_(show); });
+  var dogs = {}, breeds = {};
+  read_("Dogs").forEach(function (d) { dogs[norm_(d["Dog name"])] = d; });
+  read_("Breeds").forEach(function (b) { breeds[norm_(b.Breed)] = b.Group; });
+  return read_("Entries").filter(function (e) { return norm_(e.Show) === norm_(show); }).map(function (e) {
+    var d = dogs[norm_(e["Dog name"])] || {};
+    if (!e.Breed) e.Breed = d.Breed || "";
+    if (!e.Group) e.Group = breeds[norm_(e.Breed)] || "";
+    if (!e.Sex) e.Sex = d.Sex || "";
+    if (!e.Owner) e.Owner = d.Owner || "";
+    return e;
+  });
+}
+// The breed list drives every group. Put the starting list back if the tab was emptied.
+function ensureBreeds_() {
+  var sh = tab_("Breeds");
+  if (sh && sh.getLastRow() < 2) { ensureRows_(sh, SEED.breeds.length + 1); sh.getRange(2, 1, SEED.breeds.length, 2).setValues(SEED.breeds); }
 }
 
 function addShow_(d) {
@@ -204,18 +225,18 @@ function setAbsent_(d) {
 function saveResults_(d) {
   var show = String(d.show || "").trim();
   if (!show) return { ok: false, error: "No show." };
-  var sh = tab_("Results"), n = sh.getLastRow();
-  if (n > 1) {
-    var vals = sh.getRange(2, 1, n - 1, 1).getValues();
-    for (var i = vals.length - 1; i >= 0; i--) if (norm_(vals[i][0]) === norm_(show)) sh.deleteRow(i + 2);
-  }
+  var sh = tab_("Results"), n = sh.getLastRow(), W = 9;
+  var keep = n > 1 ? sh.getRange(2, 1, n - 1, W).getValues().filter(function (r) { return r[0] !== "" && norm_(r[0]) !== norm_(show); }) : [];
+  var now = now_();
   var rows = (d.rows || []).map(function (r) {
-    return [show, r[0] || "", r[1] || "", r[2] || "", r[3] || "", r[4] || "", r[5] || "", r[6] === "Yes", now_()];
+    return [show, r[0] || "", r[1] || "", r[2] || "", r[3] || "", r[4] || "", r[5] || "", r[6] === "Yes", now];
   });
-  if (rows.length) {
-    var start = firstEmptyRow_("Results");
-    sh.getRange(start, 1, rows.length, 9).setValues(rows);
-    sh.getRange(start, 8, rows.length, 1).insertCheckboxes();
+  var all = keep.concat(rows);
+  ensureRows_(sh, all.length + 1);
+  if (n > 1) sh.getRange(2, 1, n - 1, W).clearContent();
+  if (all.length) {
+    sh.getRange(2, 1, all.length, W).setValues(all);
+    sh.getRange(2, 8, all.length, 1).insertCheckboxes();
   }
   return { ok: true };
 }
@@ -247,6 +268,7 @@ function syncState_(d) {
     else if (t >= Number(vals[i][3])) { vals[i][2] = v; vals[i][3] = t; vals[i][4] = now; changed = true; }
   });
   if (changed && vals.length) {
+    ensureRows_(sh, vals.length + 1);
     sh.getRange(2, 3, vals.length, 1).setNumberFormat("@");
     sh.getRange(2, 1, vals.length, 5).setValues(vals);
   }
@@ -367,6 +389,7 @@ function importEntries_(d) {
     if (!e.Group) return;
     bmap[norm_(b)] = { Breed: b, Group: e.Group }; newBreeds.push([b, e.Group]);
   });
+  if (newBreeds.length) ensureRows_(tab_("Breeds"), firstEmptyRow_("Breeds") + newBreeds.length);
   if (newBreeds.length) tab_("Breeds").getRange(firstEmptyRow_("Breeds"), 1, newBreeds.length, 2).setValues(newBreeds);
   // dogs
   var dogs = read_("Dogs"), dmap = {};
@@ -389,6 +412,7 @@ function importEntries_(d) {
   });
   if (newDogs.length) {
     var start = firstEmptyRow_("Dogs");
+    ensureRows_(sh, start + newDogs.length);
     sh.getRange(start, 1, newDogs.length, 2).setValues(newDogs.map(function (r) { return r.slice(0, 2); }));
     sh.getRange(start, 4, newDogs.length, 9).setValues(newDogs.map(function (r) { return r.slice(2); }));
   }
@@ -407,6 +431,7 @@ function importEntries_(d) {
   });
   if (rows.length) {
     var es = tab_("Entries"), at = firstEmptyRow_("Entries");
+    ensureRows_(es, at + rows.length);
     es.getRange(at, 1, rows.length, 5).setValues(rows);
     es.getRange(at, 5, rows.length, 1).insertCheckboxes();
     es.getRange(at, 10, rows.length, 1).setValue(now);
