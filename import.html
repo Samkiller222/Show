@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MNCF Import Entries</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<style>
+.drop{border:2px dashed var(--line);border-radius:12px;padding:22px 14px;text-align:center;display:flex;flex-direction:column;gap:8px;align-items:center;cursor:pointer;background:var(--bg)}
+.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.drop b{font-family:var(--display);font-size:20px;text-transform:uppercase;letter-spacing:.03em}
+.files{display:flex;flex-wrap:wrap;gap:6px}
+.chipf{font-size:13px;padding:4px 10px;border:1px solid var(--line);border-radius:999px;background:var(--card);display:inline-flex;gap:6px;align-items:center}
+.chipf button{border:0;background:none;padding:0 2px;font-size:15px;line-height:1;color:var(--muted)}
+.rv{width:100%;border-collapse:collapse;font-size:13px;min-width:980px}
+.rv th{position:sticky;top:0;background:var(--card);z-index:1}
+.rv td{padding:4px 4px;border-bottom:1px solid var(--line);vertical-align:top}
+.rv input[type=text],.rv select{padding:6px 7px;font-size:13px;border-radius:6px}
+.rv tr.off td{opacity:.45}
+.rv tr.bad td{background:color-mix(in srgb,var(--red) 7%,transparent)}
+.rv .st{display:flex;flex-direction:column;gap:3px;min-width:150px}
+.rv .st .tag{white-space:normal}
+.rv .note{font-size:12px}
+.w-ring{width:4.5em}.w-sex{width:6.5em}
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite;vertical-align:-3px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.sumrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+</style>
+<div class="wrap">
+  <header>
+    <nav class="nav" aria-label="Pages"><a href="index.html">All shows</a><a id="regLink" href="register.html">Register dogs</a><a href="import.html" aria-current="page">Import</a><a id="awLink" href="awards.html">Awards</a></nav>
+    <h1>Import entries</h1>
+    <div class="sub">Upload an Excel file, the catalogue PDF or photos of the catalogue. Claude reads them, you check the list, then it's saved to the show sheet.</div>
+  </header>
+
+  <section class="panel">
+    <h2>1. Show</h2>
+    <div class="field"><label for="showSel">Add the entries to</label><select id="showSel"><option value="">Loading shows…</option></select></div>
+    <p class="note" id="showNote"></p>
+  </section>
+
+  <section class="panel">
+    <h2>2. Files</h2>
+    <label class="drop" id="drop" for="fileIn">
+      <b>Choose files</b>
+      <span class="note">Excel or CSV, PDF, or photos (JPG, PNG). Several photos can go in together, one per catalogue page.</span>
+      <input type="file" id="fileIn" multiple accept=".xlsx,.xls,.csv,.pdf,image/*" hidden>
+    </label>
+    <div class="files" id="fileList"></div>
+    <div class="btns"><button class="pri" id="readBtn" disabled>Read with Claude</button></div>
+    <p class="note" id="readNote">Reading a full catalogue takes about a minute and costs a few cents.</p>
+  </section>
+
+  <section class="panel" id="newShowPanel" hidden>
+    <h2>New show</h2>
+    <div class="form">
+      <div class="field wide"><label for="nsName">Show name</label><input type="text" id="nsName"></div>
+      <div class="field"><label for="nsDate">Date</label><input type="text" id="nsDate"></div>
+      <div class="field"><label for="nsVenue">Venue</label><input type="text" id="nsVenue"></div>
+      <div class="field"><label for="nsJudge">Judge</label><input type="text" id="nsJudge"></div>
+    </div>
+  </section>
+
+  <section class="panel" id="reviewPanel" hidden>
+    <h2>3. Check the entries</h2>
+    <div class="sumrow" id="summary"></div>
+    <p class="note">Fix anything that's wrong right in the table. Untick a row to leave it out. Rows in red need fixing before they can be saved.</p>
+    <div class="tw"><table class="rv"><thead><tr><th></th><th>Ring</th><th>Dog name</th><th>Breed</th><th>Group</th><th>Sex</th><th>Class</th><th>Owner</th><th>Check</th></tr></thead><tbody id="rvBody"></tbody></table></div>
+    <datalist id="breedList"></datalist>
+    <div class="btns"><button class="pri" id="saveBtn">Save entries</button><button id="addRowBtn">Add a row</button></div>
+    <p class="err" id="saveErr"></p>
+    <div id="done"></div>
+  </section>
+</div>
+<div class="toast" id="toast"></div>
+<script src="xlsx.full.min.js"></script>
+<script src="api.js"></script>
+<script>
+const esc=mncfEsc,$=id=>document.getElementById(id),norm=s=>String(s||"").trim().toLowerCase();
+const CLASSES=["Puppy Dog","Puppy Bitch","Junior Dog","Junior Bitch","Open Dog","Open Bitch","Veteran Dog","Veteran Bitch","AV Locally Bred","Junior Handler","Childrens Class"];
+const PERSON=["Junior Handler","Childrens Class"];
+let S={shows:[],breeds:[],dogs:[],groups:["Utility","Hound","Gundog","Toy","Working","Terrier","Pastoral"],show:mncfQuery("show"),showEntries:[],files:[],rows:[],extracted:null};
+const NEW="__new";
+function links(){const q=S.show&&S.show!==NEW?"?show="+encodeURIComponent(S.show):"";$("regLink").href="register.html"+q;$("awLink").href="awards.html"+q}
+function fillShows(){
+  $("showSel").innerHTML='<option value="">Pick a show…</option>'+S.shows.map(s=>`<option${s.Show===S.show?" selected":""}>${esc(s.Show)}</option>`).join("")+`<option value="${NEW}"${S.show===NEW?" selected":""}>A new show (details from the files)</option>`;
+  links();updateRead();
+}
+async function loadShowEntries(){
+  S.showEntries=[];
+  if(S.show&&S.show!==NEW){try{const j=await mncfApi("show",{show:S.show});S.showEntries=j.entries;S.dogs=j.dogs;S.breeds=j.breeds;$("showNote").textContent=`${j.entries.length} entries already in this show.`}catch(e){$("showNote").innerHTML=`<span class="err">${esc(e.message)}</span>`}}
+  else $("showNote").textContent=S.show===NEW?"The show name, date and judge are taken from the files. You can change them before saving.":"";
+  $("newShowPanel").hidden=!(S.show===NEW&&S.rows.length);
+  if(S.rows.length) drawRows();
+}
+function updateRead(){$("readBtn").disabled=!S.files.length||!S.show}
+function drawFiles(){
+  $("fileList").innerHTML=S.files.map((f,i)=>`<span class="chipf">${esc(f.name)} <span class="note">${(f.size/1024/1024).toFixed(1)} MB</span><button data-rm="${i}" aria-label="Remove ${esc(f.name)}">×</button></span>`).join("");
+  updateRead();
+}
+function addFiles(list){for(const f of list){if(!/\.(xlsx|xls|csv|pdf)$/i.test(f.name)&&!/^image\//.test(f.type)){mncfToast(f.name+" isn't a file type Claude can read here");continue}S.files.push(f)}drawFiles()}
+$("fileIn").onchange=e=>{addFiles(e.target.files);e.target.value=""};
+["dragover","dragenter"].forEach(t=>$("drop").addEventListener(t,e=>{e.preventDefault();$("drop").classList.add("over")}));
+["dragleave","drop"].forEach(t=>$("drop").addEventListener(t,e=>{e.preventDefault();$("drop").classList.remove("over")}));
+$("drop").addEventListener("drop",e=>addFiles(e.dataTransfer.files));
+document.addEventListener("click",e=>{if(e.target.dataset.rm!==undefined){S.files.splice(+e.target.dataset.rm,1);drawFiles()}});
+$("showSel").onchange=()=>{S.show=$("showSel").value;history.replaceState(null,"",S.show&&S.show!==NEW?"?show="+encodeURIComponent(S.show):"import.html");links();updateRead();loadShowEntries()};
+
+const b64=buf=>{let s="";const a=new Uint8Array(buf);for(let i=0;i<a.length;i+=0x8000)s+=String.fromCharCode.apply(null,a.subarray(i,i+0x8000));return btoa(s)};
+async function shrink(file){
+  const url=URL.createObjectURL(file);
+  try{
+    const img=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>rej(new Error(file.name+" couldn't be opened as a picture."));i.src=url});
+    const k=Math.min(1,1568/Math.max(img.naturalWidth,img.naturalHeight));
+    const c=document.createElement("canvas");c.width=Math.round(img.naturalWidth*k);c.height=Math.round(img.naturalHeight*k);
+    c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+    return c.toDataURL("image/jpeg",0.85).split(",")[1];
+  }finally{URL.revokeObjectURL(url)}
+}
+async function prepare(f){
+  if(/\.(xlsx|xls|csv)$/i.test(f.name)){
+    const wb=XLSX.read(await f.arrayBuffer(),{type:"array",cellDates:true});
+    const text=wb.SheetNames.map(n=>`Sheet: ${n}\n`+XLSX.utils.sheet_to_csv(wb.Sheets[n],{blankrows:false,dateNF:"yyyy-mm-dd"})).join("\n\n");
+    return {kind:"text",name:f.name,data:text};
+  }
+  if(/\.pdf$/i.test(f.name)){if(f.size>30*1024*1024)throw new Error(f.name+" is over 30 MB. Split it into smaller PDFs.");return {kind:"pdf",name:f.name,data:b64(await f.arrayBuffer())}}
+  return {kind:"image",name:f.name,mediaType:"image/jpeg",data:await shrink(f)};
+}
+$("readBtn").onclick=async()=>{
+  const b=$("readBtn"),note=$("readNote");b.disabled=true;
+  note.innerHTML='<span class="spinner"></span> Preparing files…';
+  try{
+    const files=[];for(const f of S.files)files.push(await prepare(f));
+    note.innerHTML='<span class="spinner"></span> Claude is reading the files. This can take a minute or two for a full catalogue.';
+    const j=await mncfApi("extract",{files});
+    S.extracted=j;
+    S.rows=(j.entries||[]).map(e=>({on:true,"Ring No":e.ring_no||"","Dog name":e.dog_name||"",Breed:e.breed||"",Group:e.group||"",Sex:e.sex||"",Class:e.class||"","Date of birth":e.date_of_birth||"",Owner:e.owner||"",Phone:e.phone||"",Address:e.address||"",Breeder:e.breeder||"",Sire:e.sire||"",Dam:e.dam||"",note:e.note||""}));
+    S.rows.forEach(r=>{const k=known(r);if(k.dup)r.on=false});
+    const u=j.usage||{},cost=((u.input_tokens||0)*2+(u.output_tokens||0)*10)/1e6;
+    note.textContent=`Found ${S.rows.length} entries${cost?` · about $${cost.toFixed(2)} of Claude usage`:""}.${j.truncated?" The list was cut short because the files are long. Read the rest in a second batch.":""}`;
+    if(S.show===NEW){const s=j.show||{};$("nsName").value=s.name||"";$("nsDate").value=s.date||"";$("nsVenue").value=s.venue||"";$("nsJudge").value=s.judge||""}
+    $("newShowPanel").hidden=S.show!==NEW;
+    $("reviewPanel").hidden=false;$("done").innerHTML="";drawRows();$("reviewPanel").scrollIntoView({behavior:"smooth"});
+  }catch(e){note.innerHTML=`<span class="err">${esc(e.message)}</span>`}
+  b.disabled=false;updateRead();
+};
+function known(r){
+  const out={tags:[],block:false};
+  const person=PERSON.includes(r.Class);
+  if(!String(r["Dog name"]).trim()){out.tags.push(["warn","Name missing"]);out.block=true}
+  if(!CLASSES.includes(r.Class)){out.tags.push(["warn","Pick a class"]);out.block=true}
+  if(!person){
+    const br=S.breeds.find(b=>norm(b.Breed)===norm(r.Breed));
+    if(!r.Breed){out.tags.push(["warn","Breed missing"]);out.block=true}
+    else if(!br){if(r.Group)out.tags.push(["","New breed · "+r.Group]);else{out.tags.push(["warn","New breed: pick its group"]);out.block=true}}
+    const d=S.dogs.find(x=>norm(x["Dog name"])===norm(r["Dog name"]));
+    if(d){out.tags.push(["","Registered dog"]);if(r.Breed&&norm(d.Breed)!==norm(r.Breed))out.tags.push(["warn","Register says "+d.Breed])}
+    else if(r["Dog name"])out.tags.push(["","New dog"]);
+    if(/(Dog|Bitch)$/.test(r.Class)&&r.Sex&&!r.Class.endsWith(r.Sex))out.tags.push(["warn","Sex and class don't match"]);
+  }
+  if(S.showEntries.some(x=>norm(x["Dog name"])===norm(r["Dog name"])&&x.Class===r.Class)){out.tags.push(["warn","Already entered"]);out.dup=true}
+  const ring=String(r["Ring No"]).trim();
+  if(ring){
+    const used=S.showEntries.find(x=>String(x["Ring No"]).trim()===ring);
+    if(used){out.tags.push(["warn",`Ring ${ring} used by ${used["Dog name"]}`]);out.block=true}
+    else if(S.rows.filter(x=>x.on&&String(x["Ring No"]).trim()===ring).length>1){out.tags.push(["warn",`Ring ${ring} twice in this list`]);out.block=true}
+  } else out.tags.push(["","No ring number"]);
+  return out;
+}
+const sel=(v,opts,attr)=>`<select ${attr}>${opts.map(o=>`<option${o===v?" selected":""}>${esc(o)}</option>`).join("")}</select>`;
+function drawRows(){
+  $("breedList").innerHTML=S.breeds.map(b=>`<option value="${esc(b.Breed)}">${esc(b.Group)}</option>`).join("");
+  let bad=0,on=0,newDogs=0;
+  $("rvBody").innerHTML=S.rows.map((r,i)=>{const k=known(r);if(r.on){on++;if(k.block)bad++;if(k.tags.some(t=>t[1]==="New dog"))newDogs++}
+    const person=PERSON.includes(r.Class);
+    return `<tr class="${r.on?"":"off"}${r.on&&k.block?" bad":""}"><td><input type="checkbox" data-i="${i}" data-f="on"${r.on?" checked":""} aria-label="Include row ${i+1}"></td>
+    <td><input type="text" class="w-ring" data-i="${i}" data-f="Ring No" value="${esc(r["Ring No"])}" aria-label="Ring number"></td>
+    <td><input type="text" data-i="${i}" data-f="Dog name" value="${esc(r["Dog name"])}" aria-label="Dog name" style="min-width:16em"></td>
+    <td>${person?"":`<input type="text" list="breedList" data-i="${i}" data-f="Breed" value="${esc(r.Breed)}" aria-label="Breed" style="min-width:11em">`}</td>
+    <td>${person?"":sel(r.Group,[""].concat(S.groups),`data-i="${i}" data-f="Group" aria-label="Group"`)}</td>
+    <td>${person?"":sel(r.Sex,["","Dog","Bitch"],`class="w-sex" data-i="${i}" data-f="Sex" aria-label="Sex"`)}</td>
+    <td>${sel(r.Class,[""].concat(CLASSES),`data-i="${i}" data-f="Class" aria-label="Class"`)}</td>
+    <td><input type="text" data-i="${i}" data-f="Owner" value="${esc(r.Owner)}" aria-label="Owner" style="min-width:10em"></td>
+    <td><div class="st">${k.tags.map(t=>`<span class="tag ${t[0]}">${esc(t[1])}</span>`).join("")}${r.note?`<span class="note">${esc(r.note)}</span>`:""}</div></td></tr>`}).join("");
+  $("summary").innerHTML=`<span class="tag">${on} to save</span>${newDogs?`<span class="tag">${newDogs} new dogs to register</span>`:""}${bad?`<span class="tag warn">${bad} need fixing</span>`:""}`;
+  $("saveBtn").disabled=!on||!!bad;
+  $("saveBtn").textContent=`Save ${on} entries`;
+}
+document.addEventListener("change",e=>{const t=e.target;if(t.dataset.i===undefined)return;const r=S.rows[+t.dataset.i];
+  if(t.dataset.f==="on")r.on=t.checked;else r[t.dataset.f]=t.value.trim();
+  if(t.dataset.f==="Breed"){const b=S.breeds.find(x=>norm(x.Breed)===norm(r.Breed));if(b)r.Group=b.Group}
+  if(t.dataset.f==="Sex"&&/(Dog|Bitch)$/.test(r.Class)&&r.Sex)r.Class=r.Class.replace(/(Dog|Bitch)$/,r.Sex);
+  drawRows()});
+$("addRowBtn").onclick=()=>{S.rows.push({on:true,"Ring No":"","Dog name":"",Breed:"",Group:"",Sex:"",Class:"",Owner:""});drawRows()};
+$("saveBtn").onclick=async()=>{
+  const b=$("saveBtn"),err=$("saveErr");err.textContent="";b.disabled=true;b.textContent="Saving…";
+  try{
+    let show=S.show;
+    if(show===NEW){
+      const name=$("nsName").value.trim();if(!name)throw new Error("Give the new show a name.");
+      const j=await mncfApi("addShow",{show:{Show:name,Date:$("nsDate").value.trim(),Venue:$("nsVenue").value.trim(),Judge:$("nsJudge").value.trim(),Status:"Open"}});
+      S.shows=j.shows;show=name;
+    }
+    const entries=S.rows.filter(r=>r.on).map(r=>({Show:show,"Ring No":r["Ring No"],"Dog name":r["Dog name"],Class:r.Class,Breed:PERSON.includes(r.Class)?"":(S.breeds.find(x=>norm(x.Breed)===norm(r.Breed))||{}).Breed||r.Breed,Group:r.Group,Sex:r.Sex,"Date of birth":r["Date of birth"]||"",Owner:r.Owner,Phone:r.Phone||"",Address:r.Address||"",Breeder:r.Breeder||"",Sire:r.Sire||"",Dam:r.Dam||""}));
+    const j=await mncfApi("importEntries",{show,entries});
+    S.show=show;fillShows();
+    const q=encodeURIComponent(show);
+    $("done").innerHTML=`<p><span class="tag">Saved ${j.added} entries</span> ${j.newDogs?`<span class="tag">${j.newDogs} dogs registered</span>`:""} ${j.newBreeds?`<span class="tag">${j.newBreeds} breeds added</span>`:""}</p>${j.skipped.length?`<p class="note">Skipped: ${j.skipped.map(s=>esc(s.name+" ("+s.reason+")")).join("; ")}</p>`:""}<div class="btns"><a class="btn" href="register.html?show=${q}">See entries</a><a class="btn pri" href="awards.html?show=${q}">Open awards</a></div>`;
+    S.rows=[];S.files=[];drawFiles();$("rvBody").innerHTML="";$("summary").innerHTML="";$("newShowPanel").hidden=true;
+    mncfToast(`${j.added} entries saved`);loadShowEntries();
+  }catch(e){err.textContent=e.message}
+  b.textContent="Save entries";b.disabled=false;
+};
+(async()=>{
+  const c=mncfCache.get("bootstrap");if(c){Object.assign(S,{shows:c.shows,breeds:c.breeds,dogs:c.dogs});fillShows()}
+  try{const j=await mncfApi("bootstrap");mncfCache.set("bootstrap",j);Object.assign(S,{shows:j.shows,breeds:j.breeds,dogs:j.dogs,groups:j.groups});fillShows()}
+  catch(e){$("showNote").innerHTML=`<span class="err">${esc(e.message)}</span>`}
+  loadShowEntries();
+})();
+</script>
+</body>
+</html>

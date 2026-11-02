@@ -103,6 +103,8 @@ function doPost(e) {
       case "deleteEntry": return json_(deleteEntry_(d));
       case "setAbsent": return json_(setAbsent_(d));
       case "saveResults": return json_(saveResults_(d));
+      case "extract": return json_(extract_(d));
+      case "importEntries": return json_(importEntries_(d));
       default: return json_({ ok: false, error: "Unknown action" });
     }
   } catch (err) {
@@ -217,6 +219,160 @@ function saveResults_(d) {
   return { ok: true };
 }
 
+// ---------- Claude: read an uploaded document ----------
+var CLAUDE_MODEL = "claude-sonnet-5-5";
+
+function claudeKey_() {
+  return String(PropertiesService.getScriptProperties().getProperty("ANTHROPIC_API_KEY") || "").trim();
+}
+
+function callClaude_(content, tools, toolName, maxTokens) {
+  var key = claudeKey_();
+  if (!key) throw new Error("The Claude API key isn't set up yet. Add ANTHROPIC_API_KEY in the script's Project Settings > Script properties.");
+  var res = UrlFetchApp.fetch("https://api.anthropic.com/v1/messages", {
+    method: "post",
+    contentType: "application/json",
+    headers: { "x-api-key": key, "anthropic-version": "2023-06-01" },
+    muteHttpExceptions: true,
+    payload: JSON.stringify({
+      model: CLAUDE_MODEL,
+      max_tokens: maxTokens || 16000,
+      tools: tools,
+      tool_choice: { type: "tool", name: toolName },
+      messages: [{ role: "user", content: content }]
+    })
+  });
+  var code = res.getResponseCode(), body = {};
+  try { body = JSON.parse(res.getContentText()); } catch (e) {}
+  if (code === 401) throw new Error("Claude didn't accept the API key. Check ANTHROPIC_API_KEY in Script properties.");
+  if (code === 429 || code === 529) throw new Error("Claude is busy right now. Try again in a minute.");
+  if (code === 413) throw new Error("The upload is too big. Try fewer pages or smaller photos.");
+  if (code !== 200) throw new Error("Claude couldn't read the file (" + code + "): " + ((body.error && body.error.message) || "unknown error"));
+  var block = (body.content || []).filter(function (c) { return c.type === "tool_use" && c.name === toolName; })[0];
+  if (!block) throw new Error("Claude didn't return any entries. Try a clearer file.");
+  if (body.stop_reason === "max_tokens") block.input._truncated = true;
+  return { input: block.input, usage: body.usage || {} };
+}
+
+function extract_(d) {
+  var files = d.files || [];
+  if (!files.length) return { ok: false, error: "Add a file first." };
+  var breeds = read_("Breeds").map(function (b) { return b.Breed + " (" + b.Group + ")"; }).join("; ");
+  var content = [];
+  files.forEach(function (f) {
+    if (f.kind === "text") content.push({ type: "text", text: "File: " + (f.name || "spreadsheet") + "\n\n" + String(f.data).slice(0, 400000) });
+    else if (f.kind === "image") content.push({ type: "image", source: { type: "base64", media_type: f.mediaType || "image/jpeg", data: f.data } });
+    else if (f.kind === "pdf") content.push({ type: "document", source: { type: "base64", media_type: "application/pdf", data: f.data } });
+  });
+  content.push({ type: "text", text: [
+    "These files are entries for a dog show run by the Maltese National Canine Federation (MNCF). They may be a spreadsheet, a printed show catalogue, or photos of catalogue pages.",
+    "Record every entry with the record_entries tool. One entry is one dog in one class. A dog entered in two classes (for example Open Bitch and AV Locally Bred) is two entries, usually with different ring numbers.",
+    "Classes must be one of: " + CLASSES.join(", ") + ". Catalogue class codes: PD Puppy Dog, PB Puppy Bitch, JD Junior Dog, JB Junior Bitch, OD Open Dog, OB Open Bitch, VD Veteran Dog, VB Veteran Bitch, AVLB AV Locally Bred. In catalogues a dog's sex follows its date of birth as D or B.",
+    "Junior Handler and Childrens Class entries are people, not dogs: put the person's name in dog_name and leave breed empty.",
+    "Keep dog names exactly as printed, including titles like Ch. or Sh.Ch. Use the breed names below when they match; otherwise write the breed as printed and give its group.",
+    "Known breeds and groups: " + breeds,
+    "Groups: " + GROUPS.join(", ") + ".",
+    "Leave a field empty when the document doesn't show it. Don't guess ring numbers. If something is unclear, still record the entry and explain in note.",
+    "If the documents show the show's name, date, venue or judge, fill in show."
+  ].join("\n") });
+  var tool = {
+    name: "record_entries",
+    description: "Record the show details and every entry found in the documents.",
+    input_schema: {
+      type: "object",
+      properties: {
+        show: { type: "object", properties: { name: { type: "string" }, date: { type: "string" }, venue: { type: "string" }, judge: { type: "string" } } },
+        entries: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              ring_no: { type: "string" }, dog_name: { type: "string" }, breed: { type: "string" },
+              group: { type: "string", enum: GROUPS.concat([""]) }, sex: { type: "string", enum: ["Dog", "Bitch", ""] },
+              "class": { type: "string", enum: CLASSES }, date_of_birth: { type: "string", description: "YYYY-MM-DD" },
+              owner: { type: "string" }, phone: { type: "string" }, address: { type: "string" },
+              breeder: { type: "string" }, sire: { type: "string" }, dam: { type: "string" }, note: { type: "string" }
+            },
+            required: ["dog_name", "class"]
+          }
+        }
+      },
+      required: ["entries"]
+    }
+  };
+  var out = callClaude_(content, [tool], "record_entries", 32000);
+  return { ok: true, show: out.input.show || {}, entries: out.input.entries || [], truncated: !!out.input._truncated, usage: out.usage };
+}
+
+// Bulk save checked entries from the Import page.
+function importEntries_(d) {
+  var show = String(d.show || "").trim();
+  if (!findShow_(show)) return { ok: false, error: "That show isn't in the Shows tab." };
+  var list = d.entries || [], added = 0, skipped = [], now = now_();
+  // breeds
+  var breeds = read_("Breeds"), bmap = {};
+  breeds.forEach(function (b) { bmap[norm_(b.Breed)] = b; });
+  var newBreeds = [];
+  list.forEach(function (e) {
+    var b = String(e.Breed || "").trim();
+    if (!b || bmap[norm_(b)]) return;
+    if (!e.Group) return;
+    bmap[norm_(b)] = { Breed: b, Group: e.Group }; newBreeds.push([b, e.Group]);
+  });
+  if (newBreeds.length) tab_("Breeds").getRange(firstEmptyRow_("Breeds"), 1, newBreeds.length, 2).setValues(newBreeds);
+  // dogs
+  var dogs = read_("Dogs"), dmap = {};
+  dogs.forEach(function (x) { dmap[norm_(x["Dog name"])] = x; });
+  var newDogs = [], fill = ["Sex", "Date of birth", "Owner", "Phone", "Address", "Breeder", "Sire", "Dam"];
+  var sh = tab_("Dogs");
+  list.forEach(function (e) {
+    var name = String(e["Dog name"] || "").trim();
+    if (!name || !e.Breed || e.Class === "Junior Handler" || e.Class === "Childrens Class") return;
+    var cur = dmap[norm_(name)];
+    if (cur) {
+      if (cur._new) return;
+      // fill in details the register doesn't have yet; never overwrite
+      var row = cur._row, cols = COLS.Dogs;
+      fill.forEach(function (k) { if ((cur[k] === "" || cur[k] == null) && e[k]) { sh.getRange(row, cols.indexOf(k) + 1).setValue(e[k]); cur[k] = e[k]; } });
+      return;
+    }
+    var r = [name, e.Breed, e.Sex || "", e["Date of birth"] || "", e.Owner || "", e.Phone || "", e.Address || "", e.Breeder || "", e.Sire || "", e.Dam || "", now];
+    newDogs.push(r); dmap[norm_(name)] = { _new: true };
+  });
+  if (newDogs.length) {
+    var start = firstEmptyRow_("Dogs");
+    sh.getRange(start, 1, newDogs.length, 2).setValues(newDogs.map(function (r) { return r.slice(0, 2); }));
+    sh.getRange(start, 4, newDogs.length, 9).setValues(newDogs.map(function (r) { return r.slice(2); }));
+  }
+  // entries
+  var existing = entriesFor_(show), seen = {}, rings = {};
+  existing.forEach(function (x) { seen[norm_(x["Dog name"]) + "|" + x.Class] = 1; var n = String(x["Ring No"]).trim(); if (n) rings[n] = x["Dog name"]; });
+  var rows = [];
+  list.forEach(function (e) {
+    var name = String(e["Dog name"] || "").trim(), cls = e.Class, ring = String(e["Ring No"] || "").trim();
+    if (!name) return;
+    if (CLASSES.indexOf(cls) < 0) { skipped.push({ name: name, reason: "no class" }); return; }
+    if (seen[norm_(name) + "|" + cls]) { skipped.push({ name: name, reason: "already entered in " + cls }); return; }
+    if (ring && rings[ring]) { skipped.push({ name: name, reason: "ring number " + ring + " is used by " + rings[ring] }); return; }
+    seen[norm_(name) + "|" + cls] = 1; if (ring) rings[ring] = name;
+    rows.push([show, ring, name, cls, !!e.Absent]); added++;
+  });
+  if (rows.length) {
+    var es = tab_("Entries"), at = firstEmptyRow_("Entries");
+    es.getRange(at, 1, rows.length, 5).setValues(rows);
+    es.getRange(at, 5, rows.length, 1).insertCheckboxes();
+    es.getRange(at, 10, rows.length, 1).setValue(now);
+  }
+  SpreadsheetApp.flush();
+  return { ok: true, added: added, skipped: skipped, newDogs: newDogs.length, newBreeds: newBreeds.length };
+}
+
+// Run once from the editor after adding the key: it asks Google for permission to reach the Claude API and checks the key.
+function checkClaudeKey() {
+  var out = callClaude_([{ type: "text", text: "Reply with ok." }], [{ name: "reply", description: "Reply", input_schema: { type: "object", properties: { text: { type: "string" } } } }], "reply", 50);
+  Logger.log("Claude API key works. Model: " + CLAUDE_MODEL + ". Reply: " + JSON.stringify(out.input));
+}
+
 function writeLegacy_(t) {
   var sh = tab_(t.name) || ss_().insertSheet(t.name);
   sh.clearContents();
@@ -283,7 +439,7 @@ function setupSheet() {
     ["3. Enter dogs into a show on the Register page, or in the Entries tab: pick the show, type the ring number, pick the dog and the class."],
     ["4. Grey columns fill in by themselves. Don't type in them."],
     ["5. Breeds missing from the dropdown go in the Breeds tab with their group."],
-    ["6. Results arrive in the Results tab while the awards page is being used."],
+    ["6. Results arrive in the Results tab while the awards page is being used. Entries can also be imported from an Excel file, a catalogue PDF or photos on the website's Import page."],
     [""],
     ["The website asks for the team password set in the Settings tab. Change it there at any time."],
     ["Tabs called Sat 31 Oct, Sun morning, Sun evening, Absent and Best in Show hold the November 2026 results from the first version of the site."],

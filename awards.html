@@ -92,7 +92,7 @@ pre{white-space:pre-wrap;font-size:13px;background:var(--bg);border:1px solid va
 
 <div class="wrap">
   <header>
-    <nav class="nav" aria-label="Pages"><a href="index.html">All shows</a><a id="regLink" href="register.html">Register dogs</a><a id="awLink" href="awards.html" aria-current="page">Awards</a></nav>
+    <nav class="nav" aria-label="Pages"><a href="index.html">All shows</a><a id="regLink" href="register.html">Register dogs</a><a id="impLink" href="import.html">Import</a><a id="awLink" href="awards.html" aria-current="page">Awards</a></nav>
     <h1 id="showTitle">Awards</h1>
     <div class="sub" id="showSub">Loading the show…</div>
     <div class="save" id="saveState">Saved on this device</div>
@@ -487,7 +487,7 @@ render();
   const GROUP_ORDER=["Utility","Hound","Gundog","Toy","Working","Terrier","Pastoral"];
   const CLASS_ORDER=["Puppy Bitch","Junior Bitch","Open Bitch","Veteran Bitch","Puppy Dog","Junior Dog","Open Dog","Veteran Dog"];
   const q=encodeURIComponent(show);
-  document.getElementById("regLink").href="register.html?show="+q;document.getElementById("awLink").href="awards.html?show="+q;
+  document.getElementById("regLink").href="register.html?show="+q;document.getElementById("impLink").href="import.html?show="+q;document.getElementById("awLink").href="awards.html?show="+q;
   function build(entries){
     const live=entries.filter(e=>e.Absent!==true&&String(e["Dog name"]).trim());
     const byBreed={},specials={},avlb={};

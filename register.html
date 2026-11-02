@@ -11,7 +11,7 @@
 <body>
 <div class="wrap">
   <header>
-    <nav class="nav" aria-label="Pages"><a href="index.html">All shows</a><a href="register.html" aria-current="page">Register dogs</a><a id="awardsLink" href="awards.html">Awards</a></nav>
+    <nav class="nav" aria-label="Pages"><a href="index.html">All shows</a><a href="register.html" aria-current="page">Register dogs</a><a id="impLink" href="import.html">Import</a><a id="awardsLink" href="awards.html">Awards</a></nav>
     <h1>Register dogs</h1>
     <div class="sub" id="showSub">Pick a show, then enter dogs one by one.</div>
   </header>
@@ -62,7 +62,7 @@ function fillShows(){
   $("showSel").innerHTML='<option value="">Pick a show…</option>'+S.shows.map(s=>`<option${s.Show===S.show?" selected":""}>${esc(s.Show)}</option>`).join("");
   const s=S.shows.find(x=>x.Show===S.show);
   $("showSub").textContent=s?[s.Date,s.Judge?"Judge: "+s.Judge:"",s.Status].filter(Boolean).join(" · "):"Pick a show, then enter dogs one by one.";
-  $("awardsLink").href="awards.html"+(S.show?"?show="+encodeURIComponent(S.show):"");
+  $("awardsLink").href="awards.html"+(S.show?"?show="+encodeURIComponent(S.show):"");$("impLink").href="import.html"+(S.show?"?show="+encodeURIComponent(S.show):"");
   $("formPanel").hidden=!S.show;
 }
 function fillLists(){
