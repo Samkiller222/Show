@@ -237,8 +237,9 @@ function callClaude_(content, tools, toolName, maxTokens) {
     payload: JSON.stringify({
       model: CLAUDE_MODEL,
       max_tokens: maxTokens || 16000,
+      system: "Answer only by calling the " + toolName + " tool once, with everything you found. Don't reply with plain text.",
       tools: tools,
-      tool_choice: { type: "tool", name: toolName },
+      tool_choice: { type: "auto" },
       messages: [{ role: "user", content: content }]
     })
   });
@@ -249,6 +250,12 @@ function callClaude_(content, tools, toolName, maxTokens) {
   if (code === 413) throw new Error("The upload is too big. Try fewer pages or smaller photos.");
   if (code !== 200) throw new Error("Claude couldn't read the file (" + code + "): " + ((body.error && body.error.message) || "unknown error"));
   var block = (body.content || []).filter(function (c) { return c.type === "tool_use" && c.name === toolName; })[0];
+  if (!block) {
+    // Fallback: Claude answered in text. Use the first JSON object in it.
+    var text = (body.content || []).filter(function (c) { return c.type === "text"; }).map(function (c) { return c.text; }).join("\n");
+    var m = text.match(/\{[\s\S]*\}/);
+    if (m) { try { block = { input: JSON.parse(m[0]) }; } catch (e) {} }
+  }
   if (!block) throw new Error("Claude didn't return any entries. Try a clearer file.");
   if (body.stop_reason === "max_tokens") block.input._truncated = true;
   return { input: block.input, usage: body.usage || {} };
