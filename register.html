@@ -51,6 +51,7 @@
 </div>
 <div class="toast" id="toast"></div>
 <script src="api.js"></script>
+<script src="nav.js"></script>
 <script>
 const esc=mncfEsc, $=id=>document.getElementById(id);
 const AGE=["Puppy","Junior","Open","Veteran"], SPECIAL=["AV Locally Bred","Junior Handler","Childrens Class"], PERSON=["Junior Handler","Childrens Class"];
@@ -164,5 +165,6 @@ document.addEventListener("change",async ev=>{
   loadShow();
 })();
 </script>
+<script>mncfJumpNav({containers:["#entries"],rounds:false});</script>
 </body>
 </html>
