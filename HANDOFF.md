@@ -1,6 +1,6 @@
 # Handoff: MNCF dog show awards organiser
 
-Notes for picking this project up in a new chat. Last updated 3 November 2026 (club dog register).
+Notes for picking this project up in a new chat. Last updated 3 November 2026 (user roles and admin view).
 
 ## What it is
 
@@ -22,7 +22,7 @@ The site helps the MNCF (Malta) team at dog shows:
   - URL: `https://cyikakfookjygycziqfg.supabase.co`
   - Publishable key: `sb_publishable_aYoBUyS09IpSzcz_7flzbA_WMeUUK38` (it is in `api.js`)
   - **Never touch** the other Supabase project `dhpxlmksyctpafcfdpit`. It holds Sam's personal apps.
-- **Access:** team sign-in with email and password. Only emails listed in the `team_members` table can read or write.
+- **Access:** team sign-in with email and password. Only emails listed in the `team_members` table can read anything, and each has a role (see "User roles" below).
 - **Dog registration:** dog name, breed, sex, owner, phone and address, plus optional date of birth, breeder, sire and dam (added 3 Nov 2026 for the catalogue; the `dogs` table and `upsert_dog_` always had these columns).
 - **Classes and breed groups are set by hand:** classes on the Entries form, groups on the Breeds page. There is no hard-coded group list on the awards page.
 - **Claude API import (`import.html`, edge function `extract`):** dropped. The code stays in the repo in case it's wanted again, but the page is hidden from menus. The function would need the `ANTHROPIC_API_KEY` secret, which has not been added.
@@ -59,6 +59,7 @@ Sam asked to organise the repo instead of one long list of files. The live pages
 | `catalogue.html` | **Show catalogue** (`?show=`): a print-ready booklet for visitors. Opened from the "Catalogue" button on Entries or "Show catalogue to print" in the drawer. Print or save as PDF. |
 | `schedule.html` | **Judging days and times** (`?show=`): split a show into sessions, each with a date, start time, optional name, the groups judged, single breeds moved in, Junior Handler / Childrens Class, and which session has the Best in Show finals. Opened from the drawer ("Judging days and times"), the "Edit days" chip, or "days" on a show card. |
 | `dogs.html` | **Club dogs** (Manage section of the drawer): every dog in the `dogs` table, A to Z, with search and a breed filter, and "+ Add dog". `?dog=<id>` opens one dog: breed, sex, date of birth, breeder, sire, dam, owner, phone, address, then every show it was entered in with its classes and the results recorded for it. "Edit details" changes any field. `&add=1` on the list opens the add form. |
+| `users.html` | **Users and roles** (Manage section of the drawer, admins only): the team with a role picker per person, Remove, an "Add someone to the team" form, and logins that signed up but aren't on the team yet. |
 | `breeds.html` | Add breeds (a group is required) and change a breed's group |
 | `import.html` | Hidden. Claude API file import. |
 | `legacy/` `saturday.html`, `sunday-morning.html`, `sunday-evening.html`, `absent.html`, `best-in-show.html`, `nov-2026.html` | The first version, hard-coded for the November 2026 show. Kept as a fallback. |
@@ -196,13 +197,28 @@ Sam: *"under the manage tab add a way i can see all dog that are registered with
 - Results history: `live_results` values are ring numbers (or the dog name when an entry has no ring number); group and show awards are `Breed::ring`, and AV Locally Bred uses the breed name `Any Variety Locally Bred <group>`. `winsFor()` in `dogs.html` matches these per entry. Withheld and `g|`/`auto-off|` keys are ignored, so a recorded winner shows even before Given is ticked.
 - Not done: removing a dog (the `dogs` table has no delete policy), and a breed must already exist on Breeds and groups.
 
+## User roles (3 Nov 2026)
+
+Sam: *"add an admin view where an admin can see and change the roles of certain users"*. Sam picked four roles:
+
+| Role | Can do |
+|---|---|
+| `admin` | Everything, plus `users.html` (see users, change roles, add or remove team members) |
+| `organiser` | Everything except users. Existing team members became organisers. |
+| `steward` | Read everything, record awards (`live_results`) only |
+| `viewer` | Read only |
+
+- **Database** (`supabase/migrations/20261103_team_roles.sql`): `team_members.role` (check constraint, default `organiser`), Sam set to admin. `private.my_role()`, `can_edit()`, `can_award()`, `is_admin()`, `need_edit()`. Write policies on shows, entries, dogs and breeds use `can_edit()`; on `live_results` `can_award()`; reads still use `is_team()`. `save_entry` and `import_entries` start with `perform private.need_edit()` and `sync_state` refuses changes from viewers, so the errors read clearly. `team_members` has no write policies: it only changes through `set_team_member(p_email,p_role,p_name)` and `remove_team_member(p_email)` (security definer, admins only). An admin can't change their own role or remove themselves, and the club must always keep one admin. `team_list()` (admins only) returns team members joined to `auth.users` plus logins not on the team. `my_role()` is callable by any signed-in user.
+- **Site:** `api.js` has `mncfRole()` (cached per page, last value in localStorage `mncf-role`), `mncfRoleName()`, actions `team`, `setMember`, `removeMember`, and refuses writes the role can't make with a plain message (no more sign-out on a permission error while signed in). `shell.js` sets `body[data-role]` and the classes `ro-edit` (steward, viewer, not on team) and `ro-award` (viewer), which hide Edit show, the Add entry tab, + New show, + Add dog, Edit details, entry buttons and drag, the breed form, the save bar on judging days, and lock award pickers; a note under the header says what the login can do. The drawer shows the role badge and, for admins, "Users and roles". If `my_role` is missing (migration not applied) the site behaves exactly as before.
+- Creating the login itself still happens in Supabase (Authentication → Users). Adding the email on `users.html` gives it a role.
+
 ## Next request
 
 None yet.
 
 ## Things Sam still has to do in Supabase
 
-1. In Authentication → Users → Add user, create a login for sammicallef12@gmail.com with auto-confirm on. Do the same for each team member, and add each person's email to the `team_members` table.
+1. In Authentication → Users → Add user, create a login for each team member with auto-confirm on, then give them a role on the Users and roles page (or let them appear under "Waiting for a role").
 2. Optionally, turn off new sign-ups in Authentication settings.
 
 ## How to work on it
