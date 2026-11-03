@@ -1,6 +1,6 @@
 # Handoff: MNCF dog show awards organiser
 
-Notes for picking this project up in a new chat. Last updated 3 November 2026 (animations and QoL).
+Notes for picking this project up in a new chat. Last updated 3 November 2026 (show catalogue).
 
 ## What it is
 
@@ -23,7 +23,7 @@ The site helps the MNCF (Malta) team at dog shows:
   - Publishable key: `sb_publishable_aYoBUyS09IpSzcz_7flzbA_WMeUUK38` (it is in `api.js`)
   - **Never touch** the other Supabase project `dhpxlmksyctpafcfdpit`. It holds Sam's personal apps.
 - **Access:** team sign-in with email and password. Only emails listed in the `team_members` table can read or write.
-- **Dog registration:** dog name, breed, sex, owner, phone and address only. There is **no pedigree and no date of birth**.
+- **Dog registration:** dog name, breed, sex, owner, phone and address, plus optional date of birth, breeder, sire and dam (added 3 Nov 2026 for the catalogue; the `dogs` table and `upsert_dog_` always had these columns).
 - **Classes and breed groups are set by hand:** classes on the Entries form, groups on the Breeds page. There is no hard-coded group list on the awards page.
 - **Claude API import (`import.html`, edge function `extract`):** dropped. The code stays in the repo in case it's wanted again, but the page is hidden from menus. The function would need the `ANTHROPIC_API_KEY` secret, which has not been added.
 - **Navigation:** burger menu (drawer) on every page, plus bottom tabs inside a show: Entries, Add entry, Awards, Results. The design should scale to many future shows.
@@ -40,6 +40,7 @@ The site helps the MNCF (Malta) team at dog shows:
 | `register.html` | **Entries** tab for one show (`?show=<name>`). The entries list by breed with Puppy/Junior/Open lanes (drag to change class, Absent, Edit, Remove) and a "+ Add entry" button. |
 | `entry.html` | **Add entry** tab (`?show=`). The entry form, with a "Just added" list. `&edit=<entry id>` opens an entry for editing and returns to the list after saving. |
 | `awards.html` | **Awards** tab (`?show=`) and **Results** tab (`?show=&view=results`). This is the awards engine. |
+| `catalogue.html` | **Show catalogue** (`?show=`): a print-ready booklet for visitors. Opened from the "Catalogue" button on Entries or "Show catalogue to print" in the drawer. Print or save as PDF. |
 | `breeds.html` | Add breeds (a group is required) and change a breed's group |
 | `import.html` | Hidden. Claude API file import. |
 | `saturday.html`, `sunday-morning.html`, `sunday-evening.html`, `absent.html`, `best-in-show.html`, `nov-2026.html` | The first version, hard-coded for the November 2026 show. Kept as a fallback. |
@@ -148,6 +149,16 @@ Sam: *"now lets add a few animations and QoL improvments"*. All motion uses tran
 - **Awards:** choosing a dog flashes the row, ticking Given pops the box, and a breed or group card glows when its last award is given (`cheer()`).
 - **Sticky breed headers** (`.breed > .bhead`) on every page, held just under the header via the `--hdr` CSS variable that `shell.js` keeps up to date.
 - **Keyboard shortcuts** (computer only, ignored while typing; listed in the drawer on wide screens): `/` search, `N` Add entry, `←`/`→` previous or next round (`mncfFocus.step`).
+
+## Show catalogue (3 Nov 2026)
+
+Sam: *"a button somewhere that can make a document like this booklet after the show has been populated so that visitors have a book to follow"* (photos of the MNCF November 2026 Championship Show catalogue). `catalogue.html` builds it from `mncfApi("show")` (entries joined to `dogs` by name):
+- Cover with show name, date, venue, judge and a contents list of breeds by group.
+- Per breed, in group order then A to Z: black breed banner with the group label, exhibitor blocks (owner. address. phone., then each dog in bold with sex, date of birth, `br` breeder, sire - dam, `Cl:` class codes PD/PB/JD/JB/OD/OB/VD/VB/AVLB), then the classes (bitches first, as in `awards.html`) with ring numbers, and blank lines: Best Bitch / Best Dog (only when both sexes are entered), Best of Breed, and Best Puppy / Junior / Veteran in Breed when both sexes have one.
+- After each group: a group judging table (V where the breed has veterans, dashes where it has no juniors or puppies), Best in Group / Junior / Puppy lines with Reserve, Best Veteran in the group, and Any Variety Locally Bred for that group.
+- Then Best in Show finals, Junior Handler and Childrens Class.
+- Options (saved per phone under `mncf-catalogue::<show>`): the running header line, A5 or A4, and leaving out absent dogs. The header and page numbers use CSS `@page` margin boxes, which print in Chrome and Edge only.
+- Not done: sponsor adverts, filling in results after the show, and judging days or start times (shows have no such field).
 
 ## Next request
 

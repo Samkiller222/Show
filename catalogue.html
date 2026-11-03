@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="mncf-version" content="2026-11-03g">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MNCF Catalogue</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<link rel="stylesheet" href="style.css?v=2026-11-03g">
+<style>
+/* ---- the booklet itself (screen preview and print) ---- */
+.book{--ink:#111;background:#fff;color:var(--ink);font-family:"Barlow",Arial,sans-serif;font-size:10.5pt;line-height:1.3;max-width:148mm;margin:0 auto;padding:12mm 11mm;box-sizing:border-box;border:1px solid var(--line);border-radius:6px;box-shadow:0 6px 24px rgba(0,0,0,.08);-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.book.a4{max-width:210mm;font-size:11.5pt}
+.book *{box-sizing:border-box}
+.book p{margin:0}
+.cover{text-align:center;display:flex;flex-direction:column;gap:6mm;padding:10mm 0;break-after:page}
+.cover .org{font-size:11pt;font-style:italic}
+.cover h1{font-family:"Barlow Condensed",Arial Narrow,sans-serif;font-size:30pt;line-height:1.05;text-transform:uppercase;margin:0;letter-spacing:.01em}
+.cover .kind{display:inline-block;margin:0 auto;border:2px solid var(--ink);padding:2mm 6mm;font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:16pt;letter-spacing:.12em;text-transform:uppercase}
+.cover dl{display:grid;grid-template-columns:auto 1fr;gap:1.5mm 4mm;text-align:left;margin:0 auto;font-size:11pt}
+.cover dt{font-weight:600}
+.cover dd{margin:0}
+.contents{text-align:left;margin-top:4mm}
+.contents h2{font-family:"Barlow Condensed",sans-serif;font-size:14pt;text-transform:uppercase;margin:0 0 2mm;border-bottom:1.5px solid var(--ink)}
+.contents .cg{break-inside:avoid;margin-bottom:2.5mm}
+.contents .cg b{display:block;font-size:10pt;text-transform:uppercase;letter-spacing:.05em}
+.contents .cg span{font-size:9.5pt}
+.runhead{display:none;text-align:center;font-style:italic;font-size:9pt;margin-bottom:4mm}
+.banner{display:flex;align-items:stretch;margin:5mm 0 2.5mm;break-after:avoid;border-bottom:1.5px solid var(--ink)}
+.banner .bn{background:var(--ink);color:#fff;font-weight:700;text-transform:uppercase;padding:1mm 3mm;flex:0 1 62%;font-size:10.5pt}
+.banner .bg{flex:1;display:flex;justify-content:flex-end;align-items:flex-end}
+.banner .bg span{border:1.5px solid var(--ink);border-bottom:0;font-weight:700;text-transform:uppercase;font-size:9pt;padding:.4mm 2mm;letter-spacing:.03em}
+.banner.wide .bn{flex-basis:100%}
+.owner{margin-top:1.6mm;break-inside:avoid}
+.owner .who b{text-transform:uppercase}
+.dogline{break-inside:avoid}
+.dogline .dn{font-weight:700;text-transform:uppercase}
+.dogline .dn .ti{text-transform:none}
+.dogline i{font-style:italic}
+.ccls{margin-top:2.4mm;break-inside:avoid}
+.ccls .ch{font-style:italic;text-decoration:underline;font-size:10pt}
+.ccls .e{display:grid;grid-template-columns:11mm 1fr;font-weight:700;text-transform:uppercase}
+.ccls .e .ti{text-transform:none}
+.ccls .e.abs{opacity:.55}
+.ccls .e small{font-weight:500;text-transform:none;font-style:italic}
+.bests{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:1mm 6mm;margin:2.5mm 0 1mm;break-before:avoid;break-inside:avoid}
+.bests span{font-style:italic;text-decoration:underline;white-space:nowrap}
+.bests .pair{display:flex;gap:6mm;width:100%;text-decoration:none}
+.bests .pair span:first-child{min-width:45%}
+.bests .pair span{text-decoration:underline}
+.bests span:not(.pair)::after{content:"";display:inline-block;width:11mm;border-bottom:1px solid var(--ink);margin-left:2mm;vertical-align:baseline}
+.gj{break-inside:avoid;margin-top:6mm}
+.gj table{width:100%;border-collapse:collapse;font-size:9.5pt;margin-top:2mm}
+.gj th{background:var(--ink);color:#fff;text-transform:uppercase;font-weight:700;padding:1mm 2mm;text-align:center}
+.gj th:first-child{text-align:left}
+.gj td{border:1px solid var(--ink);padding:1.4mm 2mm;text-transform:uppercase;height:7mm}
+.gj td.v{width:8mm;text-align:center;font-weight:700}
+.gj td.slot{width:17%;text-align:center;letter-spacing:.1em}
+.gj .bests{justify-content:flex-start}
+.vet{break-inside:avoid}
+.vet .row3{display:grid;grid-template-columns:11mm 1fr auto;align-items:end;font-weight:700;text-transform:uppercase;margin-top:1.4mm}
+.vet .row3 span:last-child{width:14mm;border-bottom:1px solid var(--ink)}
+.finals{break-before:page}
+.finals .fl{display:grid;grid-template-columns:1fr 26mm 26mm;gap:2mm 4mm;align-items:end;margin-top:3mm;font-weight:600}
+.finals .fl span:not(:first-child){border-bottom:1px solid var(--ink);font-weight:400;font-size:8.5pt;font-style:italic;text-align:left}
+.empty-book{text-align:center;padding:16mm 0;color:#555}
+/* ---- screen-only controls ---- */
+.tools .form{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+.tools label.chk{display:flex;align-items:center;gap:8px;font-size:15px;min-height:46px}
+.tools label.chk input{width:20px;height:20px}
+.preview-note{font-size:13px;color:var(--muted);text-align:center;margin:6px 0 0}
+@media print{
+  body{background:#fff!important}
+  .appbar,.drawer,.drawer-bg,.tabs,.toast,.top-btn,.tools,.preview-note,header{display:none!important}
+  .wrap{padding:0!important;max-width:none!important;margin:0!important}
+  .book,.book.a4{max-width:none;border:0;border-radius:0;box-shadow:none;padding:0;margin:0}
+}
+</style>
+<style id="pageStyle"></style>
+</head>
+<body class="wide">
+<div class="wrap">
+  <header>
+    <h1>Catalogue</h1>
+    <div class="sub" id="showSub"></div>
+  </header>
+  <section class="panel tools">
+    <div class="lhead"><h2>Show catalogue</h2><button class="pri" type="button" id="printBtn" disabled>Print or save as PDF</button></div>
+    <p class="note">A booklet for visitors to follow the show: every breed with its exhibitors, the dogs in each class with ring numbers, and blank lines for the awards. It is built from this show's entries, so add or fix entries first and come back. Page numbers and the running header print from Chrome or Edge.</p>
+    <div class="form">
+      <div class="field wide"><label for="optHead">Line at the top of every page</label><input type="text" id="optHead"></div>
+      <div class="field"><label for="optSize">Page size</label><select id="optSize"><option value="A5">A5 booklet</option><option value="A4">A4</option></select></div>
+      <label class="chk"><input type="checkbox" id="optAbsent"> Leave out dogs marked absent</label>
+    </div>
+    <p class="err" id="err"></p>
+  </section>
+  <div id="book" class="book"><p class="loading">Building the catalogue…</p></div>
+  <p class="preview-note">This is a preview. Page breaks are decided when you print.</p>
+</div>
+<div class="toast" id="toast"></div>
+<script src="supabase.min.js"></script>
+<script src="api.js?v=2026-11-03g"></script>
+<script src="shell.js?v=2026-11-03g"></script>
+<script>
+mncfShell({page:"catalogue",title:mncfQuery("show")||"Catalogue",kicker:"Catalogue"});
+const esc=mncfEsc, $=id=>document.getElementById(id), SHOW=mncfQuery("show");
+const GROUP_ORDER=["Utility","Hound","Gundog","Toy","Working","Terrier","Pastoral"];
+const CLASS_ORDER=["Puppy Bitch","Junior Bitch","Open Bitch","Veteran Bitch","Puppy Dog","Junior Dog","Open Dog","Veteran Dog"];
+const CODE={"Puppy Dog":"PD","Puppy Bitch":"PB","Junior Dog":"JD","Junior Bitch":"JB","Open Dog":"OD","Open Bitch":"OB","Veteran Dog":"VD","Veteran Bitch":"VB","AV Locally Bred":"AVLB"};
+const PERSON=["Junior Handler","Childrens Class"];
+const norm=s=>String(s||"").trim().toLowerCase();
+const gi=g=>{const i=GROUP_ORDER.indexOf(g);return i<0?99:i};
+const byNo=(a,b)=>(+a["Ring No"]||1e9)-(+b["Ring No"]||1e9)||String(a["Dog name"]).localeCompare(String(b["Dog name"]));
+let D=null;
+const prefKey="mncf-catalogue::"+SHOW;
+function loadPrefs(){try{return JSON.parse(localStorage.getItem(prefKey))||{}}catch(e){return {}}}
+function savePrefs(){try{localStorage.setItem(prefKey,JSON.stringify({head:$("optHead").value,size:$("optSize").value,absent:$("optAbsent").checked}))}catch(e){}}
+
+// Titles like "Ch." or "Sh.Ch." stay as typed; the rest of the name is printed in capitals.
+function dogName(n){
+  n=String(n||"").trim();const m=/^((?:[A-Za-z]{1,6}\.\s?)*Ch\.)\s*(.+)$/.exec(n);
+  return m?`<span class="ti">${esc(m[1])}</span> ${esc(m[2])}`:esc(n);
+}
+const dot=s=>{s=String(s||"").trim();return s?(/[.!?]$/.test(s)?s:s+"."):""};
+const sexOf=(dog,e)=>{const s=(dog&&dog.Sex)||"";if(/^b/i.test(s))return "B";if(/^d/i.test(s))return "D";return /Bitch$/.test(e.Class)?"B":/Dog$/.test(e.Class)?"D":""};
+const groupLabel=g=>g?esc(g)+" Group":"";
+
+function build(){
+  const err=$("err");err.textContent="";
+  if(!D){return}
+  const leaveOut=$("optAbsent").checked;
+  const info=D.show||{Show:SHOW};
+  const dogs={};(D.dogs||[]).forEach(d=>dogs[norm(d["Dog name"])]=d);
+  const bGroup={};(D.breeds||[]).forEach(b=>bGroup[norm(b.Breed)]=b.Group);
+  const all=(D.entries||[]).filter(e=>String(e["Dog name"]||"").trim()&&!(leaveOut&&e.Absent===true));
+  all.forEach(e=>{if(!e.Group)e.Group=bGroup[norm(e.Breed)]||""});
+  // every class a dog is in at this show, for the "Cl:" codes
+  const classesOf={};all.forEach(e=>{if(PERSON.includes(e.Class))return;(classesOf[norm(e["Dog name"])]=classesOf[norm(e["Dog name"])]||[]).push(e.Class)});
+  const codes=n=>[...new Set(classesOf[norm(n)]||[])].sort((a,b)=>(CLASS_ORDER.indexOf(a)+1||99)-(CLASS_ORDER.indexOf(b)+1||99)).map(c=>CODE[c]||c).join(", ");
+
+  const breeds={},avlb={},person={};
+  all.forEach(e=>{
+    if(PERSON.includes(e.Class)){(person[e.Class]=person[e.Class]||[]).push(e);return}
+    if(e.Class==="AV Locally Bred"){const g=e.Group||"Other";(avlb[g]=avlb[g]||[]).push(e);return}
+    const br=e.Breed||"Breed not set";(breeds[br]=breeds[br]||{name:br,group:e.Group||"Other",items:[]}).items.push(e);
+  });
+  const groups={};Object.values(breeds).forEach(b=>(groups[b.group]=groups[b.group]||[]).push(b));
+  Object.keys(avlb).forEach(g=>groups[g]=groups[g]||[]);
+  const gKeys=Object.keys(groups).sort((a,b)=>gi(a)-gi(b)||a.localeCompare(b));
+  gKeys.forEach(g=>groups[g].sort((a,b)=>a.name.localeCompare(b.name)));
+
+  // Exhibitor block: owner line, then each of their dogs with date of birth, breeder, sire - dam and classes.
+  function exhibitors(list){
+    const seen=new Set(),owners={};
+    list.forEach(e=>{const k=norm(e["Dog name"]);if(seen.has(k))return;seen.add(k);
+      const dog=dogs[k]||{},o=(dog.Owner||e.Owner||"").trim(),ok=norm(o)+"|"+norm(dog.Address)+"|"+norm(dog.Phone);
+      (owners[ok]=owners[ok]||{owner:o,address:dog.Address,phone:dog.Phone,dogs:[]}).dogs.push({e,dog})});
+    return Object.values(owners).sort((a,b)=>(a.owner?0:1)-(b.owner?0:1)||a.owner.localeCompare(b.owner)).map(o=>{
+      const head=[o.owner?`<b>${esc(dot(o.owner))}</b>`:"<b>Owner not given.</b>",esc(dot(o.address)),esc(dot(o.phone))].filter(Boolean).join(" ");
+      const lines=o.dogs.sort((a,b)=>(CLASS_ORDER.indexOf(a.e.Class)+1||99)-(CLASS_ORDER.indexOf(b.e.Class)+1||99)||String(a.e["Dog name"]).localeCompare(b.e["Dog name"])).map(({e,dog})=>{
+        const ped=[dog.Sire,dog.Dam].map(s=>String(s||"").trim()).filter(Boolean).join(" - ");
+        const bits=[[sexOf(dog,e),String(dog["Date of birth"]||"").trim()].filter(Boolean).join(" "),dog.Breeder?"br "+String(dog.Breeder).trim():"",ped].filter(Boolean).join(", ");
+        const cl=codes(e["Dog name"]);
+        return `<p class="dogline"><span class="dn">${dogName(e["Dog name"])}</span>${bits?" "+esc(dot(bits)):""}${cl?` <i>Cl: ${esc(cl)}</i>`:""}</p>`;
+      }).join("");
+      return `<div class="owner"><p class="who">${head}</p>${lines}</div>`;
+    }).join("");
+  }
+  const entryRow=(e,extra)=>`<div class="e${e.Absent===true?" abs":""}"><span>${esc(String(e["Ring No"]||"").trim())}</span><span>${dogName(e["Dog name"])}${extra?` <small>${esc(extra)}</small>`:""}${e.Absent===true?" <small>(absent)</small>":""}</span></div>`;
+  const classBlock=(name,list,extra)=>`<div class="ccls"><div class="ch">${esc(name)}:</div>${list.slice().sort(byNo).map(e=>entryRow(e,extra&&extra(e))).join("")}</div>`;
+  const bests=arr=>arr.length?`<div class="bests">${arr.map(t=>`<span>${esc(t)}</span>`).join("")}</div>`:"";
+  const banner=(name,g,wide)=>`<div class="banner${wide?" wide":""}"><span class="bn">${esc(name)}</span>${g?`<span class="bg"><span>${groupLabel(g)}</span></span>`:""}</div>`;
+
+  function breedSection(b){
+    const by={};b.items.forEach(e=>(by[e.Class]=by[e.Class]||[]).push(e));
+    const has=(age,sex)=>!!(by[age+" "+sex]&&by[age+" "+sex].length);
+    const sexHas=sex=>["Puppy","Junior","Open","Veteran"].some(a=>has(a,sex));
+    const both=sexHas("Dog")&&sexHas("Bitch");
+    let out=banner(b.name,b.group)+exhibitors(b.items);
+    ["Bitch","Dog"].forEach(sex=>{
+      const cs=CLASS_ORDER.filter(c=>c.endsWith(sex)&&by[c]);
+      out+=cs.map(c=>classBlock(c,by[c])).join("");
+      if(cs.length&&both)out+=bests(["Best "+sex]);
+    });
+    const end=["Best of Breed"];
+    if(has("Puppy","Dog")&&has("Puppy","Bitch"))end.push("Best Puppy in Breed");
+    if(has("Junior","Dog")&&has("Junior","Bitch"))end.push("Best Junior in Breed");
+    if(has("Veteran","Dog")&&has("Veteran","Bitch"))end.push("Best Veteran in Breed");
+    return `<section class="breedsec">${out+bests(end)}</section>`;
+  }
+  function groupJudging(g,list){
+    if(!list.length)return "";
+    const any=a=>list.some(b=>b.items.some(e=>e.Class.startsWith(a)));
+    const rows=list.map(b=>{
+      const h=a=>b.items.some(e=>e.Class.startsWith(a));
+      return `<tr><td>${esc(b.name)}</td><td class="v">${h("Veteran")?"V":""}</td><td class="slot"></td><td class="slot">${h("Junior")?"":"– – –"}</td><td class="slot">${h("Puppy")?"":"– – –"}</td></tr>`;
+    }).join("");
+    const pairs=[["Best in Group","Reserve"]];if(any("Junior"))pairs.push(["Best Junior in Group","Reserve"]);if(any("Puppy"))pairs.push(["Best Puppy in Group","Reserve"]);
+    const lines=`<div class="bests">${pairs.map(p=>`<span class="pair">${p.map(t=>`<span>${esc(t)}</span>`).join("")}</span>`).join("")}</div>`;
+    const vets=[];list.forEach(b=>b.items.filter(e=>e.Class.startsWith("Veteran")).forEach(e=>vets.push({e,breed:b.name})));
+    vets.sort((a,b)=>byNo(a.e,b.e));
+    const vet=vets.length?`<div class="vet">${banner("Best Veteran · "+g+" Group",null,true)}${vets.map(v=>`<div class="row3"><span>${esc(String(v.e["Ring No"]||"").trim())}</span><span>${esc(v.breed)}</span><span></span></div>`).join("")}${vets.length>1?bests(["Best Veteran in Group"]):""}</div>`:"";
+    return `<section class="gj">${banner("Group judging · "+g,null,true)}<table><thead><tr><th>${esc(g)}</th><th></th><th>Group</th><th>Junior</th><th>Puppy</th></tr></thead><tbody>${rows}</tbody></table>${lines}</section>${vet}`;
+  }
+  function avlbSection(g){
+    const list=avlb[g];if(!list||!list.length)return "";
+    return `<section class="breedsec">${banner("Any Variety Locally Bred · "+g,g)}${exhibitors(list)}${classBlock("AV Locally Bred",list,e=>"("+(e.Breed||"breed not set")+")")}${bests(["Best AV Locally Bred "+g])}</section>`;
+  }
+
+  // cover with show details and a contents list of breeds by group
+  const count=all.filter(e=>!PERSON.includes(e.Class)).length, dogsN=new Set(all.filter(e=>!PERSON.includes(e.Class)).map(e=>norm(e["Dog name"]))).size;
+  const meta=[["Date",info.Date],["Venue",info.Venue],["Judge",info.Judge]].filter(x=>String(x[1]||"").trim());
+  const contents=gKeys.map(g=>`<div class="cg"><b>${groupLabel(g)}</b><span>${groups[g].map(b=>`${esc(b.name)} (${new Set(b.items.map(e=>norm(e["Dog name"]))).size})`).join(" · ")}${avlb[g]?`${groups[g].length?" · ":""}AV Locally Bred (${avlb[g].length})`:""}</span></div>`).join("");
+  let html=`<section class="cover"><p class="org">${esc(head())}</p><h1>${esc(info.Show||SHOW)}</h1><span class="kind">Catalogue</span>
+    ${meta.length?`<dl>${meta.map(([k,v])=>`<dt>${k}</dt><dd>${esc(v)}</dd>`).join("")}</dl>`:""}
+    <p>${dogsN} dogs · ${count} entries</p>
+    ${contents?`<div class="contents"><h2>Breeds entered</h2>${contents}</div>`:""}</section>`;
+  if(!all.length){html+=`<p class="empty-book">This show has no entries yet. Add entries first, then come back to print the catalogue.</p>`}
+  gKeys.forEach(g=>{html+=groups[g].map(breedSection).join("")+groupJudging(g,groups[g])+avlbSection(g)});
+  if(gKeys.length){
+    const fin=[["Best in Show",1],["Best Puppy in Show",1],["Best Junior in Show",1],["Best Veteran in Show",0],["Best AV Locally Bred in Show",0]];
+    html+=`<section class="finals">${banner("Best in Show finals",null,true)}${fin.map(([t,r])=>`<div class="fl"><span>${esc(t)}</span><span>Winner</span>${r?"<span>Reserve</span>":'<span style="border:0"></span>'}</div>`).join("")}</section>`;
+  }
+  PERSON.forEach(c=>{const l=person[c];if(!l||!l.length)return;
+    html+=`<section class="breedsec">${banner(c,null,true)}${classBlock(c,l)}${bests(["1st","2nd","3rd"])}</section>`});
+  $("book").innerHTML=html;
+  $("book").className="book"+($("optSize").value==="A4"?" a4":"");
+  pageStyle();
+  document.title="Catalogue · "+(info.Show||SHOW);
+  $("printBtn").disabled=false;
+}
+function head(){return $("optHead").value.trim()}
+// The running header and page numbers go in the page margins (Chrome and Edge print these).
+function pageStyle(){
+  const h=head().replace(/\\/g,"\\\\").replace(/"/g,'\\"').replace(/[\r\n]+/g," ");
+  const size=$("optSize").value==="A4"?"A4":"A5";
+  $("pageStyle").textContent=`@page{size:${size};margin:15mm 12mm 14mm;
+    @top-center{content:"${h}";font-family:Barlow,Arial,sans-serif;font-style:italic;font-size:8.5pt;color:#111}
+    @bottom-center{content:counter(page);font-family:Barlow,Arial,sans-serif;font-size:9pt;color:#111}}
+    @page:first{@top-center{content:none}@bottom-center{content:none}}`;
+}
+$("printBtn").onclick=()=>window.print();
+["optHead","optSize","optAbsent"].forEach(id=>$(id).addEventListener(id==="optHead"?"input":"change",()=>{savePrefs();build()}));
+(async()=>{
+  if(!SHOW){$("book").innerHTML='<p class="empty-book">Open a show first, then choose Catalogue on its Entries page.</p>';return}
+  const p=loadPrefs();
+  $("optHead").value=p.head!=null?p.head:"The Maltese National Canine Federation – "+SHOW;
+  if(p.size)$("optSize").value=p.size;$("optAbsent").checked=!!p.absent;
+  try{D=await mncfApi("show",{show:SHOW});
+    if(!D.show){$("book").innerHTML=`<p class="empty-book">No show called ${esc(SHOW)} was found.</p>`;return}
+    $("showSub").textContent=[D.show.Date,D.show.Venue].filter(Boolean).join(" · ");
+    build()}
+  catch(e){$("err").textContent=e.message;$("book").innerHTML=""}
+})();
+</script>
+</body>
+</html>
