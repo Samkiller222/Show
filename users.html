@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="mncf-version" content="2026-11-03m">
+<meta name="mncf-version" content="2026-11-03n">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>MNCF Users and Roles</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<link rel="stylesheet" href="css/style.css?v=2026-11-03m">
+<link rel="stylesheet" href="css/style.css?v=2026-11-03n">
 <style>
 .urow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 12px;align-items:center;padding:10px 14px;border-top:1px solid var(--line)}
 .urow b{display:block;overflow-wrap:anywhere}
@@ -33,7 +33,7 @@
       <li><b>Organiser</b> Everything except users: shows, entries, dogs, breeds, judging days and awards. <button type="button" class="pv" data-preview="organiser">Preview</button></li>
       <li><b>Steward</b> Records awards. Can see everything else but not change it. <button type="button" class="pv" data-preview="steward">Preview</button></li>
       <li><b>Viewer</b> Looks only. Can't change anything. <button type="button" class="pv" data-preview="viewer">Preview</button></li>
-      <li><b>Handler</b> Sees only the dogs linked to their email (set on each dog's page under Club dogs) and enters them into Open shows. Use Preview on a handler below to see their screens.</li>
+      <li><b>Handler</b> Sees only the dogs linked to their email (set on each dog's page under Club dogs) and enters them into Open shows. They land on a My dogs page; use Preview on a handler below to see it as them.</li>
     </ul>
   </section>
   <section class="panel" id="addPanel" hidden>
@@ -50,8 +50,8 @@
 </div>
 <div class="toast" id="toast"></div>
 <script src="vendor/supabase.min.js"></script>
-<script src="js/api.js?v=2026-11-03m"></script>
-<script src="js/shell.js?v=2026-11-03m"></script>
+<script src="js/api.js?v=2026-11-03n"></script>
+<script src="js/shell.js?v=2026-11-03n"></script>
 <script>
 mncfShell({page:"users",title:"Users and roles",kicker:"Manage"});
 const esc=mncfEsc,$=id=>document.getElementById(id);
@@ -86,7 +86,7 @@ $("list").addEventListener("change",e=>{
 });
 $("list").addEventListener("click",e=>{
   const b=e.target.closest("button");if(!b)return;
-  if(b.dataset.pvhandler){mncfPreview.set("handler:"+b.dataset.pvhandler);location.href="dogs.html";return}
+  if(b.dataset.pvhandler){mncfPreview.set("handler:"+b.dataset.pvhandler);location.href="mydogs.html";return}
   if(b.dataset.remove){if(!confirm(`Take ${b.dataset.remove} off the team? Their login stays but they won't see anything.`))return;
     run("removeMember",{email:b.dataset.remove},b.dataset.remove+" removed from the team",b)}
   if(b.dataset.add){const s=b.parentNode.querySelector("[data-pick]");run("setMember",{email:b.dataset.add,role:s.value},`${b.dataset.add} added as ${mncfRoleName(s.value)}`,b)}

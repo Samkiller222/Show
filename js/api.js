@@ -159,6 +159,12 @@
       if(old&&old!==name){const r=await sb.from("entries").update({dog_name:name}).ilike("dog_name",likeExact(old));if(r.error)fail({message:"The dog was renamed, but its show entries still use the old name: "+r.error.message})}
       return {ok:true,dog:Object.assign(dogOut(data[0]),{id:data[0].id,Added:data[0].created_at})};
     },
+    // Handler home (mydogs.html): my dogs, every show, and my dogs' entries. The database only returns a handler's own.
+    async myDogs(){
+      const [g,sh,ents]=await Promise.all([all("dogs","name"),shows(),all("entries_view","created_at")]);
+      const dogsOut=g.map(d=>Object.assign(dogOut(d),{id:d.id}));
+      return {ok:true,dogs:dogsOut,shows:sh,entries:ents.map(e=>Object.assign(entryOut(e),{show_id:e.show_id}))};
+    },
     // Everything tied to one dog: its show entries and the results recorded for them.
     async dogHistory(d){
       const name=String(d.name||"").trim();if(!name)return {ok:true,entries:[],results:[],shows:[]};
