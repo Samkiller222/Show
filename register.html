@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="mncf-version" content="2026-11-03d">
+<meta name="mncf-version" content="2026-11-03e">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>MNCF Entries</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<link rel="stylesheet" href="style.css?v=2026-11-03d">
+<link rel="stylesheet" href="style.css?v=2026-11-03e">
 </head>
 <body class="wide">
 <div class="wrap">
@@ -29,9 +29,9 @@
 </div>
 <div class="toast" id="toast"></div>
 <script src="supabase.min.js"></script>
-<script src="api.js?v=2026-11-03d"></script>
-<script src="shell.js?v=2026-11-03d"></script>
-<script src="nav.js?v=2026-11-03d"></script>
+<script src="api.js?v=2026-11-03e"></script>
+<script src="shell.js?v=2026-11-03e"></script>
+<script src="nav.js?v=2026-11-03e"></script>
 <script>
 mncfShell({page:"entries",title:mncfQuery("show")||"Register dogs",kicker:mncfQuery("show")?"Entries":"Register dogs"});
 const esc=mncfEsc, $=id=>document.getElementById(id);
@@ -51,7 +51,8 @@ function fillShows(){
 async function loadShow(){
   if(!S.show){$("entries").innerHTML="";return}
   $("entries").innerHTML='<p class="loading">Loading entries…</p>';
-  try{const j=await mncfApi("show",{show:S.show});S.entries=j.entries;S.dogs=j.dogs;S.breeds=j.breeds;drawEntries()}
+  try{const j=await mncfApi("show",{show:S.show});S.entries=j.entries;S.dogs=j.dogs;S.breeds=j.breeds;drawEntries();
+    const back=mncfQuery("edited");if(back){const el=document.querySelector(`.erow[data-row="${CSS.escape(back)}"]`);if(el){el.scrollIntoView({block:"center"});landed(back)}}}
   catch(e){$("entries").innerHTML=`<p class="err">${esc(e.message)}</p>`}
 }
 // Entries list: one card per breed, with Puppy / Junior / Open lanes for dogs and for bitches.
@@ -66,11 +67,12 @@ function entryRow(e){
   return `<div class="erow${ab?" isabs":""}${mv?" mv":""}" data-row="${e._row}">${mv?`<span class="grip" data-grip="${e._row}" aria-hidden="true" title="Drag to another class">⠿</span>`:""}<span class="no${String(e["Ring No"]).trim()?"":" missing"}">${esc(String(e["Ring No"]).trim()||"No no.")}</span><span><span class="nm">${esc(e["Dog name"])}</span><small>${sub.map(esc).join(" · ")}</small></span><span class="acts">${menu}<label class="given"><input type="checkbox" data-abs="${e._row}"${ab?" checked":""}>Absent</label><button data-edit="${e._row}">Edit</button><button class="danger" data-del="${e._row}">Remove</button></span></div>`;
 }
 function drawEntries(){
+  const ALL=S.entries.filter(e=>!PENDING.has(String(e._row)));
   const q=norm($("q").value);
-  const list=S.entries.filter(e=>!q||String(e["Ring No"])===q||norm(e["Dog name"]+" "+e.Breed+" "+e.Class).includes(q));
-  const nos={};S.entries.forEach(e=>{const n=String(e["Ring No"]).trim();if(n)nos[n]=(nos[n]||0)+1});
-  const dup=Object.keys(nos).filter(n=>nos[n]>1), missing=S.entries.filter(e=>!String(e["Ring No"]).trim()).length;
-  $("countNote").textContent=`· ${S.entries.length} entries, ${S.entries.filter(e=>e.Absent===true).length} absent`;
+  const list=ALL.filter(e=>!q||String(e["Ring No"])===q||norm(e["Dog name"]+" "+e.Breed+" "+e.Class).includes(q));
+  const nos={};ALL.forEach(e=>{const n=String(e["Ring No"]).trim();if(n)nos[n]=(nos[n]||0)+1});
+  const dup=Object.keys(nos).filter(n=>nos[n]>1), missing=ALL.filter(e=>!String(e["Ring No"]).trim()).length;
+  $("countNote").textContent=`· ${ALL.length} entries, ${ALL.filter(e=>e.Absent===true).length} absent`;
   $("warnNote").innerHTML=[missing?`<span class="tag warn">${missing} without a ring number</span>`:"",dup.length?`<span class="tag warn">Ring number used twice: ${dup.map(esc).join(", ")}</span>`:""].join(" ");
   const sec=e=>PERSON.includes(e.Class)?e.Class:e.Class==="AV Locally Bred"?"AV Locally Bred":(e.Breed||"Breed not set");
   const gOf=e=>PERSON.includes(e.Class)?-1:e.Class==="AV Locally Bred"?99:(GROUP_ORDER.indexOf(e.Group)+1||98);
@@ -90,16 +92,50 @@ function drawEntries(){
         `</div>`).join("");
       const other=items.filter(e=>!laneOf(e.Class));if(other.length)body+=other.map(entryRow).join("");
     }
-    return `<article class="breed"><div class="bhead"><div><small>${esc(gname)}</small><h2>${esc(k)}</h2></div><span class="count">${items.length}</span></div>${body}</article>`}).join("")||`<div class="empty">${S.entries.length?"No entries match your search.":`No entries yet. <a href="entry.html?show=${encodeURIComponent(S.show||"")}">Add the first dog</a>.`}</div>`;
+    return `<article class="breed"><div class="bhead"><div><small>${esc(gname)}</small><h2>${esc(k)}</h2></div><span class="count">${items.length}</span></div>${body}</article>`}).join("")||`<div class="empty">${ALL.length?"No entries match your search.":`No entries yet. <a href="entry.html?show=${encodeURIComponent(S.show||"")}">Add the first dog</a>.`}</div>`;
 }
+const calm=()=>matchMedia("(prefers-reduced-motion: reduce)").matches;
+// Show where a dog ended up: glide from where it was dropped (if known), then a short outline flash.
+function landed(row,fromRect){
+  const el=document.querySelector(`.erow[data-row="${CSS.escape(String(row))}"]`);if(!el)return;
+  el.classList.remove("landed");void el.offsetWidth;el.classList.add("landed");
+  if(calm())return;
+  const r=el.getBoundingClientRect();
+  if(fromRect&&el.animate){const dx=fromRect.left-r.left,dy=fromRect.top-r.top;if(Math.abs(dx)+Math.abs(dy)>2)el.animate([{transform:`translate(${dx}px,${dy}px)`},{transform:"none"}],{duration:240,easing:"cubic-bezier(.2,.8,.2,1)"})}
+  else if(r.bottom<0||r.top>innerHeight)el.scrollIntoView({block:"center",behavior:"smooth"});
+}
+// Redraw only when the server's copy differs from what's already on screen, so animations aren't cut short.
+const sameAs=list=>JSON.stringify(list)===JSON.stringify(S.entries);
 // Move an entry to another class, keeping everything else. Shows the change at once, undoes it if saving fails.
-async function moveEntry(row,cls){
+// After saving, the toast offers Undo, which moves the dog back.
+async function moveEntry(row,cls,fromRect,isUndo){
   const e=S.entries.find(x=>x._row==row);if(!e||e.Class===cls)return;
-  const from=e.Class;e.Class=cls;drawEntries();
+  const from=e.Class;e.Class=cls;drawEntries();landed(row,fromRect);
   try{const j=await mncfApi("saveEntry",{entry:{Show:S.show,"Ring No":String(e["Ring No"]||"").trim(),"Dog name":e["Dog name"],Class:cls,Absent:e.Absent===true,_row:e._row},dog:null});
-    S.entries=j.entries;drawEntries();mncfToast(`${e["Dog name"]} moved to ${cls}`)}
+    if(!sameAs(j.entries)){S.entries=j.entries;drawEntries()}
+    mncfToast(isUndo?`${e["Dog name"]} moved back to ${cls}`:`${e["Dog name"]} moved to ${cls}`,isUndo?{}:{action:"Undo",onAction:()=>moveEntry(row,from,null,true)})}
   catch(er){e.Class=from;drawEntries();mncfToast(er.message)}
 }
+// Removing waits a few seconds so it can be undone; it's sent straight away if you leave the page.
+const PENDING=new Map();
+function removeEntry(e){
+  const id=String(e._row);PENDING.set(id,setTimeout(()=>commitRemove(id),5000));drawEntries();
+  mncfToast(`${e["Dog name"]} removed from this show`,{action:"Undo",onAction(){if(!PENDING.has(id))return;clearTimeout(PENDING.get(id));PENDING.delete(id);drawEntries();landed(id)}});
+}
+async function commitRemove(id){
+  if(!PENDING.has(id))return;clearTimeout(PENDING.get(id));PENDING.delete(id);
+  const e=S.entries.find(x=>String(x._row)===id);if(!e)return;
+  try{const j=await mncfApi("deleteEntry",{_row:e._row,show:S.show,name:e["Dog name"]});S.entries=j.entries;drawEntries()}
+  catch(er){drawEntries();mncfToast(`${e["Dog name"]} wasn't removed: ${er.message}`)}
+}
+const flushRemoves=()=>Promise.all([...PENDING.keys()].map(commitRemove));
+document.addEventListener("visibilitychange",()=>{if(document.hidden)flushRemoves()});
+window.addEventListener("pagehide",flushRemoves);
+// Leaving through a link or tab: finish any removal first.
+document.addEventListener("click",async ev=>{
+  const a=ev.target.closest&&ev.target.closest("a[href]");if(!a||!PENDING.size||ev.defaultPrevented||a.target)return;
+  ev.preventDefault();await flushRemoves();location.href=a.href;
+},true);
 // Drag and drop with pointer events. With a mouse, grab a dog's card anywhere (not on its buttons);
 // by touch, grab the ⠿ handle so the page still scrolls normally. A drag starts after a small move, so taps still work.
 (function(){
@@ -133,9 +169,9 @@ async function moveEntry(row,cls){
   },{passive:false});
   function end(ev){
     pend=null;
-    if(!d||ev.pointerId!==d.id)return;const t=d;d=null;cancelAnimationFrame(t.raf);t.ghost.remove();t.src.classList.remove("dragging");
+    if(!d||ev.pointerId!==d.id)return;const t=d;d=null;cancelAnimationFrame(t.raf);const gr=t.ghost.getBoundingClientRect();t.ghost.remove();t.src.classList.remove("dragging");
     document.body.classList.remove("dragmode");document.querySelectorAll(".lane.can,.lane.over").forEach(l=>l.classList.remove("can","over"));
-    if(ev.type==="pointerup"&&t.over){const cls=t.over.dataset.lane.slice(t.breed.length+1);if(cls!==t.from)moveEntry(t.row,cls)}
+    if(ev.type==="pointerup"&&t.over){const cls=t.over.dataset.lane.slice(t.breed.length+1);if(cls!==t.from)moveEntry(t.row,cls,gr)}
   }
   document.addEventListener("pointerup",end);document.addEventListener("pointercancel",end);
   // Stop the browser's own text/image drag from taking over a mouse drag.
@@ -145,12 +181,10 @@ $("showSel").onchange=()=>{S.show=$("showSel").value;location.href="register.htm
 $("q").addEventListener("input",drawEntries);
 document.addEventListener("click",async ev=>{
   const t=ev.target;
-  if(t.dataset.edit){location.href="entry.html?show="+encodeURIComponent(S.show)+"&edit="+encodeURIComponent(t.dataset.edit);return}
+  if(t.dataset.edit){await flushRemoves();location.href="entry.html?show="+encodeURIComponent(S.show)+"&edit="+encodeURIComponent(t.dataset.edit);return}
   if(t.dataset.del){
     if(t.dataset.armed!=="1"){t.dataset.armed="1";t.textContent="Tap to confirm";setTimeout(()=>{t.dataset.armed="";t.textContent="Remove"},3000);return}
-    const e=S.entries.find(x=>x._row==t.dataset.del);t.disabled=true;
-    try{const j=await mncfApi("deleteEntry",{_row:e._row,show:S.show,name:e["Dog name"]});S.entries=j.entries;drawEntries();mncfToast(e["Dog name"]+" removed from this show")}
-    catch(er){mncfToast(er.message);t.disabled=false}
+    const e=S.entries.find(x=>x._row==t.dataset.del);if(e)removeEntry(e);
   }
 });
 document.addEventListener("change",async ev=>{

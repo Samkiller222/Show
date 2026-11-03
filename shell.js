@@ -55,6 +55,38 @@ body.drawer-open{overflow:hidden}
 .showdlg .dhead b{font-family:var(--display);font-size:22px;text-transform:uppercase;letter-spacing:.03em}
 .showdlg .close{width:40px;height:40px;border-radius:10px;border:1px solid var(--line);background:var(--bg);font-size:22px;line-height:1;color:var(--fg);padding:0}
 @media (prefers-reduced-motion:reduce){.drawer,.drawer-bg{transition:none}}
+/* toasts slide up above the bottom tabs and the round pager; Undo button when there is one */
+.toast{z-index:60;display:flex;align-items:center;gap:12px;width:max-content;max-width:min(92vw,480px);padding:10px 14px;border-radius:10px;font-size:15px;box-shadow:0 8px 24px rgba(0,0,0,.25);
+  opacity:0;transform:translate(-50%,14px);transition:opacity .18s ease,transform .24s cubic-bezier(.2,.8,.2,1);pointer-events:none}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.toast.has-act.show{pointer-events:auto}
+.toast-act{flex:none;min-height:38px!important;padding:6px 14px;border-radius:8px;border:1.5px solid currentColor;background:transparent;color:inherit;font-weight:700;text-transform:uppercase;letter-spacing:.04em;font-size:13px}
+body.has-tabs .toast{bottom:calc(82px + env(safe-area-inset-bottom,0px))}
+body.has-pager .toast{bottom:calc(146px + env(safe-area-inset-bottom,0px))}
+body.has-tabs .top-btn{bottom:calc(82px + env(safe-area-inset-bottom,0px))}
+body.has-pager .top-btn{bottom:calc(146px + env(safe-area-inset-bottom,0px))}
+/* breed names stay in view while you scroll through a long breed */
+.breed{overflow:hidden;overflow:clip}
+.breed > .bhead{position:sticky;top:calc(var(--hdr,0px) + env(safe-area-inset-top,0px));z-index:3}
+/* small motion: things landing, awards given, rounds finished */
+@keyframes mncf-land{0%{box-shadow:0 0 0 3px var(--accent)}100%{box-shadow:0 0 0 3px transparent}}
+@keyframes mncf-in{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+@keyframes mncf-pop{0%,100%{transform:scale(1)}45%{transform:scale(1.35)}}
+@keyframes mncf-fade{from{opacity:.24}to{opacity:0}}
+@keyframes mncf-done{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--ok) 60%,transparent)}100%{box-shadow:0 0 0 14px transparent}}
+.erow.landed{animation:mncf-land 1.1s ease-out;border-radius:8px}
+.erow.in{animation:mncf-in .3s ease-out}
+.row{position:relative}
+.row.pop .given input{animation:mncf-pop .32s ease-out}
+.row.pop::after,.row.picked::after{content:"";position:absolute;inset:-3px -8px;border-radius:8px;background:var(--ok);opacity:0;pointer-events:none;animation:mncf-fade .8s ease-out}
+.row.picked::after{background:var(--accent)}
+.breed.justdone{animation:mncf-done .9s ease-out}
+.lane{transition:background .15s,border-color .15s,box-shadow .15s,opacity .15s}
+.keys{display:none}
+@media (min-width:900px) and (hover:hover){.keys{display:flex}}
+.keys kbd{font:600 12px/1 var(--body);border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:3px 6px;background:var(--bg);margin-right:6px}
+.keys p{margin:0;font-size:13px;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){.toast{transform:translate(-50%,0)}*,*::before,*::after{animation:none!important;transition:none!important}}
 `;
   const ico={
     burger:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>',
@@ -89,6 +121,7 @@ body.drawer-open{overflow:hidden}
       ${show?`<div class="sec"><h3>This show</h3><button class="item" type="button" id="drawerEdit">Edit show details <small>›</small></button></div>`:""}
       <div class="sec"><h3>Manage</h3><a class="item${opt.page==="breeds"?" here":""}" href="breeds.html">Breeds and groups <small>›</small></a></div>
       <div class="sec"><h3>Awards view on this phone</h3><div class="seg" role="group" aria-label="Awards view"><button type="button" data-view="round" aria-pressed="${mode==="round"}">One round at a time</button><button type="button" data-view="list" aria-pressed="${mode==="list"}">Full list</button></div></div>
+      <div class="sec keys"><h3>Keyboard shortcuts</h3><p><kbd>/</kbd>Search</p>${show?`<p><kbd>N</kbd>Add entry</p><p><kbd>←</kbd><kbd>→</kbd>Previous or next round</p>`:""}<p><kbd>Esc</kbd>Close menu</p></div>
       <div class="sec"><h3>Older pages</h3><a class="item" href="nov-2026.html">November 2026, first version <small>›</small></a></div>
       <div class="sec" style="margin-top:auto"><span class="who" id="drawerWho"></span><button class="item" type="button" id="drawerOut">Sign out</button></div>`;
     document.body.appendChild(bg);document.body.appendChild(dr);
@@ -126,6 +159,17 @@ body.drawer-open{overflow:hidden}
         .map(([k,l,h])=>`<a href="${h}"${opt.page===k?' class="here" aria-current="page"':""}>${ico[k]}<span>${l}</span></a>`).join("");
       document.body.appendChild(tabs);document.body.classList.add("has-tabs");
     }
+    // ---- keyboard shortcuts on a computer (ignored while typing) ----
+    document.addEventListener("keydown",e=>{
+      if(e.ctrlKey||e.metaKey||e.altKey||e.defaultPrevented)return;
+      const t=e.target;if(t&&(t.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)))return;
+      if(document.body.classList.contains("drawer-open")||document.querySelector("dialog[open]"))return;
+      if(e.key==="/"){const f=[...document.querySelectorAll("#q,#bq,.find input")].find(x=>x.offsetParent);if(f){e.preventDefault();f.focus();f.select()}return}
+      if((e.key==="n"||e.key==="N")&&show&&opt.page!=="add"){e.preventDefault();location.href="entry.html"+q;return}
+      if((e.key==="ArrowLeft"||e.key==="ArrowRight")&&window.mncfFocus&&mncfFocus.active&&mncfFocus.active()){e.preventDefault();mncfFocus.step(e.key==="ArrowLeft"?-1:1)}
+    });
+    // header height, so breed headers can stick just under it
+    if(header&&window.ResizeObserver){const set=()=>document.documentElement.style.setProperty("--hdr",header.offsetHeight+"px");set();new ResizeObserver(set).observe(header)}
     // ---- edit the open show ----
     if(show){
       const dlg=document.createElement("dialog");dlg.className="showdlg";dlg.setAttribute("aria-labelledby","esTitle");

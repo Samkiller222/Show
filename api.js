@@ -133,6 +133,14 @@
   window.mncfApi=api;
   window.mncfCache={get:k=>{try{return JSON.parse(localStorage.getItem("mncf-cache-"+k))}catch(e){return null}},set:(k,v)=>{try{localStorage.setItem("mncf-cache-"+k,JSON.stringify(v))}catch(e){}}};
   window.mncfEsc=esc;
-  window.mncfToast=t=>{let el=document.getElementById("toast");if(!el){el=document.createElement("div");el.id="toast";el.className="toast";document.body.appendChild(el)}el.textContent=t;el.classList.add("show");clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove("show"),2200)};
+  // mncfToast("Saved") or mncfToast("Dog removed",{action:"Undo",onAction(){…},ms:5000}). Slides up above the bottom tabs.
+  window.mncfToast=(t,o)=>{o=o||{};let el=document.getElementById("toast");if(!el){el=document.createElement("div");el.id="toast";el.className="toast";document.body.appendChild(el)}
+    el.setAttribute("role","status");el.setAttribute("aria-live","polite");el.textContent="";
+    const sp=document.createElement("span");sp.textContent=t;el.appendChild(sp);
+    const hide=()=>{clearTimeout(el._t);el.classList.remove("show")};
+    if(o.action){const b=document.createElement("button");b.type="button";b.className="toast-act";b.textContent=o.action;b.onclick=()=>{hide();if(o.onAction)o.onAction()};el.appendChild(b)}
+    el.classList.toggle("has-act",!!o.action);el.classList.remove("show");void el.offsetWidth;el.classList.add("show");
+    clearTimeout(el._t);el._t=setTimeout(hide,o.ms||(o.action?5000:2200));return {hide};
+  };
   window.mncfQuery=k=>new URLSearchParams(location.search).get(k)||"";
 })();

@@ -1,6 +1,6 @@
 # Handoff: MNCF dog show awards organiser
 
-Notes for picking this project up in a new chat. Last updated 3 November 2026 (drag lanes).
+Notes for picking this project up in a new chat. Last updated 3 November 2026 (animations and QoL).
 
 ## What it is
 
@@ -137,6 +137,16 @@ Sam: *"the add entry screen and the awards tracker screen should be seperate and
 ## Awards that only one dog can win (3 Nov 2026)
 
 Sam asked that awards which can only go to one dog (Best Puppy, Best Junior, a sex, a one-dog class) be more obvious, so ring stewards can prepare ribbons and cards. In `awards.html`, `row(..., only)` marks such rows green with an "Only 1 dog" tag, and each breed and group card opens with a "Prepare now · only one dog can win" list (award → ring number · dog), built by `prepBox()`. An award counts as one-dog when its candidate pool has exactly one dog. Given awards are struck through in the list.
+
+## Animations and quality of life (3 Nov 2026)
+
+Sam: *"now lets add a few animations and QoL improvments"*. All motion uses transform/opacity only and is switched off under `prefers-reduced-motion`.
+- **Toasts** (`mncfToast(text,{action,onAction,ms})` in `api.js`, styles in `shell.js`): slide up, sit above the bottom tabs and the round pager (they used to hide behind them), and can carry an Undo button. The awards page's own `toast()` now calls `mncfToast`. The back-to-top button was lifted above the tabs too.
+- **Entries:** a dropped dog glides from the drop point into its new lane and flashes (`landed()` in `register.html`). Moving class offers Undo. Remove now waits 5 seconds with Undo before deleting (`PENDING`, `removeEntry`, `commitRemove`); pending removals are sent at once when the page is hidden, a link is followed, or Edit is tapped. After editing an entry, the list returns with `&edited=<id>` and scrolls to and flashes that dog.
+- **Add entry:** the newest "Just added" row slides in; "updated" after an edit shows on the list via `sessionStorage` `mncf-flash`.
+- **Awards:** choosing a dog flashes the row, ticking Given pops the box, and a breed or group card glows when its last award is given (`cheer()`).
+- **Sticky breed headers** (`.breed > .bhead`) on every page, held just under the header via the `--hdr` CSS variable that `shell.js` keeps up to date.
+- **Keyboard shortcuts** (computer only, ignored while typing; listed in the drawer on wide screens): `/` search, `N` Add entry, `←`/`→` previous or next round (`mncfFocus.step`).
 
 ## Next request
 

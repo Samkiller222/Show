@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="mncf-version" content="2026-11-03d">
+<meta name="mncf-version" content="2026-11-03e">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>MNCF Add Entry</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<link rel="stylesheet" href="style.css?v=2026-11-03d">
+<link rel="stylesheet" href="style.css?v=2026-11-03e">
 </head>
 <body>
 <div class="wrap">
@@ -47,8 +47,8 @@
 </div>
 <div class="toast" id="toast"></div>
 <script src="supabase.min.js"></script>
-<script src="api.js?v=2026-11-03d"></script>
-<script src="shell.js?v=2026-11-03d"></script>
+<script src="api.js?v=2026-11-03e"></script>
+<script src="shell.js?v=2026-11-03e"></script>
 <script>
 mncfShell({page:"add",title:mncfQuery("show")||"Add an entry",kicker:mncfQuery("show")?(mncfQuery("edit")?"Edit entry":"Add entry"):"Add an entry"});
 const esc=mncfEsc, $=id=>document.getElementById(id);
@@ -113,12 +113,13 @@ function startEdit(e){
   S.editing=e;$("fClass").value=e.Class;$("fRing").value=String(e["Ring No"]).trim();$("fName").value=e["Dog name"];syncForm();lookupDog();
   $("formTitle").textContent="Edit entry";$("saveBtn").textContent="Save changes";$("cancelBtn").hidden=false;
 }
-const backToList=()=>{location.href="register.html?show="+encodeURIComponent(S.show)};
+const backToList=()=>{location.href="register.html?show="+encodeURIComponent(S.show)+(S.editing?"&edited="+encodeURIComponent(S.editing._row):"")};
 // Entries added on this screen since it was opened, newest first, so the steward can check what went in.
 const RECENT=[];
 function drawRecent(){
   $("recentPanel").hidden=!RECENT.length;$("recentNote").textContent=`· ${RECENT.length} this session`;
-  $("recent").innerHTML=RECENT.slice(0,8).map(e=>`<div class="erow"><span class="no${e["Ring No"]?"":" missing"}">${esc(e["Ring No"]||"No no.")}</span><span><span class="nm">${esc(e["Dog name"])}</span><small>${esc([e.Class,e.Breed].filter(Boolean).join(" · "))}</small></span><span></span></div>`).join("");
+  $("recent").innerHTML=RECENT.slice(0,8).map((e,i)=>`<div class="erow${i===0&&RECENT.length>(drawRecent.n||0)?" in":""}"><span class="no${e["Ring No"]?"":" missing"}">${esc(e["Ring No"]||"No no.")}</span><span><span class="nm">${esc(e["Dog name"])}</span><small>${esc([e.Class,e.Breed].filter(Boolean).join(" · "))}</small></span><span></span></div>`).join("");
+  drawRecent.n=RECENT.length;
 }
 $("showSel").onchange=()=>{S.show=$("showSel").value;location.href="entry.html"+(S.show?"?show="+encodeURIComponent(S.show):"")};
 $("fClass").onchange=()=>{syncForm();fillDogList();lookupDog()};
@@ -139,7 +140,7 @@ $("entryForm").addEventListener("submit",async ev=>{
   if(S.editing) entry._row=S.editing._row;
   const b=$("saveBtn");b.disabled=true;b.textContent="Saving…";
   try{const j=await mncfApi("saveEntry",{entry,dog:person?null:dog});S.entries=j.entries;S.dogs=j.dogs;S.breeds=j.breeds;
-    if(S.editing){mncfToast(`${entry["Dog name"]} updated`);backToList();return}
+    if(S.editing){try{sessionStorage.setItem("mncf-flash",`${entry["Dog name"]} updated`)}catch(e){}backToList();return}
     fillLists();RECENT.unshift({...entry,Breed:person?"":breed});drawRecent();
     mncfToast(`${entry["Dog name"]} entered in ${cls}`);resetForm({cls,breed:person?"":breed});$("fName").focus()}
   catch(e){err.textContent=e.message}
