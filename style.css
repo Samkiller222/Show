@@ -131,3 +131,4 @@ a.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--card)}
 .lane.over{background:var(--accent-soft);border-style:solid;border-width:2px}
 .erow.dragging{opacity:.35}
 .erow.ghost{position:fixed;z-index:40;margin:0;pointer-events:none;background:var(--card);border:1px solid var(--accent);border-radius:8px;box-shadow:0 10px 26px rgba(0,0,0,.22);transform:rotate(-1.5deg)}
+.lhead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}

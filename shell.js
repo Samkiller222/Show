@@ -1,6 +1,7 @@
 // App shell shared by every page: a top bar with a burger menu, a drawer for finding shows and settings,
 // and bottom tabs (Entries / Awards / Results) whenever a show is open.
-// Usage: <script src="shell.js"></script> then mncfShell({page:"entries"|"awards"|"results"|"shows"|"breeds"|"import", title:"…"})
+// Usage: <script src="shell.js"></script> then mncfShell({page:"entries"|"add"|"awards"|"results"|"shows"|"breeds"|"import", title:"…"})
+// When a show is open, the top bar has an "Edit show" button that changes the show's name, date, venue, judge and status.
 (function(){
   const css=`
 :root{--tap:46px}
@@ -39,18 +40,28 @@ body.drawer-open{overflow:hidden}
 .drawer .seg button{border:0;border-radius:0;background:var(--bg);color:var(--fg);font-weight:600;font-size:14px;padding:10px 6px;min-height:44px}
 .drawer .seg button[aria-pressed="true"]{background:var(--accent);color:var(--card)}
 .drawer .who{font-size:13px;color:var(--muted)}
-.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--card);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(3,1fr);
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--card);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(4,1fr);
   padding:6px max(10px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(10px,env(safe-area-inset-left,0px))}
 .tabs a{display:flex;flex-direction:column;align-items:center;gap:3px;text-decoration:none;color:var(--muted);font-size:12px;font-weight:600;padding:6px 4px;border-radius:10px;min-height:52px;justify-content:center}
 .tabs a svg{width:24px;height:24px}
 .tabs a.here{color:var(--accent);background:var(--accent-soft)}
 @media (min-width:900px){.tabs{left:50%;right:auto;transform:translateX(-50%);width:560px;border:1px solid var(--line);border-bottom:0;border-radius:14px 14px 0 0}}
+.appbar .editshow{flex:none;display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font-size:14px;font-weight:600}
+.appbar .editshow svg{width:18px;height:18px}
+.showdlg{border:1px solid var(--line);border-radius:14px;padding:0;background:var(--card);color:var(--fg);width:min(92vw,460px);max-height:90vh;box-shadow:0 18px 40px rgba(0,0,0,.25)}
+.showdlg::backdrop{background:rgba(10,12,20,.45)}
+.showdlg form{padding:16px;display:flex;flex-direction:column;gap:12px}
+.showdlg .dhead{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.showdlg .dhead b{font-family:var(--display);font-size:22px;text-transform:uppercase;letter-spacing:.03em}
+.showdlg .close{width:40px;height:40px;border-radius:10px;border:1px solid var(--line);background:var(--bg);font-size:22px;line-height:1;color:var(--fg);padding:0}
 @media (prefers-reduced-motion:reduce){.drawer,.drawer-bg{transition:none}}
 `;
   const ico={
     burger:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>',
     entries:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6v3H9z"/><path d="M7 5H5v15h14V5h-2"/><path d="M8 11h8M8 15h5"/></svg>',
     awards:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5"/><path d="M9 13.5 7 21l5-2.5 5 2.5-2-7.5"/></svg>',
+    add:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>',
+    pencil:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>',
     results:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>'
   };
   const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -65,7 +76,7 @@ body.drawer-open{overflow:hidden}
     // top bar
     const header=document.querySelector("header");
     const bar=document.createElement("div");bar.className="appbar";
-    bar.innerHTML=`<button class="burger" type="button" aria-label="Open menu" aria-expanded="false">${ico.burger}</button><div class="crumb"><small>${esc(opt.kicker||(show?{entries:"Entries",awards:"Awards",results:"Results"}[opt.page]||"":"MNCF Show Desk"))}</small><b id="crumbTitle">${esc(opt.title||show||"All shows")}</b></div>`;
+    bar.innerHTML=`<button class="burger" type="button" aria-label="Open menu" aria-expanded="false">${ico.burger}</button><div class="crumb"><small>${esc(opt.kicker||(show?{entries:"Entries",add:"Add entry",awards:"Awards",results:"Results"}[opt.page]||"":"MNCF Show Desk"))}</small><b id="crumbTitle">${esc(opt.title||show||"All shows")}</b></div>${show?`<button class="editshow" type="button" id="editShowBtn" aria-label="Edit this show's details">${ico.pencil}<span>Edit show</span></button>`:""}`;
     if(header) header.insertBefore(bar,header.firstChild); else document.body.insertBefore(bar,document.body.firstChild);
     if(header){const h1=header.querySelector("h1");if(h1&&show)h1.hidden=true}
     // drawer
@@ -75,6 +86,7 @@ body.drawer-open{overflow:hidden}
     dr.innerHTML=`<div class="dhead"><b>MNCF Show Desk</b><button class="close" type="button" aria-label="Close menu">×</button></div>
       <div class="sec"><h3>Shows</h3><input type="text" id="drawerQ" placeholder="Find a show" autocomplete="off"><div class="shows" id="drawerShows"><span class="note">Loading…</span></div>
         <a class="item${opt.page==="shows"?" here":""}" href="index.html">All shows and new show <small>›</small></a></div>
+      ${show?`<div class="sec"><h3>This show</h3><button class="item" type="button" id="drawerEdit">Edit show details <small>›</small></button></div>`:""}
       <div class="sec"><h3>Manage</h3><a class="item${opt.page==="breeds"?" here":""}" href="breeds.html">Breeds and groups <small>›</small></a></div>
       <div class="sec"><h3>Awards view on this phone</h3><div class="seg" role="group" aria-label="Awards view"><button type="button" data-view="round" aria-pressed="${mode==="round"}">One round at a time</button><button type="button" data-view="list" aria-pressed="${mode==="list"}">Full list</button></div></div>
       <div class="sec"><h3>Older pages</h3><a class="item" href="nov-2026.html">November 2026, first version <small>›</small></a></div>
@@ -99,7 +111,7 @@ body.drawer-open{overflow:hidden}
       const t=dr.querySelector("#drawerQ").value.trim().toLowerCase();
       const order={Open:0,Closed:1,Finished:2};
       const list=SHOWS.filter(s=>!t||(s.Show+" "+(s.Date||"")).toLowerCase().includes(t)).sort((a,b)=>(order[a.Status]??0)-(order[b.Status]??0));
-      box.innerHTML=list.slice(0,40).map(s=>`<a class="item${s.Show===show?" here":""}" href="${opt.page==="entries"?"register":"awards"}.html?show=${encodeURIComponent(s.Show)}"><span>${esc(s.Show)}</span><small>${esc(s.Status||"")}</small></a>`).join("")||'<span class="note">No shows match.</span>';
+      box.innerHTML=list.slice(0,40).map(s=>`<a class="item${s.Show===show?" here":""}" href="${{entries:"register",add:"entry"}[opt.page]||"awards"}.html?show=${encodeURIComponent(s.Show)}"><span>${esc(s.Show)}</span><small>${esc(s.Status||"")}</small></a>`).join("")||'<span class="note">No shows match.</span>';
     }
     async function loadShows(){
       const c=window.mncfCache&&mncfCache.get("bootstrap");if(c&&c.shows){SHOWS=c.shows;drawShows()}
@@ -108,11 +120,58 @@ body.drawer-open{overflow:hidden}
     }
     dr.querySelector("#drawerQ").addEventListener("input",drawShows);
     // bottom tabs for a show
-    if(show&&["entries","awards","results"].includes(opt.page)){
+    if(show&&["entries","add","awards","results"].includes(opt.page)){
       const tabs=document.createElement("nav");tabs.className="tabs";tabs.setAttribute("aria-label","Show sections");
-      tabs.innerHTML=[["entries","Entries","register.html"+q],["awards","Awards","awards.html"+q],["results","Results","awards.html"+q+"&view=results"]]
+      tabs.innerHTML=[["entries","Entries","register.html"+q],["add","Add entry","entry.html"+q],["awards","Awards","awards.html"+q],["results","Results","awards.html"+q+"&view=results"]]
         .map(([k,l,h])=>`<a href="${h}"${opt.page===k?' class="here" aria-current="page"':""}>${ico[k]}<span>${l}</span></a>`).join("");
       document.body.appendChild(tabs);document.body.classList.add("has-tabs");
+    }
+    // ---- edit the open show ----
+    if(show){
+      const dlg=document.createElement("dialog");dlg.className="showdlg";dlg.setAttribute("aria-labelledby","esTitle");
+      dlg.innerHTML=`<form method="dialog" class="form" autocomplete="off"><div class="dhead" style="grid-column:1/-1"><b id="esTitle">Edit show</b><button class="close" type="button" value="cancel" aria-label="Close">×</button></div>
+        <div class="field wide"><label for="esName">Show name</label><input type="text" id="esName" required></div>
+        <div class="field"><label for="esDate">Date</label><input type="text" id="esDate"></div>
+        <div class="field"><label for="esVenue">Venue</label><input type="text" id="esVenue"></div>
+        <div class="field"><label for="esJudge">Judge</label><input type="text" id="esJudge"></div>
+        <div class="field"><label for="esStatus">Status</label><select id="esStatus"><option>Open</option><option>Closed</option><option>Finished</option></select></div>
+        <div class="field wide"><label for="esNotes">Notes</label><input type="text" id="esNotes"></div>
+        <div class="field wide"><div class="btns"><button class="pri" type="submit" id="esSave">Save show</button><button type="button" class="esCancel">Cancel</button></div><p class="err" id="esErr"></p></div></form>`;
+      document.body.appendChild(dlg);
+      const $d=id=>dlg.querySelector("#"+id);let cur=null;
+      const fill=s=>{cur=s;$d("esName").value=s.Show||"";$d("esDate").value=s.Date||"";$d("esVenue").value=s.Venue||"";$d("esJudge").value=s.Judge||"";$d("esStatus").value=s.Status||"Open";$d("esNotes").value=s.Notes||""};
+      async function openEdit(){
+        close();$d("esErr").textContent="";
+        const c=window.mncfCache&&mncfCache.get("bootstrap");const known=c&&c.shows&&c.shows.find(s=>s.Show===show);
+        if(known)fill(known);else{$d("esName").value=show}
+        if(dlg.showModal)dlg.showModal();else dlg.setAttribute("open","");
+        try{const j=await mncfApi("bootstrap");mncfCache.set("bootstrap",j);const s=j.shows.find(x=>x.Show===show);if(s&&!dlg.dataset.touched)fill(s);if(!s)$d("esErr").textContent="This show wasn't found. It may have been renamed on another phone."}catch(e){$d("esErr").textContent=e.message}
+      }
+      const shut=()=>{delete dlg.dataset.touched;dlg.close?dlg.close():dlg.removeAttribute("open")};
+      dlg.addEventListener("input",()=>dlg.dataset.touched="1");
+      dlg.querySelector(".close").onclick=shut;dlg.querySelector(".esCancel").onclick=shut;
+      dlg.querySelector("form").addEventListener("submit",async ev=>{
+        ev.preventDefault();const b=$d("esSave");if(!cur){$d("esErr").textContent="Still loading the show. Try again in a moment.";return}
+        b.disabled=true;b.textContent="Saving…";$d("esErr").textContent="";
+        try{
+          const j=await mncfApi("updateShow",{id:cur.id,show:{Show:$d("esName").value,Date:$d("esDate").value,Venue:$d("esVenue").value,Judge:$d("esJudge").value,Status:$d("esStatus").value,Notes:$d("esNotes").value}});
+          const c=mncfCache.get("bootstrap")||{};c.shows=j.shows;mncfCache.set("bootstrap",c);
+          const nu=j.show.Show;
+          if(nu!==show){
+            // Results and settings saved on this phone are keyed by show name, so carry them over to the new name.
+            try{for(let i=localStorage.length-1;i>=0;i--){const k=localStorage.key(i);if(k&&k.endsWith("::"+show)){const nk=k.slice(0,k.length-show.length)+nu;if(localStorage.getItem(nk)===null)localStorage.setItem(nk,localStorage.getItem(k));localStorage.removeItem(k)}}}catch(e){}
+            const p=new URLSearchParams(location.search);p.set("show",nu);
+            try{sessionStorage.setItem("mncf-flash","Show renamed to "+nu)}catch(e){}
+            location.href=location.pathname+"?"+p.toString();return;
+          }
+          try{sessionStorage.setItem("mncf-flash","Show details saved")}catch(e){}
+          location.reload();return;
+        }catch(e){$d("esErr").textContent=e.message}
+        b.disabled=false;b.textContent="Save show";
+      });
+      bar.querySelector("#editShowBtn").onclick=openEdit;
+      const de=dr.querySelector("#drawerEdit");if(de)de.onclick=openEdit;
+      try{const f=sessionStorage.getItem("mncf-flash");if(f){sessionStorage.removeItem("mncf-flash");setTimeout(()=>window.mncfToast&&mncfToast(f),300)}}catch(e){}
     }
     return {setTitle(t){const el=document.getElementById("crumbTitle");if(el)el.textContent=t}};
   };

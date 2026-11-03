@@ -7,9 +7,10 @@ A small show-management system for MNCF dog shows. The database is the Supabase 
 The Google Sheet and `apps-script.gs` were the first database and are no longer used by the site.
 
 ## Pages
-Every page has a burger menu (shows search, Breeds and groups, the awards view setting, older pages, sign out). An open show has bottom tabs: Entries, Awards, Results.
+Every page has a burger menu (shows search, Breeds and groups, the awards view setting, older pages, sign out). An open show has bottom tabs: Entries, Add entry, Awards, Results, and an "Edit show" button in the top bar.
 - `index.html`: all shows with search, status filters and "+ New show".
-- `register.html?show=…` (Entries tab): add, edit, mark absent or remove entries. Dogs are remembered by name and breed. Ring numbers and classes are set by hand.
+- `register.html?show=…` (Entries tab): entries by breed, with Puppy / Junior / Open lanes; drag a dog to change its class. Mark absent, edit or remove entries.
+- `entry.html?show=…` (Add entry tab): add or edit an entry. Dogs are remembered by name and breed. Ring numbers and classes are set by hand.
 - `awards.html?show=…` (Awards tab): the awards checklist built from the show's entries, including group rounds and Best in Show finals. Each phone chooses "One round at a time" (Previous / Next) or "Full list" in the menu. Results are shared live between phones.
 - `awards.html?show=…&view=results` (Results tab): totals, Best of Breed certificates, copy and Excel export.
 - `breeds.html`: breeds and their groups, set by hand.
