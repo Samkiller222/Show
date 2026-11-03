@@ -96,7 +96,7 @@ pre{white-space:pre-wrap;font-size:13px;background:var(--bg);border:1px solid va
     <h1 id="showTitle">Awards</h1>
     <div class="sub" id="showSub">Loading the show…</div>
     <div class="save" id="saveState">Saved on this device</div>
-    <div class="save" id="syncState"></div>
+    <div class="save" id="syncState" hidden></div>
     <div class="save" id="liveState"></div>
     <div class="bar"><i id="barFill"></i></div>
     <div class="prog"><span id="progText">0 of 0 awards given</span><span id="progBreeds"></span></div>
@@ -106,7 +106,7 @@ pre{white-space:pre-wrap;font-size:13px;background:var(--bg);border:1px solid va
     <h2>Show totals</h2>
     <div class="stock" id="stock"></div>
     <p class="note" id="absentNote" hidden></p>
-    <p class="note">Built from this show's entries in the sheet. Each round lists the awards to take into the ring. A class with one dog only needs a 1st. AV Locally Bred and Best Veteran give a 1st only. Best in Show finals at the end take the group winners as their competitors.</p>
+    <p class="note">Built from this show's entries. Each round lists the awards to take into the ring. A class with one dog only needs a 1st. AV Locally Bred and Best Veteran give a 1st only. Best in Show finals at the end take the group winners as their competitors.</p>
     <p class="note" id="loadNote"></p>
   </section>
 
@@ -142,6 +142,7 @@ pre{white-space:pre-wrap;font-size:13px;background:var(--bg);border:1px solid va
 <div class="toast" id="toast"></div>
 
 <script src="xlsx.full.min.js"></script>
+<script src="supabase.min.js"></script>
 <script src="api.js"></script>
 <script src="nav.js"></script>
 <script>
@@ -356,7 +357,7 @@ function render(){
   document.getElementById("resultsText").textContent=resultsText(breeds,gAw);
   const raw=rawBreeds(), abs=raw.flatMap(b=>b.classes.flatMap(c=>c.entries.filter(e=>absent[e.no]).map(e=>e.no)));
   const gone=raw.filter(b=>!breeds.some(x=>x.name===b.name)).map(b=>b.name);
-  try{queueResults()}catch(e){}
+
   const an=document.getElementById("absentNote");
   an.hidden=!abs.length;
   an.innerHTML=abs.length?`<b>Absent:</b> ${abs.map(esc).join(", ")}. They're left out of the classes and award counts.${gone.length?` Not judged, all dogs absent: ${gone.map(esc).join(", ")}.`:""} <a href="register.html?show=${encodeURIComponent((window.SHOW_INFO||{}).Show)}">Change</a>`:"";
@@ -522,18 +523,20 @@ window.mncfLive=(function(){
       st("Not shared yet: "+e.message+" Retrying…",true);
     }
     pulling=false;
-    schedule(Object.keys(queue).length?3000:document.hidden?60000:15000);
+    schedule(Object.keys(queue).length?3000:document.hidden?120000:30000);
   }
   document.addEventListener("visibilitychange",()=>{if(!document.hidden&&started)schedule(300)});
   window.addEventListener("online",()=>started&&schedule(300));
   return {
-    init(name){show=name;META="mncf-live::"+name;loadMeta()},
+    init(name){show=name;META="mncf-live2::"+name;loadMeta()},
     start(){
       if(started) return; started=true;
       // first time on this phone: anything already recorded here counts as a local change to share
       const res=(window.mncfEngine&&window.mncfEngine.res())||{};
       if(!meta.since){Object.keys(res).forEach(k=>{if(meta.snap[k]===undefined){meta.snap[k]=res[k];meta.t[k]=meta.t[k]||1;queue[k]=[k,res[k],meta.t[k]]}})}
-      saveMeta();st("Connecting to the show sheet…");schedule(200);
+      saveMeta();st("Connecting to the show database…");schedule(200);
+      // instant updates: when another phone saves, pull straight away
+      try{const id=(window.SHOW_INFO||{}).id;if(window.mncfSb&&id){window.mncfSb.channel("live-"+id).on("postgres_changes",{event:"*",schema:"public",table:"live_results",filter:"show_id=eq."+id},()=>schedule(150)).subscribe()}}catch(e){}
     }
   };
 })();
@@ -586,7 +589,7 @@ window.mncfLive=(function(){
   setBreeds((cached||{}).breeds);
   mncfApi("show",{show}).then(j=>{
     setBreeds(j.breeds);
-    if(!j.show){document.getElementById("showSub").innerHTML='That show isn\'t in the sheet. <a href="index.html">Choose a show</a>.';return}
+    if(!j.show){document.getElementById("showSub").innerHTML='That show isn\'t in the list. <a href="index.html">Choose a show</a>.';return}
     mncfCache.set("show::"+show,{show:j.show,entries:j.entries,breeds:j.breeds,at:Date.now()});
     start(j.show,j.entries,"");
   }).catch(e=>{

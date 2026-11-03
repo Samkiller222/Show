@@ -13,7 +13,7 @@
   <header>
     <nav class="nav" aria-label="Pages"><a href="index.html" aria-current="page">All shows</a><a href="register.html">Register dogs</a><a href="import.html">Import</a><a href="nov-2026.html">Nov 2026 (first version)</a></nav>
     <h1>MNCF Show Desk</h1>
-    <div class="sub">Shows, dog registrations and awards, saved in the show Google Sheet.</div>
+    <div class="sub">Shows, dog registrations and awards for the team. <span id="who"></span></div>
   </header>
   <div id="list" style="display:flex;flex-direction:column;gap:12px"><p class="loading">Loading shows…</p></div>
   <section class="panel">
@@ -26,10 +26,10 @@
       <div class="field"><label for="sStatus">Status</label><select id="sStatus"><option>Open</option><option>Closed</option><option>Finished</option></select></div>
       <div class="field wide"><div class="btns"><button class="pri" type="submit" id="addBtn">Add show</button></div><p class="err" id="addErr"></p></div>
     </form>
-    <p class="note">Shows can also be added as a new row in the Shows tab of the sheet.</p>
   </section>
 </div>
 <div class="toast" id="toast"></div>
+<script src="supabase.min.js"></script>
 <script src="api.js"></script>
 <script>
 const esc=mncfEsc;
@@ -54,6 +54,7 @@ document.getElementById("addForm").addEventListener("submit",async ev=>{
   b.disabled=false;b.textContent="Add show";
 });
 load();
+mncfWho().then(w=>{if(w)document.getElementById("who").innerHTML=`Signed in as ${mncfEsc(w)} · <a href="#" onclick="mncfSignOut();return false">Sign out</a>`});
 </script>
 </body>
 </html>

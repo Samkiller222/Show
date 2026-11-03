@@ -34,7 +34,7 @@
   <header>
     <nav class="nav" aria-label="Pages"><a href="index.html">All shows</a><a id="regLink" href="register.html">Register dogs</a><a href="import.html" aria-current="page">Import</a><a id="awLink" href="awards.html">Awards</a></nav>
     <h1>Import entries</h1>
-    <div class="sub">Upload an Excel file, the catalogue PDF or photos of the catalogue. Claude reads them, you check the list, then it's saved to the show sheet.</div>
+    <div class="sub">Upload an Excel file, the catalogue PDF or photos of the catalogue. Claude reads them, you check the list, then the entries are saved.</div>
   </header>
 
   <section class="panel">
@@ -78,6 +78,7 @@
 </div>
 <div class="toast" id="toast"></div>
 <script src="xlsx.full.min.js"></script>
+<script src="supabase.min.js"></script>
 <script src="api.js"></script>
 <script>
 const esc=mncfEsc,$=id=>document.getElementById(id),norm=s=>String(s||"").trim().toLowerCase();
