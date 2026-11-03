@@ -1,6 +1,6 @@
 # Handoff: MNCF dog show awards organiser
 
-Notes for picking this project up in a new chat. Last updated 3 November 2026 (show catalogue).
+Notes for picking this project up in a new chat. Last updated 3 November 2026 (judging days).
 
 ## What it is
 
@@ -41,6 +41,7 @@ The site helps the MNCF (Malta) team at dog shows:
 | `entry.html` | **Add entry** tab (`?show=`). The entry form, with a "Just added" list. `&edit=<entry id>` opens an entry for editing and returns to the list after saving. |
 | `awards.html` | **Awards** tab (`?show=`) and **Results** tab (`?show=&view=results`). This is the awards engine. |
 | `catalogue.html` | **Show catalogue** (`?show=`): a print-ready booklet for visitors. Opened from the "Catalogue" button on Entries or "Show catalogue to print" in the drawer. Print or save as PDF. |
+| `schedule.html` | **Judging days and times** (`?show=`): split a show into sessions, each with a date, start time, optional name, the groups judged, single breeds moved in, Junior Handler / Childrens Class, and which session has the Best in Show finals. Opened from the drawer ("Judging days and times"), the "Edit days" chip, or "days" on a show card. |
 | `breeds.html` | Add breeds (a group is required) and change a breed's group |
 | `import.html` | Hidden. Claude API file import. |
 | `saturday.html`, `sunday-morning.html`, `sunday-evening.html`, `absent.html`, `best-in-show.html`, `nov-2026.html` | The first version, hard-coded for the November 2026 show. Kept as a fallback. |
@@ -59,6 +60,7 @@ Shared scripts:
   - the awards-view toggle (`mncfAwardsView`, localStorage key `mncf-awards-view`)
   - sign out
 - `focus.js`: `mncfFocus` handles one-round-at-a-time mode and its pager. The current round is saved in `mncf-round::<show>`.
+- `schedule.js`: `mncfSchedule` helpers for judging days: `list(show)`, `find(list,{breed,group}|{special}|{finals:true})` (a moved breed wins over its group; returns the session index or -1), `ordered`, `rank`, `heading(s)` ("Sunday 1st November 2026 – judging starts at 9.00AM"), `short(s)`, `summary(s)`, and `bar(...)`, the day chip bar. The picked day is saved per phone under `mncf-day::<show>`.
 - `nav.js`: `mncfJumpNav` is the jump bar with group chips, round picker, "Next to do" and "Hide done".
 - `style.css`: shared styles.
 
@@ -159,6 +161,15 @@ Sam: *"a button somewhere that can make a document like this booklet after the s
 - Then Best in Show finals, Junior Handler and Childrens Class.
 - Options (saved per phone under `mncf-catalogue::<show>`): the running header line, A5 or A4, and leaving out absent dogs. The header and page numbers use CSS `@page` margin boxes, which print in Chrome and Edge only.
 - Not done: sponsor adverts, filling in results after the show, and judging days or start times (shows have no such field).
+
+## Judging days (3 Nov 2026)
+
+Sam: *"i need a way to seperate the schedule over multiple days / time periods like the one already in the database"*. The November show was run as Sat 31 Oct from 3:00pm (Utility & Hound, Junior Handler), Sun 1 Nov from 9:00am (Gundog & Toy, Childrens Class) and Sun 1 Nov from 2:00pm (Working & Terrier, then Best in Show); that was only hard-coded in the first-version pages, so it is now data.
+- **Database:** `shows.schedule jsonb` (default `[]`), list of `{id,date "YYYY-MM-DD",start "HH:MM",title,groups[],breeds[],specials[],finals}`. Migration and the seed for the November show: `supabase/migrations/20261103_shows_schedule.sql`. `api.js` maps it to `show.Schedule` and saves it with `mncfApi("setSchedule",{id,schedule})`.
+- **Awards:** with a schedule, rounds run in session order and a day chip bar sits in the header (Whole show, each session, and "Not on a day" when something is unassigned). Only the picked day's rounds are drawn; awards are still worked out over the whole show, so finals see every group winner. Round mode remembers its place per day (`mncf-round@<day>::<show>`). Group judging of a group shows on that group's day.
+- **Entries:** same day bar; in Whole show view breed cards sit under day headings, and AV Locally Bred gets one card per session.
+- **Catalogue:** a "Judging times" list on the cover, and each session starts a new page with its heading, then its special classes, moved breeds, groups (breeds, group judging, AVLB) and the finals.
+- A show with no schedule behaves exactly as before.
 
 ## Next request
 

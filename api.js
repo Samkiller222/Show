@@ -45,7 +45,7 @@
   window.mncfWho=async()=>{const {data}=await sb.auth.getSession();return data.session?data.session.user.email:""};
 
   // ---- shapes the pages use ----
-  const showOut=s=>({id:s.id,Show:s.name,Date:s.show_date,Venue:s.venue,Judge:s.judge,Status:s.status,Notes:s.notes});
+  const showOut=s=>({id:s.id,Show:s.name,Date:s.show_date,Venue:s.venue,Judge:s.judge,Status:s.status,Notes:s.notes,Schedule:Array.isArray(s.schedule)?s.schedule:[]});
   const dogOut=d=>({"Dog name":d.name,Breed:d.breed,Sex:d.sex,"Date of birth":d.dob,Owner:d.owner,Phone:d.phone,Address:d.address,Breeder:d.breeder,Sire:d.sire,Dam:d.dam});
   const breedOut=b=>({Breed:b.name,Group:b.grp});
   const entryOut=e=>({_row:e.id,Show:e.show_name,"Ring No":e.ring_no,"Dog name":e.dog_name,Class:e.class,Absent:e.absent,Breed:e.breed,Group:e.grp,Sex:e.sex,Owner:e.owner});
@@ -89,6 +89,14 @@
       const {data,error}=await sb.from("shows").update(row).eq("id",d.id).select();if(error)fail(error);
       if(!data||!data.length)fail({message:"That show was removed or you can't change it. Reload and try again."});
       return {ok:true,show:showOut(data[0]),shows:await shows()};
+    },
+    // Judging days and times: the whole list of sessions for one show (see schedule.js).
+    async setSchedule(d){
+      if(!d.id)fail({message:"That show wasn't found. Reload and try again."});
+      const {data,error}=await sb.from("shows").update({schedule:d.schedule||[]}).eq("id",d.id).select();
+      if(error)fail(/schedule/i.test(error.message)?{message:"The show database isn't ready for judging days yet (the shows table needs its schedule column)."}:error);
+      if(!data||!data.length)fail({message:"That show was removed or you can't change it. Reload and try again."});
+      return {ok:true,show:showOut(data[0])};
     },
     async saveEntry(d){
       const {error}=await sb.rpc("save_entry",{p_show:d.entry.Show,p_entry:d.entry,p_dog:d.dog||null});if(error)fail(error);

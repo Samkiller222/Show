@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="mncf-version" content="2026-11-03g">
+<meta name="mncf-version" content="2026-11-03h">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>MNCF Entries</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<link rel="stylesheet" href="style.css?v=2026-11-03g">
+<link rel="stylesheet" href="style.css?v=2026-11-03h">
 </head>
 <body class="wide">
 <div class="wrap">
@@ -29,9 +29,10 @@
 </div>
 <div class="toast" id="toast"></div>
 <script src="supabase.min.js"></script>
-<script src="api.js?v=2026-11-03g"></script>
-<script src="shell.js?v=2026-11-03g"></script>
-<script src="nav.js?v=2026-11-03g"></script>
+<script src="api.js?v=2026-11-03h"></script>
+<script src="shell.js?v=2026-11-03h"></script>
+<script src="nav.js?v=2026-11-03h"></script>
+<script src="schedule.js?v=2026-11-03h"></script>
 <script>
 mncfShell({page:"entries",title:mncfQuery("show")||"Register dogs",kicker:mncfQuery("show")?"Entries":"Register dogs"});
 const esc=mncfEsc, $=id=>document.getElementById(id);
@@ -52,9 +53,16 @@ function fillShows(){
 async function loadShow(){
   if(!S.show){$("entries").innerHTML="";return}
   $("entries").innerHTML='<p class="loading">Loading entries…</p>';
-  try{const j=await mncfApi("show",{show:S.show});S.entries=j.entries;S.dogs=j.dogs;S.breeds=j.breeds;drawEntries();
+  try{const j=await mncfApi("show",{show:S.show});S.entries=j.entries;S.dogs=j.dogs;S.breeds=j.breeds;S.info=j.show;dayBar();drawEntries();
     const back=mncfQuery("edited");if(back){const el=document.querySelector(`.erow[data-row="${CSS.escape(back)}"]`);if(el){el.scrollIntoView({block:"center"});landed(back)}}}
   catch(e){$("entries").innerHTML=`<p class="err">${esc(e.message)}</p>`}
+}
+// Day picker, when the show is split into judging days (schedule.html)
+function dayBar(){
+  if(S.day||!S.info||!mncfSchedule.list(S.info).length)return;
+  const SL=mncfSchedule.list(S.info),hdr=document.querySelector("header"),wrap=document.createElement("div");hdr.insertBefore(wrap,hdr.querySelector(".jump"));
+  const un=S.entries.some(e=>{if(PERSON.includes(e.Class))return mncfSchedule.find(SL,{special:e.Class})<0;return mncfSchedule.find(SL,{breed:e.Class==="AV Locally Bred"?"":e.Breed,group:e.Group||groupOf(e.Breed)})<0});
+  S.day=mncfSchedule.bar({mount:wrap,show:S.show,list:SL,hasUnscheduled:un,editHref:"schedule.html?show="+encodeURIComponent(S.show),onChange(){drawEntries();window.scrollTo({top:0})}});
 }
 // Entries list: one card per breed, with Puppy / Junior / Open lanes for dogs and for bitches.
 // Dogs can be dragged (by the handle) or moved with the class menu between lanes of the same sex.
@@ -70,15 +78,22 @@ function entryRow(e){
 function drawEntries(){
   const ALL=S.entries.filter(e=>!PENDING.has(String(e._row)));
   const q=norm($("q").value);
-  const list=ALL.filter(e=>!q||String(e["Ring No"])===q||norm(e["Dog name"]+" "+e.Breed+" "+e.Class).includes(q));
+  // judging days: each entry's session, and the day picked on this phone
+  const SL=S.info?mncfSchedule.list(S.info):[],DAY=S.day?S.day.value():"all";
+  const dayOf=e=>!SL.length?-1:PERSON.includes(e.Class)?mncfSchedule.find(SL,{special:e.Class}):e.Class==="AV Locally Bred"?mncfSchedule.find(SL,{group:e.Group||groupOf(e.Breed)}):mncfSchedule.find(SL,{breed:e.Breed,group:e.Group||groupOf(e.Breed)});
+  const list=ALL.filter(e=>!q||String(e["Ring No"])===q||norm(e["Dog name"]+" "+e.Breed+" "+e.Class).includes(q)).filter(e=>mncfSchedule.matches(DAY,dayOf(e)));
   const nos={};ALL.forEach(e=>{const n=String(e["Ring No"]).trim();if(n)nos[n]=(nos[n]||0)+1});
   const dup=Object.keys(nos).filter(n=>nos[n]>1), missing=ALL.filter(e=>!String(e["Ring No"]).trim()).length;
   $("countNote").textContent=`· ${ALL.length} entries, ${ALL.filter(e=>e.Absent===true).length} absent`;
   $("warnNote").innerHTML=[missing?`<span class="tag warn">${missing} without a ring number</span>`:"",dup.length?`<span class="tag warn">Ring number used twice: ${dup.map(esc).join(", ")}</span>`:""].join(" ");
   const sec=e=>PERSON.includes(e.Class)?e.Class:e.Class==="AV Locally Bred"?"AV Locally Bred":(e.Breed||"Breed not set");
   const gOf=e=>PERSON.includes(e.Class)?-1:e.Class==="AV Locally Bred"?99:(GROUP_ORDER.indexOf(e.Group)+1||98);
-  const groups={};list.forEach(e=>{(groups[sec(e)]=groups[sec(e)]||{g:gOf(e),group:e.Group,items:[]}).items.push(e)});
-  const keys=Object.keys(groups).sort((a,b)=>groups[a].g-groups[b].g||a.localeCompare(b));
+  // AV Locally Bred is judged with each group, so on a split show it gets one card per session
+  const keyOf=e=>sec(e)+(SL.length&&e.Class==="AV Locally Bred"?"@"+dayOf(e):"");
+  const groups={};list.forEach(e=>{const k=keyOf(e);(groups[k]=groups[k]||{g:gOf(e),group:e.Group,title:sec(e),day:dayOf(e),items:[]}).items.push(e)});
+  const rank=k=>SL.length?mncfSchedule.rank(SL,groups[k].day):0;
+  const keys=Object.keys(groups).sort((a,b)=>rank(a)-rank(b)||groups[a].g-groups[b].g||a.localeCompare(b));
+  let lastDay=null;
   const byNo=(a,b)=>(+a["Ring No"]||1e9)-(+b["Ring No"]||1e9)||a["Dog name"].localeCompare(b["Dog name"]);
   $("entries").innerHTML=keys.map(k=>{const G=groups[k], items=G.items.sort(byNo);
     const gname=G.g>0&&G.g<98?G.group+" Group":G.g===98?"Group not set":"Special class";
@@ -93,7 +108,9 @@ function drawEntries(){
         `</div>`).join("");
       const other=items.filter(e=>!laneOf(e.Class));if(other.length)body+=other.map(entryRow).join("");
     }
-    return `<article class="breed"><div class="bhead"><div><small>${esc(gname)}</small><h2>${esc(k)}</h2></div><span class="count">${items.length}</span></div>${body}</article>`}).join("")||`<div class="empty">${ALL.length?"No entries match your search.":`No entries yet. <a href="entry.html?show=${encodeURIComponent(S.show||"")}">Add the first dog</a>.`}</div>`;
+    let dh="";
+    if(SL.length&&DAY==="all"&&G.day!==lastDay){lastDay=G.day;const ss=SL[G.day];dh=`<h2 class="dayhead">${ss?esc(mncfSchedule.heading(ss)):"Not on a judging day yet"}${ss&&ss.title?`<small>${esc(ss.title)}</small>`:""}</h2>`}
+    return dh+`<article class="breed"><div class="bhead"><div><small>${esc(gname)}</small><h2>${esc(G.title)}</h2></div><span class="count">${items.length}</span></div>${body}</article>`}).join("")||`<div class="empty">${ALL.length?"No entries match your search.":`No entries yet. <a href="entry.html?show=${encodeURIComponent(S.show||"")}">Add the first dog</a>.`}</div>`;
 }
 const calm=()=>matchMedia("(prefers-reduced-motion: reduce)").matches;
 // Show where a dog ended up: glide from where it was dropped (if known), then a short outline flash.
