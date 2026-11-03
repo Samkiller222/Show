@@ -65,6 +65,17 @@ select:focus,textarea:focus,button:focus-visible,input:focus-visible{outline:2px
 .given{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);cursor:pointer;user-select:none}
 .given input{width:22px;height:22px;accent-color:var(--ok)}
 .row.isgiven .lab,.row.isgiven select{opacity:.6}
+.row.only{background:var(--ok-soft);border-radius:8px;padding:6px 8px;margin-inline:-8px;box-shadow:inset 4px 0 0 var(--ok)}
+.row.only select{border-color:var(--ok);font-weight:600}
+.lab{flex-wrap:wrap}
+.onlytag{flex-basis:100%;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ok);padding-left:20px}
+.prep{padding:10px 14px;border-top:1px solid var(--line);background:color-mix(in srgb,var(--ok) 7%,var(--card))}
+.prep b{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--ok);margin-bottom:6px}
+.prep ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.prep li{display:grid;grid-template-columns:auto minmax(7em,auto) minmax(0,1fr);gap:8px;align-items:center;font-size:14px}
+.prep li .rib{width:9px;height:18px}
+.prep .pt{font-weight:600}
+.prep li.gv{opacity:.5;text-decoration:line-through}
 .note{font-size:13px;color:var(--muted);margin:0}
 .save{font-size:12px;color:var(--ok);margin-top:2px}.save.bad{color:var(--red);font-weight:600}
 .warn{font-size:13px;color:var(--red)}
@@ -287,9 +298,10 @@ function reconcile(breeds){
   }
 }
 
-function row(k,lab,opts,cur,hint){
+// only: the label of the one dog that can win this award, when there is just one. Stewards can prepare it straight away.
+function row(k,lab,opts,cur,hint,only){
   const g=!!res["g|"+k];
-  return `<div class="row${g?" isgiven":""}"><span class="lab">${lab}</span><select data-k="${esc(k)}" aria-label="${esc(k)}"><option value="">${hint||"Choose dog…"}</option>${opts}<option value="${W}"${cur===W?" selected":""}>Withheld</option></select><label class="given"><input type="checkbox" data-g="${esc(k)}"${g?" checked":""}>Given</label></div>`;
+  return `<div class="row${g?" isgiven":""}${only?" only":""}"><span class="lab">${lab}${only?'<span class="onlytag">Only 1 dog</span>':""}</span><select data-k="${esc(k)}" aria-label="${esc(k)}"><option value="">${hint||"Choose dog…"}</option>${opts}<option value="${W}"${cur===W?" selected":""}>Withheld</option></select><label class="given"><input type="checkbox" data-g="${esc(k)}"${g?" checked":""}>Given</label></div>`;
 }
 const opt=(v,l,cur,dis)=>`<option value="${esc(v)}"${v===cur?" selected":""}${dis?" disabled":""}>${esc(l)}</option>`;
 
@@ -299,6 +311,11 @@ function needs(b){
   [["1st","r1"],["2nd","r2"],["3rd","r3"]].forEach(([t,c],i)=>{if(r[i])n.push({c,t:t+" ribbon",n:r[i]})});
   breedAwards(b).forEach(a=>n.push({c:"rc",t:a.t.replace(" in Breed",""),n:1}));
   return n;
+}
+// "Prepare now" box: awards that can only go to one dog, so the ribbon or card can be written before judging.
+function prepBox(list){
+  if(!list.length) return "";
+  return `<div class="prep"><b>Prepare now · only one dog can win</b><ul>${list.map(x=>`<li${x.g?' class="gv"':""}><span class="rib ${x.c}"></span><span class="pt">${esc(x.t)}</span><span class="pd">${esc(x.d)}</span></li>`).join("")}</ul></div>`;
 }
 const chips=list=>list.map(x=>`<span class="need"><span class="rib ${x.c}"${x.g?' style="background:var(--muted)"':''}></span>${x.n>1?x.n+" × ":""}${esc(x.t)}</span>`).join("");
 function render(){
@@ -323,23 +340,28 @@ function render(){
     const keys=[...b.classes.flatMap(c=>PLACES.slice(0,nPlaces(b,c)).map(pl=>ck(b,c,pl.p))),...aw.map(a=>bk(b,a.id))];
     const g=keys.filter(k=>res["g|"+k]).length; total+=keys.length; given+=g;
     const done=g===keys.length; if(done)doneBreeds++;
-    let h=`<article class="breed${done?" done":""}"><div class="bhead"><div><small>Round ${bi+1}${b.group?` · ${esc(b.group)} Group`:""}</small><h2>${esc(b.name)}</h2></div><span class="count">${g} / ${keys.length} given</span></div><div class="bneeds">${chips(needs(b))}</div>`;
+    const prep=[];
+    let h=`<article class="breed${done?" done":""}"><div class="bhead"><div><small>Round ${bi+1}${b.group?` · ${esc(b.group)} Group`:""}</small><h2>${esc(b.name)}</h2></div><span class="count">${g} / ${keys.length} given</span></div><div class="bneeds">${chips(needs(b))}</div><!--PREP-->`;
     b.classes.forEach(c=>{
       const n=nPlaces(b,c);
       const chosen=PLACES.slice(0,n).map(pl=>res[ck(b,c,pl.p)]).filter(Boolean);
       h+=`<div class="cls"><h3>${esc(c.name)} · ${c.entries.length} ${c.entries.length===1?"entry":"entries"}</h3>`;
       PLACES.slice(0,n).forEach(pl=>{const k=ck(b,c,pl.p),cur=res[k]||"";
-        h+=row(k,`<span class="rib ${pl.c}"></span>${pl.t}`,c.entries.map(e=>opt(keyOf(e),label(e),cur,keyOf(e)!==cur&&chosen.includes(keyOf(e)))).join(""),cur)});
+        const only=c.entries.length===1?label(c.entries[0]):null;
+        if(only)prep.push({t:`1st ${c.name}`,d:only,c:pl.c,g:!!res["g|"+k]});
+        h+=row(k,`<span class="rib ${pl.c}"></span>${pl.t}`,c.entries.map(e=>opt(keyOf(e),label(e),cur,keyOf(e)!==cur&&chosen.includes(keyOf(e)))).join(""),cur,"",only)});
       h+=`</div>`;
     });
     if(aw.length){
       h+=`<div class="cls"><h3>Breed awards</h3>`;
       aw.forEach(a=>{const k=bk(b,a.id),cur=res[k]||"";
         const hint=a.decided?"Choose dog…":(a.id==="BOB"?"Choose after Best Dog / Bitch":"Choose after class winners");
-        h+=row(k,`<span class="rib rc"></span>${a.t.replace(" in Breed","")}`,uniq(a.pool,keyOf).map(e=>opt(keyOf(e),label(e),cur)).join(""),cur,hint)});
+        const pool=uniq(a.pool,keyOf), only=pool.length===1?label(pool[0]):null;
+        if(only)prep.push({t:a.t.replace(" in Breed",""),d:only,c:"rc",g:!!res["g|"+k]});
+        h+=row(k,`<span class="rib rc"></span>${a.t.replace(" in Breed","")}`,pool.map(e=>opt(keyOf(e),label(e),cur)).join(""),cur,hint,only)});
       h+=`</div>`;
     }
-    return h+`</article>`;
+    return h.replace("<!--PREP-->",prepBox(prep))+`</article>`;
   }).join("");
 
   // groups
@@ -348,9 +370,11 @@ function render(){
     const list=gAw.filter(a=>a.sec===sec);
     const g=list.filter(a=>res["g|"+a.k]).length; total+=list.length; given+=g;
     let h=`<article class="breed${g===list.length?" done":""}"><div class="bhead"><div><small>Round ${breeds.length+si+1} · Group judging</small><h2>${esc(sec)}</h2></div><span class="count">${g} / ${list.length} given</span></div><div class="bneeds">${chips(list.map(a=>({c:"rc",g:1,t:a.t,n:1})))}</div><div class="cls">`;
+    const prep=[];
     list.forEach(a=>{const cur=res[a.k]||"";
-      h+=row(a.k,`<span class="rib rc" style="background:var(--muted)${a.reserve?";opacity:.55":""}"></span>${a.t}`,a.pool.map(x=>opt(x.k,x.l,cur)).join(""),cur,a.decided?"Choose dog…":a.reserve?"Choose after the winner":"Choose after breed awards")});
-    return h+`</div></article>`;
+      const only=a.pool.length===1?a.pool[0].l:null;if(only)prep.push({t:a.t,d:only,c:"rc",g:!!res["g|"+a.k]});
+      h+=row(a.k,`<span class="rib rc" style="background:var(--muted)${a.reserve?";opacity:.55":""}"></span>${a.t}`,a.pool.map(x=>opt(x.k,x.l,cur)).join(""),cur,a.decided?"Choose dog…":a.reserve?"Choose after the winner":"Choose after breed awards",only)});
+    return h.replace('<div class="cls">',prepBox(prep)+'<div class="cls">')+`</div></article>`;
   }).join("");
 
   document.getElementById("barFill").style.width=(total?given/total*100:0)+"%";
