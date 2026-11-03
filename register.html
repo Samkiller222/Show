@@ -11,7 +11,7 @@
 <body>
 <div class="wrap">
   <header>
-    <nav class="nav" aria-label="Pages"><a href="index.html">All shows</a><a href="register.html" aria-current="page">Register dogs</a><a id="impLink" href="import.html">Import</a><a id="awardsLink" href="awards.html">Awards</a></nav>
+    <nav class="nav" aria-label="Pages"><a href="index.html">All shows</a><a href="register.html" aria-current="page">Register dogs</a><a id="awardsLink" href="awards.html">Awards</a></nav>
     <h1>Register dogs</h1>
     <div class="sub" id="showSub">Pick a show, then enter dogs one by one.</div>
   </header>
@@ -28,15 +28,11 @@
       <div class="field dogonly" id="newBreedBox" hidden><label for="fNewBreed">New breed</label><input type="text" id="fNewBreed" placeholder="Breed name"></div>
       <div class="field dogonly" id="newGroupBox" hidden><label for="fGroup">Group</label><select id="fGroup"></select></div>
       <div class="field dogonly"><label for="fSex">Sex</label><select id="fSex"><option value="">—</option><option>Dog</option><option>Bitch</option></select></div>
-      <div class="field dogonly"><label for="fDob">Date of birth</label><input type="date" id="fDob"></div>
-      <details class="field wide dogonly"><summary style="cursor:pointer;font-weight:600;font-size:14px">Owner and pedigree</summary>
+      <details class="field wide dogonly"><summary style="cursor:pointer;font-weight:600;font-size:14px">Owner details</summary>
         <div class="form" style="margin-top:10px">
           <div class="field"><label for="fOwner">Owner</label><input type="text" id="fOwner"></div>
           <div class="field"><label for="fPhone">Phone</label><input type="tel" id="fPhone"></div>
           <div class="field wide"><label for="fAddress">Address</label><input type="text" id="fAddress"></div>
-          <div class="field"><label for="fBreeder">Breeder</label><input type="text" id="fBreeder"></div>
-          <div class="field"><label for="fSire">Sire</label><input type="text" id="fSire"></div>
-          <div class="field"><label for="fDam">Dam</label><input type="text" id="fDam"></div>
         </div>
       </details>
       <div class="field wide"><div class="btns"><button class="pri" type="submit" id="saveBtn">Save entry</button><button type="button" id="cancelBtn" hidden>Cancel edit</button></div><p class="err" id="formErr"></p></div>
@@ -64,14 +60,14 @@ function fillShows(){
   $("showSel").innerHTML='<option value="">Pick a show…</option>'+S.shows.map(s=>`<option${s.Show===S.show?" selected":""}>${esc(s.Show)}</option>`).join("");
   const s=S.shows.find(x=>x.Show===S.show);
   $("showSub").textContent=s?[s.Date,s.Judge?"Judge: "+s.Judge:"",s.Status].filter(Boolean).join(" · "):"Pick a show, then enter dogs one by one.";
-  $("awardsLink").href="awards.html"+(S.show?"?show="+encodeURIComponent(S.show):"");$("impLink").href="import.html"+(S.show?"?show="+encodeURIComponent(S.show):"");
+  $("awardsLink").href="awards.html"+(S.show?"?show="+encodeURIComponent(S.show):"");
   $("formPanel").hidden=!S.show;
 }
 function fillLists(){
   $("fClass").innerHTML=AGE.flatMap(a=>[`${a} Dog`,`${a} Bitch`]).concat(SPECIAL).map(c=>`<option>${c}</option>`).join("");
   const byG={};S.breeds.forEach(b=>{(byG[b.Group]=byG[b.Group]||[]).push(b.Breed)});
   $("fBreed").innerHTML='<option value="">Pick a breed…</option>'+Object.keys(byG).sort((a,b)=>GROUP_ORDER.indexOf(a)-GROUP_ORDER.indexOf(b)).map(g=>`<optgroup label="${esc(g)}">${byG[g].sort().map(b=>`<option>${esc(b)}</option>`).join("")}</optgroup>`).join("")+'<option value="__new">Add a new breed…</option>';
-  $("fGroup").innerHTML=S.groups.map(g=>`<option>${esc(g)}</option>`).join("");
+  $("fGroup").innerHTML='<option value="">Pick a group…</option>'+S.groups.map(g=>`<option>${esc(g)}</option>`).join("");
   $("dogList").innerHTML=S.dogs.map(d=>`<option value="${esc(d["Dog name"])}">${esc(d.Breed)}</option>`).join("");
 }
 function syncForm(){
@@ -80,10 +76,8 @@ function syncForm(){
   $("fNameLab").textContent=person?"Handler's name":"Dog name";
   $("fName").placeholder=person?"Child's or handler's name":"Start typing to find a registered dog";
   const nb=$("fBreed").value==="__new"&&!person;$("newBreedBox").hidden=!nb;$("newGroupBox").hidden=!nb;
-  const sex=$("fSex").value,cls=$("fClass").value;
-  if(!person&&sex&&/ (Dog|Bitch)$/.test(cls)&&!cls.endsWith(sex)) $("fClass").value=cls.replace(/(Dog|Bitch)$/,sex);
 }
-const FIELDS={fBreed:"Breed",fSex:"Sex",fDob:"Date of birth",fOwner:"Owner",fPhone:"Phone",fAddress:"Address",fBreeder:"Breeder",fSire:"Sire",fDam:"Dam"};
+const FIELDS={fBreed:"Breed",fSex:"Sex",fOwner:"Owner",fPhone:"Phone",fAddress:"Address"};
 function lookupDog(){
   const d=S.dogs.find(x=>norm(x["Dog name"])===norm($("fName").value));
   $("known").innerHTML=d&&!PERSON.includes($("fClass").value)?`<span class="tag">Registered dog · ${esc(d.Breed)}</span>`:($("fName").value.trim()&&!PERSON.includes($("fClass").value)?'<span class="tag warn">New dog · will be registered</span>':"");
@@ -128,7 +122,7 @@ $("entryForm").addEventListener("submit",async ev=>{
   const cls=$("fClass").value, person=PERSON.includes(cls);
   let breed=$("fBreed").value, group="";
   if(!person){
-    if(breed==="__new"){breed=$("fNewBreed").value.trim();group=$("fGroup").value;if(!breed){err.textContent="Type the new breed's name.";return}}
+    if(breed==="__new"){breed=$("fNewBreed").value.trim();group=$("fGroup").value;if(!breed){err.textContent="Type the new breed's name.";return}if(!group){err.textContent="Pick the group for "+breed+".";return}}
     if(!breed){err.textContent="Pick the dog's breed.";return}
   }
   const dog={Breed:breed,Group:group};

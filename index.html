@@ -11,11 +11,27 @@
 <body>
 <div class="wrap">
   <header>
-    <nav class="nav" aria-label="Pages"><a href="index.html" aria-current="page">All shows</a><a href="register.html">Register dogs</a><a href="import.html">Import</a><a href="nov-2026.html">Nov 2026 (first version)</a></nav>
+    <nav class="nav" aria-label="Pages"><a href="index.html" aria-current="page">All shows</a><a href="register.html">Register dogs</a><a href="nov-2026.html">Nov 2026 (first version)</a></nav>
     <h1>MNCF Show Desk</h1>
     <div class="sub">Shows, dog registrations and awards for the team. <span id="who"></span></div>
   </header>
   <div id="list" style="display:flex;flex-direction:column;gap:12px"><p class="loading">Loading shows…</p></div>
+  <section class="panel">
+    <h2>Breeds and groups</h2>
+    <p class="note">Every breed's group is set here by hand. The awards page uses it to sort breeds into group rounds.</p>
+    <details id="breedBox"><summary style="cursor:pointer;font-weight:600;font-size:14px">Show the breed list <span class="note" id="breedCount"></span></summary>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px">
+        <div class="find"><input type="text" id="bq" placeholder="Search breeds"></div>
+        <div class="tw"><table><thead><tr><th>Breed</th><th>Group</th></tr></thead><tbody id="breedRows"></tbody></table></div>
+      </div>
+    </details>
+    <form id="breedForm" class="form" autocomplete="off">
+      <div class="field"><label for="nbName">New breed</label><input type="text" id="nbName" placeholder="e.g. Beagle"></div>
+      <div class="field"><label for="nbGroup">Group</label><select id="nbGroup"></select></div>
+      <div class="field wide"><div class="btns"><button type="submit" id="nbBtn">Add breed</button></div><p class="err" id="nbErr"></p></div>
+    </form>
+  </section>
+
   <section class="panel">
     <h2>Add a show</h2>
     <form id="addForm" class="form">
@@ -39,11 +55,34 @@ function draw(shows){
   const order={Open:0,Closed:1,Finished:2};
   shows=shows.slice().sort((a,b)=>(order[a.Status]??0)-(order[b.Status]??0));
   el.innerHTML=shows.map(s=>{const q=encodeURIComponent(s.Show);
-    return `<div class="show-card"><div><small>${esc([s.Date,s.Venue].filter(Boolean).join(" · "))}</small><b>${esc(s.Show)}</b><small>${esc([s.Judge?"Judge: "+s.Judge:"",s.Status].filter(Boolean).join(" · "))}</small></div><div class="btns"><a class="btn" href="register.html?show=${q}">Register dogs</a><a class="btn" href="import.html?show=${q}">Import</a><a class="btn pri" href="awards.html?show=${q}">Awards</a></div></div>`}).join("");
+    return `<div class="show-card"><div><small>${esc([s.Date,s.Venue].filter(Boolean).join(" · "))}</small><b>${esc(s.Show)}</b><small>${esc([s.Judge?"Judge: "+s.Judge:"",s.Status].filter(Boolean).join(" · "))}</small></div><div class="btns"><a class="btn" href="register.html?show=${q}">Register dogs</a><a class="btn pri" href="awards.html?show=${q}">Awards</a></div></div>`}).join("");
 }
+const GROUPS=["Utility","Hound","Gundog","Toy","Working","Terrier","Pastoral"];
+let BREEDS=[];
+document.getElementById("nbGroup").innerHTML='<option value="">Pick a group…</option>'+GROUPS.map(g=>`<option>${g}</option>`).join("");
+function drawBreeds(list){
+  if(list)BREEDS=list;
+  document.getElementById("breedCount").textContent=`(${BREEDS.length})`;
+  const q=document.getElementById("bq").value.trim().toLowerCase();
+  document.getElementById("breedRows").innerHTML=BREEDS.filter(b=>!q||b.Breed.toLowerCase().includes(q)||String(b.Group).toLowerCase().includes(q))
+    .sort((a,b)=>GROUPS.indexOf(a.Group)-GROUPS.indexOf(b.Group)||a.Breed.localeCompare(b.Breed))
+    .map(b=>`<tr><td>${esc(b.Breed)}</td><td><select data-breed="${esc(b.Breed)}" aria-label="Group for ${esc(b.Breed)}">${GROUPS.map(g=>`<option${g===b.Group?" selected":""}>${g}</option>`).join("")}</select></td></tr>`).join("")||'<tr><td colspan="2" class="note">No breeds match.</td></tr>';
+}
+document.getElementById("bq").addEventListener("input",()=>drawBreeds());
+document.getElementById("breedRows").addEventListener("change",async e=>{
+  const s=e.target;if(!s.dataset.breed)return;s.disabled=true;
+  try{const j=await mncfApi("setBreedGroup",{breed:s.dataset.breed,group:s.value});drawBreeds(j.breeds);mncfToast(`${s.dataset.breed} is now in the ${s.value} group`)}
+  catch(er){mncfToast(er.message);drawBreeds()}
+});
+document.getElementById("breedForm").addEventListener("submit",async ev=>{
+  ev.preventDefault();const err=document.getElementById("nbErr"),b=document.getElementById("nbBtn");err.textContent="";b.disabled=true;
+  try{const j=await mncfApi("addBreed",{breed:nbName.value,group:nbGroup.value});drawBreeds(j.breeds);mncfToast(nbName.value.trim()+" added");ev.target.reset()}
+  catch(e){err.textContent=e.message}
+  b.disabled=false;
+});
 async function load(){
-  const c=mncfCache.get("bootstrap");if(c)draw(c.shows);
-  try{const j=await mncfApi("bootstrap");mncfCache.set("bootstrap",j);draw(j.shows)}
+  const c=mncfCache.get("bootstrap");if(c){draw(c.shows);drawBreeds(c.breeds||[])}
+  try{const j=await mncfApi("bootstrap");mncfCache.set("bootstrap",j);draw(j.shows);drawBreeds(j.breeds)}
   catch(e){document.getElementById("list").insertAdjacentHTML("afterbegin",`<p class="err">${esc(e.message)}</p>`)}
 }
 document.getElementById("addForm").addEventListener("submit",async ev=>{

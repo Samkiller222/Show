@@ -88,6 +88,17 @@
     async deleteEntry(d){const {error}=await sb.from("entries").delete().eq("id",d._row);if(error)fail(error);return {ok:true,entries:await entries(d.show)}},
     async setAbsent(d){const {error}=await sb.from("entries").update({absent:!!d.absent}).eq("id",d._row);if(error)fail(error);return {ok:true}},
     async saveResults(){return {ok:true}},
+    async addBreed(d){
+      const name=String(d.breed||"").trim(),grp=String(d.group||"").trim();
+      if(!name)fail({message:"Type the breed's name."});if(!GROUPS.includes(grp))fail({message:"Pick a group for "+name+"."});
+      const ex=(await breeds()).find(b=>b.Breed.toLowerCase()===name.toLowerCase());
+      if(ex)fail({message:ex.Breed+" is already in the list, in the "+ex.Group+" group."});
+      const {error}=await sb.from("breeds").insert({name,grp});if(error)fail(error);return {ok:true,breeds:await breeds()};
+    },
+    async setBreedGroup(d){
+      if(!GROUPS.includes(d.group))fail({message:"Pick a group."});
+      const {error}=await sb.from("breeds").update({grp:d.group}).eq("name",d.breed);if(error)fail(error);return {ok:true,breeds:await breeds()};
+    },
     async importEntries(d){const {data,error}=await sb.rpc("import_entries",{p_show:d.show,p_entries:d.entries});if(error)fail(error);return Object.assign({ok:true},data)},
     async syncState(d){const {data,error}=await sb.rpc("sync_state",{p_show:d.show,p_changes:d.changes||[],p_since:d.since||0});if(error)fail(error);return Object.assign({ok:true},data)},
     async extract(d){

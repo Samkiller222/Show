@@ -92,7 +92,7 @@ pre{white-space:pre-wrap;font-size:13px;background:var(--bg);border:1px solid va
 
 <div class="wrap">
   <header>
-    <nav class="nav" aria-label="Pages"><a href="index.html">All shows</a><a id="regLink" href="register.html">Register dogs</a><a id="impLink" href="import.html">Import</a><a id="awLink" href="awards.html" aria-current="page">Awards</a></nav>
+    <nav class="nav" aria-label="Pages"><a href="index.html">All shows</a><a id="regLink" href="register.html">Register dogs</a><a id="awLink" href="awards.html" aria-current="page">Awards</a></nav>
     <h1 id="showTitle">Awards</h1>
     <div class="sub" id="showSub">Loading the show…</div>
     <div class="save" id="saveState">Saved on this device</div>
@@ -547,8 +547,8 @@ window.mncfLive=(function(){
   const GROUP_ORDER=["Utility","Hound","Gundog","Toy","Working","Terrier","Pastoral"];
   const CLASS_ORDER=["Puppy Bitch","Junior Bitch","Open Bitch","Veteran Bitch","Puppy Dog","Junior Dog","Open Dog","Veteran Dog"];
   const q=encodeURIComponent(show);
-  document.getElementById("regLink").href="register.html?show="+q;document.getElementById("impLink").href="import.html?show="+q;document.getElementById("awLink").href="awards.html?show="+q;
-  const KNOWN_GROUPS={"Boston Terrier": "Utility", "Bulldog": "Utility", "French Bulldog": "Utility", "Japanese Shiba Inu": "Utility", "Poodle (Miniature)": "Utility", "Poodle (Standard)": "Utility", "Poodle (Toy)": "Utility", "Shih Tzu": "Utility", "Basenji": "Hound", "Dachshund (Miniature Long Haired)": "Hound", "Dachshund (Miniature Smooth Haired)": "Hound", "Dachshund (Miniature Wire Haired)": "Hound", "Dachshund (Smooth Haired)": "Hound", "Irish Wolfhound": "Hound", "Pharaoh Hound": "Hound", "Saluki": "Hound", "Whippet": "Hound", "English Setter": "Gundog", "Pointer": "Gundog", "Retriever (Flatcoated)": "Gundog", "Retriever (Golden)": "Gundog", "Retriever (Labrador)": "Gundog", "Spaniel (Cocker)": "Gundog", "Spaniel (English Springer)": "Gundog", "Spanish Water Dog": "Gundog", "Cavalier King Charles Spaniel": "Toy", "Chihuahua (Long Coat)": "Toy", "Chihuahua (Smooth Coat)": "Toy", "Lowchen (Little Lion Dog)": "Toy", "Maltese": "Toy", "Pekingese": "Toy", "Pomeranian": "Toy", "Pug": "Toy", "Border Collie": "Working", "Boxer": "Working", "Bullmastiff": "Working", "Canadian Eskimo Dog": "Working", "Dobermann": "Working", "German Shepherd Dog": "Working", "Rottweiler": "Working", "Siberian Husky": "Working", "Welsh Corgi (Pembroke)": "Working", "Bull Terrier": "Terrier", "Fox Terrier (Wire)": "Terrier", "Staffordshire Bull Terrier": "Terrier"};
+  document.getElementById("regLink").href="register.html?show="+q;document.getElementById("awLink").href="awards.html?show="+q;
+  const KNOWN_GROUPS={}; // groups come only from the breed list you manage
   let BREED_GROUPS={};
   function build(entries){
     const gOf=br=>BREED_GROUPS[String(br||"").trim().toLowerCase()]||"";
