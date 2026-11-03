@@ -1,6 +1,6 @@
 // App shell shared by every page: a top bar with a burger menu, a drawer for finding shows and settings,
 // and bottom tabs (Entries / Awards / Results) whenever a show is open.
-// Usage: <script src="shell.js"></script> then mncfShell({page:"entries"|"add"|"awards"|"results"|"shows"|"breeds"|"import", title:"…"})
+// Usage: <script src="js/shell.js"></script> then mncfShell({page:"entries"|"add"|"awards"|"results"|"shows"|"breeds"|"import", title:"…"})
 // When a show is open, the top bar has an "Edit show" button that changes the show's name, date, venue, judge and status.
 (function(){
   const css=`
@@ -122,7 +122,7 @@ body.has-pager .top-btn{bottom:calc(146px + env(safe-area-inset-bottom,0px))}
       <div class="sec"><h3>Manage</h3><a class="item${opt.page==="breeds"?" here":""}" href="breeds.html">Breeds and groups <small>›</small></a></div>
       <div class="sec"><h3>Awards view on this phone</h3><div class="seg" role="group" aria-label="Awards view"><button type="button" data-view="round" aria-pressed="${mode==="round"}">One round at a time</button><button type="button" data-view="list" aria-pressed="${mode==="list"}">Full list</button></div></div>
       <div class="sec keys"><h3>Keyboard shortcuts</h3><p><kbd>/</kbd>Search</p>${show?`<p><kbd>N</kbd>Add entry</p><p><kbd>←</kbd><kbd>→</kbd>Previous or next round</p>`:""}<p><kbd>Esc</kbd>Close menu</p></div>
-      <div class="sec"><h3>Older pages</h3><a class="item" href="nov-2026.html">November 2026, first version <small>›</small></a></div>
+      <div class="sec"><h3>Older pages</h3><a class="item" href="legacy/nov-2026.html">November 2026, first version <small>›</small></a></div>
       <div class="sec" style="margin-top:auto"><span class="who" id="drawerWho"></span><button class="item" type="button" id="drawerOut">Sign out</button></div>`;
     document.body.appendChild(bg);document.body.appendChild(dr);
     const burger=bar.querySelector(".burger");

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<title>MNCF Awards · Sun morning</title>
+<title>MNCF Awards · Sat 31 Oct</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
 <style>
@@ -92,9 +92,9 @@ pre{white-space:pre-wrap;font-size:13px;background:var(--bg);border:1px solid va
 
 <div class="wrap">
   <header>
-    <nav class="nav" aria-label="Show days"><a href="index.html">All shows</a><a href="nov-2026.html">Nov 2026 days</a><a href="saturday.html">Sat 31 Oct</a><a href="sunday-morning.html" aria-current="page">Sun morning</a><a href="sunday-evening.html">Sun evening</a><a href="best-in-show.html">Best in Show</a><a href="absent.html">Absent dogs</a></nav>
-    <h1>Sunday morning · Gundog & Toy</h1>
-    <div class="sub">Sun 1 Nov 2026 · Judging from 9:00am · Judge: Mr Adrian Bicknell</div>
+    <nav class="nav" aria-label="Show days"><a href="../index.html">All shows</a><a href="nov-2026.html">Nov 2026 days</a><a href="saturday.html" aria-current="page">Sat 31 Oct</a><a href="sunday-morning.html">Sun morning</a><a href="sunday-evening.html">Sun evening</a><a href="best-in-show.html">Best in Show</a><a href="absent.html">Absent dogs</a></nav>
+    <h1>Saturday · Utility & Hound</h1>
+    <div class="sub">Sat 31 Oct 2026 · Judging from 3:00pm · Judge: Mr Adrian Bicknell</div>
     <div class="save" id="saveState">Saved on this device</div>
     <div class="save" id="syncState"></div>
     <div class="bar"><i id="barFill"></i></div>
@@ -146,13 +146,13 @@ pre{white-space:pre-wrap;font-size:13px;background:var(--bg);border:1px solid va
 </div>
 <div class="toast" id="toast"></div>
 
-<script src="xlsx.full.min.js"></script>
+<script src="../vendor/xlsx.full.min.js"></script>
 <script src="data.js"></script>
 <script src="sync.js"></script>
 <script>
-const BASE=(window.SHOW_DATA||{})["sunday-morning"]||[];
+const BASE=(window.SHOW_DATA||{})["saturday"]||[];
 const JUDGE="Mr Adrian Bicknell";
-const KS="mncf-awards-sun-results-v1", KB="mncf-awards-sun-breeds-v1";
+const KS="mncf-awards-results-v2", KB="mncf-awards-breeds-v2";
 function load(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
 let saveOk=null;
 function save(k,v){
@@ -336,13 +336,13 @@ function render(){
   document.getElementById("resultsText").textContent=resultsText(breeds,gAw);
   const raw=rawBreeds(), abs=raw.flatMap(b=>b.classes.flatMap(c=>c.entries.filter(e=>absent[e.no]).map(e=>e.no)));
   const gone=raw.filter(b=>!breeds.some(x=>x.name===b.name)).map(b=>b.name);
-  try{const lbl=((window.SHOW_SESSIONS||[]).find(x=>x.id==="sunday-morning")||{}).label||"sunday-morning";window.mncfSync&&mncfSync(lbl,sheetRows())}catch(e){}
+  try{const lbl=((window.SHOW_SESSIONS||[]).find(x=>x.id==="saturday")||{}).label||"saturday";window.mncfSync&&mncfSync(lbl,sheetRows())}catch(e){}
   const an=document.getElementById("absentNote");
   an.hidden=!abs.length;
   an.innerHTML=abs.length?`<b>Absent:</b> ${abs.map(esc).join(", ")}. They're left out of the classes and award counts.${gone.length?` Not judged, all dogs absent: ${gone.map(esc).join(", ")}.`:""} <a href="absent.html">Change</a>`:"";
 }
 function resultsText(breeds,gAw){
-  const out=[`MNCF Championship Show, Sunday 1 November 2026 (morning) · Judge: ${JUDGE}`,""];
+  const out=[`MNCF Championship Show, Saturday 31 October 2026 · Judge: ${JUDGE}`,""];
   breeds.forEach(b=>{
     out.push(b.name.toUpperCase());
     b.classes.forEach(c=>{
@@ -422,7 +422,7 @@ function exportExcel(){
   add(cls,"Class results",[7,32,10,16,8,7,8,44,7]);
   add(ba,"Breed awards",[32,10,24,8,44,7]);
   add(ga,"Group awards",[28,26,11,8,44,32,7]);
-  try{XLSX.writeFile(wb,"MNCF-Show-Results-Sun-1-Nov-2026-morning.xlsx");toast("Excel file downloaded")}
+  try{XLSX.writeFile(wb,"MNCF-Show-Results-Sat-31-Oct-2026.xlsx");toast("Excel file downloaded")}
   catch(e){toast("Download blocked here. Open the GitHub version to export.")}
 }
 document.getElementById("xlsxBtn").onclick=exportExcel;
