@@ -102,7 +102,7 @@ pre{white-space:pre-wrap;font-size:13px;background:var(--bg);border:1px solid va
     <div class="prog"><span id="progText">0 of 0 awards given</span><span id="progBreeds"></span></div>
   </header>
 
-  <section class="panel">
+  <section class="panel" id="totalsPanel">
     <h2>Show totals</h2>
     <div class="stock" id="stock"></div>
     <p class="note" id="absentNote" hidden></p>
@@ -149,7 +149,10 @@ pre{white-space:pre-wrap;font-size:13px;background:var(--bg);border:1px solid va
 <script src="xlsx.full.min.js"></script>
 <script src="supabase.min.js"></script>
 <script src="api.js"></script>
+<script src="shell.js"></script>
+<script src="focus.js"></script>
 <script src="nav.js"></script>
+<script>mncfShell({page:new URLSearchParams(location.search).get("view")==="results"?"results":"awards"});</script>
 <script>
 function startEngine(){
 const BASE=window.SHOW_BASE||[];
@@ -653,6 +656,7 @@ window.mncfLive=(function(){
     const ab=entries.filter(e=>e.Absent===true).length;
     document.getElementById("loadNote").innerHTML=`${entries.length} entries${ab?`, ${ab} marked absent and left out`:""}. ${note||""}`;
     startEngine();
+    window.mncfFocus&&window.mncfFocus.init(info.Show);
     if(!entries.length) document.getElementById("breeds").innerHTML=`<div class="empty">This show has no entries yet. <a href="register.html?show=${q}">Register dogs</a> first.</div>`;
   }
   if(!show){document.getElementById("showSub").innerHTML='No show picked. <a href="index.html">Choose a show</a>.';return}

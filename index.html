@@ -9,91 +9,83 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<style>
+.toolbar{display:flex;flex-direction:column;gap:10px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chips button{font-size:14px;font-weight:600;padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:var(--bg);color:var(--fg);min-height:40px}
+.chips button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--card)}
+.chips .n{opacity:.7;font-weight:500;margin-left:4px}
+.scard{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;text-decoration:none;color:var(--fg)}
+.scard b{font-family:var(--display);font-size:21px;text-transform:uppercase;letter-spacing:.02em;display:block;line-height:1.15}
+.scard small{color:var(--muted);font-size:14px;display:block;margin-top:2px}
+.scard .acts{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.pill{display:inline-block;font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em}
+.pill.Open{background:var(--ok-soft);color:var(--ok)}
+.pill.Closed{background:var(--accent-soft);color:var(--accent)}
+.pill.Finished{background:var(--bg);color:var(--muted);border:1px solid var(--line)}
+@media (max-width:560px){.scard{grid-template-columns:1fr}.scard .acts{justify-content:stretch}.scard .acts .btn{flex:1;text-align:center}}
+</style>
 <div class="wrap">
   <header>
-    <nav class="nav" aria-label="Pages"><a href="index.html" aria-current="page">All shows</a><a href="register.html">Register dogs</a><a href="nov-2026.html">Nov 2026 (first version)</a></nav>
-    <h1>MNCF Show Desk</h1>
-    <div class="sub">Shows, dog registrations and awards for the team. <span id="who"></span></div>
+    <div class="sub" id="who"></div>
   </header>
-  <div id="list" style="display:flex;flex-direction:column;gap:12px"><p class="loading">Loading shows…</p></div>
-  <section class="panel">
-    <h2>Breeds and groups</h2>
-    <p class="note">Every breed's group is set here by hand. The awards page uses it to sort breeds into group rounds.</p>
-    <details id="breedBox"><summary style="cursor:pointer;font-weight:600;font-size:14px">Show the breed list <span class="note" id="breedCount"></span></summary>
-      <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px">
-        <div class="find"><input type="text" id="bq" placeholder="Search breeds"></div>
-        <div class="tw"><table><thead><tr><th>Breed</th><th>Group</th></tr></thead><tbody id="breedRows"></tbody></table></div>
-      </div>
-    </details>
-    <form id="breedForm" class="form" autocomplete="off">
-      <div class="field"><label for="nbName">New breed</label><input type="text" id="nbName" placeholder="e.g. Beagle"></div>
-      <div class="field"><label for="nbGroup">Group</label><select id="nbGroup"></select></div>
-      <div class="field wide"><div class="btns"><button type="submit" id="nbBtn">Add breed</button></div><p class="err" id="nbErr"></p></div>
-    </form>
-  </section>
-
-  <section class="panel">
-    <h2>Add a show</h2>
-    <form id="addForm" class="form">
+  <section class="panel toolbar">
+    <div class="find"><input type="text" id="q" placeholder="Search shows by name, date, venue or judge" autocomplete="off"></div>
+    <div class="chips" id="chips" role="group" aria-label="Filter by status"></div>
+    <div class="btns"><button class="pri" type="button" id="newBtn" aria-expanded="false">+ New show</button></div>
+    <form id="addForm" class="form" hidden>
       <div class="field wide"><label for="sName">Show name</label><input type="text" id="sName" required placeholder="MNCF Championship Show April 2027"></div>
       <div class="field"><label for="sDate">Date</label><input type="text" id="sDate" placeholder="17–18 Apr 2027"></div>
       <div class="field"><label for="sVenue">Venue</label><input type="text" id="sVenue"></div>
       <div class="field"><label for="sJudge">Judge</label><input type="text" id="sJudge"></div>
       <div class="field"><label for="sStatus">Status</label><select id="sStatus"><option>Open</option><option>Closed</option><option>Finished</option></select></div>
-      <div class="field wide"><div class="btns"><button class="pri" type="submit" id="addBtn">Add show</button></div><p class="err" id="addErr"></p></div>
+      <div class="field wide"><div class="btns"><button class="pri" type="submit" id="addBtn">Add show</button><button type="button" id="cancelNew">Cancel</button></div><p class="err" id="addErr"></p></div>
     </form>
   </section>
+  <div id="list" style="display:flex;flex-direction:column;gap:10px"><p class="loading">Loading shows…</p></div>
 </div>
 <div class="toast" id="toast"></div>
 <script src="supabase.min.js"></script>
 <script src="api.js"></script>
+<script src="shell.js"></script>
 <script>
-const esc=mncfEsc;
-function draw(shows){
-  const el=document.getElementById("list");
-  if(!shows.length){el.innerHTML='<div class="empty">No shows yet. Add the first one below.</div>';return}
+mncfShell({page:"shows",title:"Shows"});
+const esc=mncfEsc,$=id=>document.getElementById(id);
+const STATUSES=["Open","Closed","Finished"];
+let SHOWS=null,filter="All";
+try{filter=localStorage.getItem("mncf-show-filter")||"All"}catch(e){}
+function draw(){
+  if(!SHOWS)return;
+  const counts={All:SHOWS.length};STATUSES.forEach(s=>counts[s]=SHOWS.filter(x=>x.Status===s).length);
+  $("chips").innerHTML=["All",...STATUSES].map(s=>`<button type="button" data-f="${s}" aria-pressed="${s===filter}">${s}<span class="n">${counts[s]}</span></button>`).join("");
+  const t=$("q").value.trim().toLowerCase();
   const order={Open:0,Closed:1,Finished:2};
-  shows=shows.slice().sort((a,b)=>(order[a.Status]??0)-(order[b.Status]??0));
-  el.innerHTML=shows.map(s=>{const q=encodeURIComponent(s.Show);
-    return `<div class="show-card"><div><small>${esc([s.Date,s.Venue].filter(Boolean).join(" · "))}</small><b>${esc(s.Show)}</b><small>${esc([s.Judge?"Judge: "+s.Judge:"",s.Status].filter(Boolean).join(" · "))}</small></div><div class="btns"><a class="btn" href="register.html?show=${q}">Register dogs</a><a class="btn pri" href="awards.html?show=${q}">Awards</a></div></div>`}).join("");
+  const list=SHOWS.filter(s=>(filter==="All"||s.Status===filter)&&(!t||[s.Show,s.Date,s.Venue,s.Judge].join(" ").toLowerCase().includes(t)))
+    .sort((a,b)=>(order[a.Status]??0)-(order[b.Status]??0)||SHOWS.indexOf(b)-SHOWS.indexOf(a));
+  $("list").innerHTML=list.map(s=>{const q=encodeURIComponent(s.Show);
+    return `<div class="scard"><div><span class="pill ${esc(s.Status)}">${esc(s.Status)}</span><b>${esc(s.Show)}</b><small>${esc([s.Date,s.Venue].filter(Boolean).join(" · "))}${s.Judge?`<br>Judge: ${esc(s.Judge)}`:""}</small></div>
+      <div class="acts"><a class="btn" href="register.html?show=${q}">Entries</a><a class="btn pri" href="awards.html?show=${q}">Awards</a></div></div>`}).join("")
+    ||`<div class="empty">${SHOWS.length?"No shows match. Try another search or filter.":"No shows yet. Tap “+ New show” to add the first one."}</div>`;
 }
-const GROUPS=["Utility","Hound","Gundog","Toy","Working","Terrier","Pastoral"];
-let BREEDS=[];
-document.getElementById("nbGroup").innerHTML='<option value="">Pick a group…</option>'+GROUPS.map(g=>`<option>${g}</option>`).join("");
-function drawBreeds(list){
-  if(list)BREEDS=list;
-  document.getElementById("breedCount").textContent=`(${BREEDS.length})`;
-  const q=document.getElementById("bq").value.trim().toLowerCase();
-  document.getElementById("breedRows").innerHTML=BREEDS.filter(b=>!q||b.Breed.toLowerCase().includes(q)||String(b.Group).toLowerCase().includes(q))
-    .sort((a,b)=>GROUPS.indexOf(a.Group)-GROUPS.indexOf(b.Group)||a.Breed.localeCompare(b.Breed))
-    .map(b=>`<tr><td>${esc(b.Breed)}</td><td><select data-breed="${esc(b.Breed)}" aria-label="Group for ${esc(b.Breed)}">${GROUPS.map(g=>`<option${g===b.Group?" selected":""}>${g}</option>`).join("")}</select></td></tr>`).join("")||'<tr><td colspan="2" class="note">No breeds match.</td></tr>';
-}
-document.getElementById("bq").addEventListener("input",()=>drawBreeds());
-document.getElementById("breedRows").addEventListener("change",async e=>{
-  const s=e.target;if(!s.dataset.breed)return;s.disabled=true;
-  try{const j=await mncfApi("setBreedGroup",{breed:s.dataset.breed,group:s.value});drawBreeds(j.breeds);mncfToast(`${s.dataset.breed} is now in the ${s.value} group`)}
-  catch(er){mncfToast(er.message);drawBreeds()}
-});
-document.getElementById("breedForm").addEventListener("submit",async ev=>{
-  ev.preventDefault();const err=document.getElementById("nbErr"),b=document.getElementById("nbBtn");err.textContent="";b.disabled=true;
-  try{const j=await mncfApi("addBreed",{breed:nbName.value,group:nbGroup.value});drawBreeds(j.breeds);mncfToast(nbName.value.trim()+" added");ev.target.reset()}
-  catch(e){err.textContent=e.message}
-  b.disabled=false;
-});
-async function load(){
-  const c=mncfCache.get("bootstrap");if(c){draw(c.shows);drawBreeds(c.breeds||[])}
-  try{const j=await mncfApi("bootstrap");mncfCache.set("bootstrap",j);draw(j.shows);drawBreeds(j.breeds)}
-  catch(e){document.getElementById("list").insertAdjacentHTML("afterbegin",`<p class="err">${esc(e.message)}</p>`)}
-}
-document.getElementById("addForm").addEventListener("submit",async ev=>{
-  ev.preventDefault();const b=document.getElementById("addBtn"),err=document.getElementById("addErr");err.textContent="";b.disabled=true;b.textContent="Adding…";
+$("chips").addEventListener("click",e=>{const b=e.target.closest("[data-f]");if(!b)return;filter=b.dataset.f;try{localStorage.setItem("mncf-show-filter",filter)}catch(er){}draw()});
+$("q").addEventListener("input",draw);
+const toggleNew=on=>{$("addForm").hidden=!on;$("newBtn").setAttribute("aria-expanded",String(on));$("newBtn").hidden=on;if(on)$("sName").focus()};
+$("newBtn").onclick=()=>toggleNew(true);$("cancelNew").onclick=()=>toggleNew(false);
+$("addForm").addEventListener("submit",async ev=>{
+  ev.preventDefault();const b=$("addBtn"),err=$("addErr");err.textContent="";b.disabled=true;b.textContent="Adding…";
   try{const j=await mncfApi("addShow",{show:{Show:sName.value,Date:sDate.value,Venue:sVenue.value,Judge:sJudge.value,Status:sStatus.value}});
-    const c=mncfCache.get("bootstrap")||{};c.shows=j.shows;mncfCache.set("bootstrap",c);draw(j.shows);ev.target.reset();mncfToast("Show added")}
+    SHOWS=j.shows;const c=mncfCache.get("bootstrap")||{};c.shows=j.shows;mncfCache.set("bootstrap",c);
+    const name=sName.value.trim();ev.target.reset();toggleNew(false);mncfToast("Show added");
+    location.href="register.html?show="+encodeURIComponent(name);}
   catch(e){err.textContent=e.message}
   b.disabled=false;b.textContent="Add show";
 });
-load();
-mncfWho().then(w=>{if(w)document.getElementById("who").innerHTML=`Signed in as ${mncfEsc(w)} · <a href="#" onclick="mncfSignOut();return false">Sign out</a>`});
+(async()=>{
+  const c=mncfCache.get("bootstrap");if(c&&c.shows){SHOWS=c.shows;draw()}
+  try{const j=await mncfApi("bootstrap");mncfCache.set("bootstrap",j);SHOWS=j.shows;draw()}
+  catch(e){$("list").insertAdjacentHTML("afterbegin",`<p class="err">${esc(e.message)}</p>`)}
+  mncfWho().then(w=>{if(w)$("who").textContent=`${SHOWS?SHOWS.length:0} shows · signed in as ${w}`});
+})();
 </script>
 </body>
 </html>

@@ -15,11 +15,11 @@
     <h1>Register dogs</h1>
     <div class="sub" id="showSub">Pick a show, then enter dogs one by one.</div>
   </header>
-  <section class="panel">
+  <section class="panel" id="pickPanel">
     <div class="field"><label for="showSel">Show</label><select id="showSel"><option value="">Loading shows…</option></select></div>
   </section>
   <section class="panel" id="formPanel">
-    <h2 id="formTitle">Enter a dog</h2>
+    <h2 id="formTitle">Add an entry</h2>
     <form id="entryForm" class="form" autocomplete="off">
       <div class="field"><label for="fClass">Class</label><select id="fClass" required></select></div>
       <div class="field"><label for="fRing">Ring number</label><input type="text" id="fRing" inputmode="numeric" placeholder="e.g. 42"></div>
@@ -48,8 +48,10 @@
 <div class="toast" id="toast"></div>
 <script src="supabase.min.js"></script>
 <script src="api.js"></script>
+<script src="shell.js"></script>
 <script src="nav.js"></script>
 <script>
+mncfShell({page:"entries",title:mncfQuery("show")||"Register dogs",kicker:mncfQuery("show")?"Entries":"Register dogs"});
 const esc=mncfEsc, $=id=>document.getElementById(id);
 const AGE=["Puppy","Junior","Open","Veteran"], SPECIAL=["AV Locally Bred","Junior Handler","Childrens Class"], PERSON=["Junior Handler","Childrens Class"];
 const GROUP_ORDER=["Utility","Hound","Gundog","Toy","Working","Terrier","Pastoral"];
@@ -62,6 +64,7 @@ function fillShows(){
   $("showSub").textContent=s?[s.Date,s.Judge?"Judge: "+s.Judge:"",s.Status].filter(Boolean).join(" · "):"Pick a show, then enter dogs one by one.";
   $("awardsLink").href="awards.html"+(S.show?"?show="+encodeURIComponent(S.show):"");
   $("formPanel").hidden=!S.show;
+  $("pickPanel").hidden=!!S.show&&!!s;
 }
 function fillLists(){
   $("fClass").innerHTML=AGE.flatMap(a=>[`${a} Dog`,`${a} Bitch`]).concat(SPECIAL).map(c=>`<option>${c}</option>`).join("");
@@ -87,7 +90,7 @@ function lookupDog(){
 }
 function resetForm(){
   const keepClass=$("fClass").value;$("entryForm").reset();$("fClass").value=keepClass;S.editing=null;
-  $("formTitle").textContent="Enter a dog";$("saveBtn").textContent="Save entry";$("cancelBtn").hidden=true;$("known").innerHTML="";$("formErr").textContent="";syncForm();
+  $("formTitle").textContent="Add an entry";$("saveBtn").textContent="Save entry";$("cancelBtn").hidden=true;$("known").innerHTML="";$("formErr").textContent="";syncForm();
 }
 async function loadShow(){
   if(!S.show){$("entries").innerHTML="";return}

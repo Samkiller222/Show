@@ -57,7 +57,7 @@ header.compact .jump{margin-top:6px;padding-top:6px}
       cards.forEach((x,i)=>{x.card.id=x.card.id||("round-"+(i+1));x.card.style.scrollMarginTop=(headerH()+12)+"px"});
       const cats=[];cards.forEach(x=>{let c=cats.find(c=>c.name===x.cat);if(!c){c={name:x.cat,items:[]};cats.push(c)}c.items.push(x)});
       chips.innerHTML=cats.map(c=>{const d=c.items.filter(x=>x.done).length,all=d===c.items.length;
-        return `<button type="button" data-cat="${c.name}" class="${opt.rounds&&all?"done":""}">${c.name}${opt.rounds?` <span class="n">${d}/${c.items.length}</span>`:` <span class="n">${c.items.length}</span>`}</button>`}).join("");
+        return `<button type="button" data-cat="${c.name}" class="${opt.rounds&&all?"done":""}">${c.name}${opt.rounds?` <span class="n">${d}/${c.items.length}</span>`:opt.counts===false?"":` <span class="n">${c.items.length}</span>`}</button>`}).join("");
       const keep=sel.value;
       sel.innerHTML=`<option value="">${opt.rounds?"Go to round…":"Go to breed…"}</option>`+cats.map(c=>`<optgroup label="${c.name}">`+c.items.map(x=>`<option value="${x.card.id}">${opt.rounds?(cards.indexOf(x)+1)+". ":""}${x.title}${opt.rounds&&x.done?" ✓":""}</option>`).join("")+`</optgroup>`).join("");
       sel.value=keep&&document.getElementById(keep)?"":"";
@@ -66,7 +66,8 @@ header.compact .jump{margin-top:6px;padding-top:6px}
       setTimeout(()=>busy=false,0);
     }
     const hdr=document.querySelector("header");let jumping=0;
-    function go(card){if(!card)return;if(card.classList.contains("done")&&document.body.classList.contains("hide-done")){hide.checked=false;hide.onchange()}
+    function go(card){if(!card)return;
+      if(window.mncfFocus&&window.mncfFocus.active()){window.mncfFocus.goCard(card);return}if(card.classList.contains("done")&&document.body.classList.contains("hide-done")){hide.checked=false;hide.onchange()}
       if(hdr)hdr.classList.add("compact");
       jumping=Date.now()+1500;
       const y=card.getBoundingClientRect().top+window.scrollY-(hdr?hdr.getBoundingClientRect().height:0)-10;
@@ -77,7 +78,8 @@ header.compact .jump{margin-top:6px;padding-top:6px}
     const next=box.querySelector("[data-next]");
     if(next) next.onclick=()=>{const y=window.scrollY+headerH()+20;
       const after=cards.find(x=>!x.done&&x.card.getBoundingClientRect().top+window.scrollY>y);
-      const any=after||cards.find(x=>!x.done);
+      let any=after||cards.find(x=>!x.done);
+      if(window.mncfFocus&&window.mncfFocus.active()){const i=cards.findIndex(x=>x.card.classList.contains("current"));any=cards.slice(i+1).find(x=>!x.done)||cards.find(x=>!x.done)}
       if(any)go(any.card);else if(window.mncfToast)mncfToast("Every round is done")};
     function spy(){
       const y=headerH()+40;let cur=null;

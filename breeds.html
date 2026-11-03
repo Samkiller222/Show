@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MNCF Breeds and Groups</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="sub">Every breed's group is set here by hand. The awards page uses it to sort breeds into group rounds.</div>
+  </header>
+  <section class="panel">
+    <h2>Add a breed</h2>
+    <form id="breedForm" class="form" autocomplete="off">
+      <div class="field"><label for="nbName">Breed</label><input type="text" id="nbName" placeholder="e.g. Beagle"></div>
+      <div class="field"><label for="nbGroup">Group</label><select id="nbGroup"></select></div>
+      <div class="field wide"><div class="btns"><button class="pri" type="submit" id="nbBtn">Add breed</button></div><p class="err" id="nbErr"></p></div>
+    </form>
+  </section>
+  <section class="panel">
+    <h2>All breeds <span class="note" id="breedCount"></span></h2>
+    <div class="find"><input type="text" id="bq" placeholder="Search breeds or groups" autocomplete="off"></div>
+  </section>
+  <div id="groupsList" style="display:flex;flex-direction:column;gap:12px"><p class="loading">Loading breeds…</p></div>
+</div>
+<div class="toast" id="toast"></div>
+<script src="supabase.min.js"></script>
+<script src="api.js"></script>
+<script src="shell.js"></script>
+<script src="nav.js"></script>
+<script>
+mncfShell({page:"breeds",title:"Breeds and groups",kicker:"Manage"});
+const esc=mncfEsc,$=id=>document.getElementById(id);
+const GROUPS=["Utility","Hound","Gundog","Toy","Working","Terrier","Pastoral"];
+let BREEDS=[];
+$("nbGroup").innerHTML='<option value="">Pick a group…</option>'+GROUPS.map(g=>`<option>${g}</option>`).join("");
+function draw(list){
+  if(list)BREEDS=list;
+  $("breedCount").textContent=`· ${BREEDS.length}`;
+  const q=$("bq").value.trim().toLowerCase();
+  const shown=BREEDS.filter(b=>!q||b.Breed.toLowerCase().includes(q)||String(b.Group).toLowerCase().includes(q));
+  $("groupsList").innerHTML=GROUPS.map(g=>{const items=shown.filter(b=>b.Group===g).sort((a,b)=>a.Breed.localeCompare(b.Breed));if(!items.length)return "";
+    return `<article class="breed"><div class="bhead"><div><small>${g} Group · ${items.length} breed${items.length>1?"s":""}</small><h2>${g} Group</h2></div></div>`+
+      items.map(b=>`<div class="erow" style="grid-template-columns:minmax(0,1fr) 10em"><span>${esc(b.Breed)}</span><select data-breed="${esc(b.Breed)}" aria-label="Group for ${esc(b.Breed)}">${GROUPS.map(x=>`<option${x===b.Group?" selected":""}>${x}</option>`).join("")}</select></div>`).join("")+`</article>`}).join("")
+    ||'<div class="empty">No breeds match.</div>';
+}
+$("bq").addEventListener("input",()=>draw());
+$("groupsList").addEventListener("change",async e=>{
+  const s=e.target;if(!s.dataset.breed)return;s.disabled=true;
+  try{const j=await mncfApi("setBreedGroup",{breed:s.dataset.breed,group:s.value});draw(j.breeds);mncfToast(`${s.dataset.breed} moved to the ${s.value} group`)}
+  catch(er){mncfToast(er.message);draw()}
+});
+$("breedForm").addEventListener("submit",async ev=>{
+  ev.preventDefault();const err=$("nbErr"),b=$("nbBtn");err.textContent="";b.disabled=true;
+  try{const name=nbName.value.trim();const j=await mncfApi("addBreed",{breed:name,group:nbGroup.value});draw(j.breeds);mncfToast(name+" added");ev.target.reset()}
+  catch(e){err.textContent=e.message}
+  b.disabled=false;
+});
+(async()=>{
+  const c=mncfCache.get("bootstrap");if(c&&c.breeds)draw(c.breeds);
+  try{const j=await mncfApi("bootstrap");mncfCache.set("bootstrap",j);draw(j.breeds)}
+  catch(e){$("groupsList").innerHTML=`<p class="err">${esc(e.message)}</p>`}
+  mncfJumpNav({containers:["#groupsList"],rounds:false,counts:false});
+})();
+</script>
+</body>
+</html>
