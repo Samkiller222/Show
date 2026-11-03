@@ -134,6 +134,10 @@ Sam asked: *"have the breeds grouped up and the names of the dogs be dragable be
 
 Sam: *"the add entry screen and the awards tracker screen should be seperate and i need to be able to edit the show I'm on at any given moment"*. Read as: the add-entry form moves off the Entries list into its own tab, and every show screen gets an "Edit show" button. Other phones still keep unsynced local copies under the old name after a rename; the server data is fine because everything is linked by show id.
 
+## Awards that only one dog can win (3 Nov 2026)
+
+Sam asked that awards which can only go to one dog (Best Puppy, Best Junior, a sex, a one-dog class) be more obvious, so ring stewards can prepare ribbons and cards. In `awards.html`, `row(..., only)` marks such rows green with an "Only 1 dog" tag, and each breed and group card opens with a "Prepare now · only one dog can win" list (award → ring number · dog), built by `prepBox()`. An award counts as one-dog when its candidate pool has exactly one dog. Given awards are struck through in the list.
+
 ## Next request
 
 None yet.
