@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="mncf-version" content="2026-11-03j">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MNCF Club Dogs</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<link rel="stylesheet" href="css/style.css?v=2026-11-03j">
+</head>
+<body>
+<style>
+.dogs{display:flex;flex-direction:column;gap:8px}
+.dcard{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;text-decoration:none;color:var(--fg);min-height:56px}
+.dcard b{font-weight:600;font-size:16px;display:block;line-height:1.2;overflow-wrap:anywhere}
+.dcard small{color:var(--muted);font-size:13px;display:block;margin-top:2px;overflow-wrap:anywhere}
+.dcard .go{color:var(--muted);font-size:20px}
+.dcard:hover{border-color:var(--accent)}
+.sx{display:inline-block;font-weight:700;margin-right:4px}
+.sx.D{color:var(--blue)}.sx.B{color:var(--red)}
+.letter{font-family:var(--display);font-size:15px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:6px 2px 0}
+.filters{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,12em);gap:8px}
+@media (max-width:520px){.filters{grid-template-columns:1fr}}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px 16px;margin:0}
+.facts div{min-width:0}
+.facts dt{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.facts dd{margin:2px 0 0;font-size:15px;overflow-wrap:anywhere}
+.facts dd.none{color:var(--muted)}
+.facts .wide{grid-column:1/-1}
+.dhead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}
+.dhead h2{font-size:26px;line-height:1.1;overflow-wrap:anywhere}
+.stats{display:flex;gap:8px;flex-wrap:wrap}
+.stat{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:13px;color:var(--muted)}
+.stat b{font-family:var(--display);font-size:22px;color:var(--fg);margin-right:4px}
+.hshow{background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.hshow .bhead a{color:inherit}
+.hrow{display:grid;grid-template-columns:3.4em minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 14px;border-top:1px solid var(--line)}
+.hrow .no{font-family:var(--display);font-size:20px;font-variant-numeric:tabular-nums}
+.hrow.abs .cl{text-decoration:line-through;color:var(--muted)}
+.wins{padding:8px 14px 12px;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;gap:6px}
+.win{display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:4px 10px 4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg)}
+.win .rib{width:8px;height:16px}
+.back{display:inline-flex;align-items:center;gap:4px;font-weight:600;color:var(--accent);text-decoration:none;min-height:46px}
+a.btn,button{min-height:46px}
+</style>
+<div class="wrap">
+  <header>
+    <div class="sub" id="sub">Every dog registered with the club, with its owner, pedigree and show record.</div>
+  </header>
+
+  <!-- list view -->
+  <section class="panel" id="listTools" hidden>
+    <div class="dhead"><h2>Club dogs <span class="note" id="dogCount"></span></h2><button class="pri" type="button" id="addBtn" aria-expanded="false">+ Add dog</button></div>
+    <div class="filters">
+      <input type="text" id="q" placeholder="Search name, owner, breeder, sire or dam" autocomplete="off" aria-label="Search dogs">
+      <select id="fBreedFilter" aria-label="Filter by breed"><option value="">All breeds</option></select>
+    </div>
+  </section>
+
+  <!-- add / edit form -->
+  <section class="panel" id="formPanel" hidden>
+    <h2 id="formTitle">Add a dog</h2>
+    <form id="dogForm" class="form" autocomplete="off">
+      <div class="field wide"><label for="dName">Dog name</label><input type="text" id="dName" required placeholder="Registered name"></div>
+      <div class="field"><label for="dBreed">Breed</label><select id="dBreed" required></select></div>
+      <div class="field"><label for="dSex">Sex</label><select id="dSex"><option value="">Not set</option><option>Dog</option><option>Bitch</option></select></div>
+      <div class="field"><label for="dDob">Date of birth</label><input type="text" id="dDob" inputmode="numeric" placeholder="dd/mm/yyyy"></div>
+      <div class="field"><label for="dBreeder">Breeder</label><input type="text" id="dBreeder" placeholder="Name, or Exh if the owner bred it"></div>
+      <div class="field"><label for="dSire">Sire</label><input type="text" id="dSire"></div>
+      <div class="field"><label for="dDam">Dam</label><input type="text" id="dDam"></div>
+      <div class="field"><label for="dOwner">Owner</label><input type="text" id="dOwner"></div>
+      <div class="field"><label for="dPhone">Phone</label><input type="text" id="dPhone" inputmode="tel"></div>
+      <div class="field wide"><label for="dAddress">Address</label><input type="text" id="dAddress"></div>
+      <div class="field wide"><p class="note">Breed not in the list? Add it on <a href="breeds.html">Breeds and groups</a> first.</p>
+        <div class="btns"><button class="pri" type="submit" id="saveBtn">Add dog</button><button type="button" id="cancelBtn">Cancel</button></div><p class="err" id="formErr"></p></div>
+    </form>
+  </section>
+
+  <div class="dogs" id="list"><p class="loading">Loading dogs…</p></div>
+
+  <!-- one dog -->
+  <div id="detail" hidden style="display:flex;flex-direction:column;gap:12px"></div>
+</div>
+<div class="toast" id="toast"></div>
+<script src="vendor/supabase.min.js"></script>
+<script src="js/api.js?v=2026-11-03j"></script>
+<script src="js/shell.js?v=2026-11-03j"></script>
+<script>
+const esc=mncfEsc,$=id=>document.getElementById(id);
+const DOG_ID=mncfQuery("dog");
+mncfShell({page:"dogs",title:DOG_ID?"Dog details":"Club dogs",kicker:"Manage"});
+let DOGS=[],BREEDS=[],EDIT=null;
+const F={dName:"Dog name",dBreed:"Breed",dSex:"Sex",dDob:"Date of birth",dBreeder:"Breeder",dSire:"Sire",dDam:"Dam",dOwner:"Owner",dPhone:"Phone",dAddress:"Address"};
+const sxMark=s=>s==="Dog"?'<span class="sx D" title="Dog">♂</span>':s==="Bitch"?'<span class="sx B" title="Bitch">♀</span>':"";
+
+// ---- list ----
+function fillBreeds(){
+  const names=BREEDS.map(b=>b.Breed).sort((a,b)=>a.localeCompare(b));
+  const cur=$("dBreed").value;
+  $("dBreed").innerHTML='<option value="">Pick a breed…</option>'+names.map(n=>`<option>${esc(n)}</option>`).join("");
+  if(cur)$("dBreed").value=cur;
+  const used=[...new Set(DOGS.map(d=>d.Breed))].sort((a,b)=>a.localeCompare(b));
+  const f=$("fBreedFilter").value;
+  $("fBreedFilter").innerHTML='<option value="">All breeds</option>'+used.map(n=>`<option>${esc(n)}</option>`).join("");
+  $("fBreedFilter").value=used.includes(f)?f:"";
+}
+function drawList(){
+  const q=$("q").value.trim().toLowerCase(),br=$("fBreedFilter").value;
+  const shown=DOGS.filter(d=>(!br||d.Breed===br)&&(!q||["Dog name","Owner","Breeder","Sire","Dam","Breed","Phone"].some(k=>String(d[k]||"").toLowerCase().includes(q))));
+  $("dogCount").textContent=`· ${shown.length===DOGS.length?DOGS.length:shown.length+" of "+DOGS.length}`;
+  if(!shown.length){$("list").innerHTML=`<div class="empty">${DOGS.length?"No dogs match.":"No dogs registered yet. Tap + Add dog."}</div>`;return}
+  let last="",html="";
+  shown.sort((a,b)=>a["Dog name"].localeCompare(b["Dog name"])).forEach(d=>{
+    const L=(d["Dog name"][0]||"#").toUpperCase();
+    if(!q&&!br&&L!==last){html+=`<p class="letter">${esc(L)}</p>`;last=L}
+    html+=`<a class="dcard" href="dogs.html?dog=${encodeURIComponent(d.id)}"><div><b>${sxMark(d.Sex)}${esc(d["Dog name"])}</b><small>${esc([d.Breed,d.Owner].filter(Boolean).join(" · "))}</small></div><span class="go" aria-hidden="true">›</span></a>`;
+  });
+  $("list").innerHTML=html;
+}
+$("q").addEventListener("input",drawList);
+$("fBreedFilter").addEventListener("change",drawList);
+
+// ---- form ----
+function openForm(dog){
+  EDIT=dog||null;
+  $("formTitle").textContent=dog?"Edit "+dog["Dog name"]:"Add a dog";
+  $("saveBtn").textContent=dog?"Save changes":"Add dog";
+  $("formErr").textContent="";
+  Object.entries(F).forEach(([id,k])=>$(id).value=dog?(dog[k]||""):"");
+  $("formPanel").hidden=false;$("addBtn").setAttribute("aria-expanded","true");
+  $("formPanel").scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"start"});
+  setTimeout(()=>$("dName").focus({preventScroll:true}),200);
+}
+function closeForm(){$("formPanel").hidden=true;$("addBtn").setAttribute("aria-expanded","false");EDIT=null}
+$("addBtn").onclick=()=>$("formPanel").hidden||EDIT?openForm(null):closeForm();
+$("cancelBtn").onclick=closeForm;
+$("dogForm").addEventListener("submit",async ev=>{
+  ev.preventDefault();const b=$("saveBtn"),err=$("formErr");err.textContent="";b.disabled=true;
+  const dog={};Object.entries(F).forEach(([id,k])=>dog[k]=$(id).value);
+  const wasEdit=EDIT;
+  try{
+    if(wasEdit&&wasEdit["Dog name"]!==dog["Dog name"].trim()&&!confirm(`Rename ${wasEdit["Dog name"]} to ${dog["Dog name"].trim()}? Its show entries will be renamed too.`)){b.disabled=false;return}
+    const j=await mncfApi("saveDog",{id:wasEdit&&wasEdit.id,dog});
+    if(wasEdit){mncfToast("Saved");closeForm();Object.assign(wasEdit,j.dog);drawDetail(wasEdit)}
+    else{DOGS.push(j.dog);fillBreeds();drawList();ev.target.reset();
+      mncfToast(j.dog["Dog name"]+" added",{action:"Open",onAction(){location.href="dogs.html?dog="+encodeURIComponent(j.dog.id)}});
+      setTimeout(()=>$("dName").focus(),50)}
+  }catch(e){err.textContent=e.message}
+  b.disabled=false;
+});
+
+// ---- one dog ----
+const CLASS_CODE={"Puppy Dog":"PD","Puppy Bitch":"PB","Junior Dog":"JD","Junior Bitch":"JB","Open Dog":"OD","Open Bitch":"OB","Veteran Dog":"VD","Veteran Bitch":"VB","AV Locally Bred":"AVLB"};
+const AWARD={BD:"Best Dog in Breed",BB:"Best Bitch in Breed",BP:"Best Puppy in Breed",BJ:"Best Junior in Breed",BV:"Best Veteran in Breed",BOB:"Best of Breed",
+  BIG:"Best in Group",BJG:"Best Junior in Group",BPG:"Best Puppy in Group",BVG:"Best Veteran in Group",
+  BIS:"Best in Show",BPIS:"Best Puppy in Show",BJIS:"Best Junior in Show",BVIS:"Best Veteran in Show",AVLB:"Best in AV Locally Bred"};
+const PLACE={1:"1st",2:"2nd",3:"3rd"};
+// Results are saved against the ring number (or the name when there is none); group and show awards as "Breed::ring".
+function winsFor(entries,results){
+  const out=[],seen=new Set();
+  const add=(rank,text,order)=>{if(seen.has(text))return;seen.add(text);out.push({rank,text,order})};
+  entries.forEach(e=>{
+    const k=String(e["Ring No"]||"").trim()||String(e["Dog name"]).trim();
+    const avlb=e.Class==="AV Locally Bred",bname=avlb?"Any Variety Locally Bred "+(e.Group||"Other"):(e.Breed||"Breed not set");
+    const cname=avlb?"Any Variety Locally Bred":e.Class;
+    results.forEach(r=>{
+      if(r.show_id!==e.show_id)return;
+      const v=typeof r.value==="string"?r.value:String(r.value==null?"":r.value),key=r.key;
+      if(!v||v==="__W"||key.startsWith("g|")||key.startsWith("auto-off|"))return;
+      const p=key.split("|");
+      if(p[0]==="GROUP"||p[0]==="SHOW"){
+        if(v!==bname+"::"+k)return;
+        const id=p[0]==="GROUP"?p[2]:p[1],ru=p[p.length-1]==="R";
+        let t=AWARD[id]||id;
+        if(p[0]==="GROUP")t=t.replace(/in Group$/,"in "+p[1].replace(/^Best Veteran /,"")+(/Group$/.test(p[1])?"":" Group"));
+        add(ru?"rc":"r1",(ru?"Runner-up ":"")+t,p[0]==="SHOW"?0:1);return;
+      }
+      if(v!==k||p[0]!==bname)return;
+      if(p[1]==="*"){add("r1",AWARD[p[2]]||p[2],2);return}
+      if(p[1]===cname&&PLACE[p[2]])add("r"+p[2],PLACE[p[2]]+" in "+(avlb?"AV Locally Bred":cname),3+ +p[2]);
+    });
+  });
+  return out.sort((a,b)=>a.order-b.order);
+}
+function fact(label,val,wide){return `<div${wide?' class="wide"':""}><dt>${label}</dt><dd${val?"":' class="none"'}>${val?esc(val):"Not recorded"}</dd></div>`}
+let HIST=null;
+function drawDetail(d){
+  document.title="MNCF · "+d["Dog name"];
+  const c=$("crumbTitle");if(c)c.textContent=d["Dog name"];
+  const h=HIST||{entries:[],results:[],shows:[]};
+  const byShow={};h.entries.forEach(e=>(byShow[e.show_id]=byShow[e.show_id]||[]).push(e));
+  const showOf=id=>h.shows.find(s=>s.id===id)||{Show:(byShow[id][0]||{}).Show||"Show"};
+  const order=Object.keys(byShow);
+  let allWins=0,firsts=0;
+  const blocks=order.map(id=>{
+    const s=showOf(id),ents=byShow[id],w=winsFor(ents,h.results);allWins+=w.length;firsts+=w.filter(x=>x.rank==="r1").length;
+    const q="?show="+encodeURIComponent(s.Show);
+    return `<article class="hshow"><div class="bhead"><div><small>${esc([s.Date,s.Venue].filter(Boolean).join(" · ")||"Show")}</small><h2><a href="register.html${q}">${esc(s.Show)}</a></h2></div><a class="count" href="awards.html${q}&view=results">Results ›</a></div>`+
+      ents.map(e=>`<div class="hrow${e.Absent?" abs":""}"><span class="no">${esc(e["Ring No"]||"–")}</span><span class="cl">${esc(e.Class)}${CLASS_CODE[e.Class]?` <small class="note">${CLASS_CODE[e.Class]}</small>`:""}</span>${e.Absent?'<span class="tag warn">Absent</span>':""}</div>`).join("")+
+      (w.length?`<div class="wins">${w.map(x=>`<span class="win"><i class="rib ${x.rank}"></i>${esc(x.text)}</span>`).join("")}</div>`:`<div class="wins"><span class="note">No results recorded for this dog at this show.</span></div>`)+
+      `</article>`;
+  }).join("");
+  $("detail").innerHTML=`<a class="back" href="dogs.html">‹ All club dogs</a>
+    <section class="panel">
+      <div class="dhead"><div><h2>${sxMark(d.Sex)}${esc(d["Dog name"])}</h2><p class="note">${esc([d.Breed,d.Sex].filter(Boolean).join(" · "))}</p></div><button type="button" id="editBtn">Edit details</button></div>
+      <div class="stats"><span class="stat"><b>${order.length}</b>show${order.length===1?"":"s"}</span><span class="stat"><b>${h.entries.length}</b>class entr${h.entries.length===1?"y":"ies"}</span><span class="stat"><b>${allWins}</b>award${allWins===1?"":"s"} and placings</span></div>
+    </section>
+    <section class="panel"><h2>Dog</h2><dl class="facts">${fact("Breed",d.Breed)}${fact("Sex",d.Sex)}${fact("Date of birth",d["Date of birth"])}${fact("Breeder",d.Breeder)}${fact("Sire",d.Sire)}${fact("Dam",d.Dam)}</dl></section>
+    <section class="panel"><h2>Owner</h2><dl class="facts">${fact("Owner",d.Owner)}<div><dt>Phone</dt><dd${d.Phone?"":' class="none"'}>${d.Phone?`<a href="tel:${esc(String(d.Phone).replace(/[^\d+]/g,""))}">${esc(d.Phone)}</a>`:"Not recorded"}</dd></div>${fact("Address",d.Address,true)}</dl></section>
+    <section class="panel"><h2>Shows and results</h2>${HIST?(order.length?"":'<p class="note">This dog hasn\'t been entered in a show yet.</p>'):'<p class="loading">Loading show history…</p>'}</section>
+    ${blocks}
+    ${d.Added?`<p class="note">Registered ${esc(new Date(d.Added).toLocaleDateString([], {day:"numeric",month:"long",year:"numeric"}))}</p>`:""}`;
+  $("editBtn").onclick=()=>openForm(d);
+}
+
+(async()=>{
+  if(DOG_ID){
+    $("listTools").hidden=true;$("list").hidden=true;$("detail").hidden=false;$("sub").hidden=true;
+    $("detail").innerHTML='<p class="loading">Loading dog…</p>';
+  }else{$("listTools").hidden=false;$("detail").hidden=true}
+  const c=mncfCache.get("club-dogs");if(c){DOGS=c.dogs||[];BREEDS=c.breeds||[];fillBreeds();if(!DOG_ID)drawList()}
+  try{const j=await mncfApi("dogs");DOGS=j.dogs;BREEDS=j.breeds;mncfCache.set("club-dogs",{dogs:DOGS,breeds:BREEDS});fillBreeds()}
+  catch(e){if(!c){(DOG_ID?$("detail"):$("list")).innerHTML=`<p class="err">${esc(e.message)}</p>`;return}mncfToast(e.message)}
+  if(!DOG_ID){drawList();if(mncfQuery("add"))openForm(null);return}
+  const d=DOGS.find(x=>x.id===DOG_ID);
+  if(!d){$("detail").innerHTML='<a class="back" href="dogs.html">‹ All club dogs</a><div class="empty">That dog isn\'t in the register. It may have been renamed or removed.</div>';return}
+  drawDetail(d);
+  try{HIST=await mncfApi("dogHistory",{name:d["Dog name"]})}catch(e){HIST={entries:[],results:[],shows:[]};mncfToast(e.message)}
+  drawDetail(d);
+})();
+</script>
+</body>
+</html>
