@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="mncf-version" content="2026-11-03g">
+<meta name="mncf-version" content="2026-11-03h">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>MNCF Catalogue</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<link rel="stylesheet" href="style.css?v=2026-11-03g">
+<link rel="stylesheet" href="style.css?v=2026-11-03h">
 <style>
 /* ---- the booklet itself (screen preview and print) ---- */
 .book{--ink:#111;background:#fff;color:var(--ink);font-family:"Barlow",Arial,sans-serif;font-size:10.5pt;line-height:1.3;max-width:148mm;margin:0 auto;padding:12mm 11mm;box-sizing:border-box;border:1px solid var(--line);border-radius:6px;box-shadow:0 6px 24px rgba(0,0,0,.08);-webkit-print-color-adjust:exact;print-color-adjust:exact}
@@ -64,6 +64,10 @@
 .finals{break-before:page}
 .finals .fl{display:grid;grid-template-columns:1fr 26mm 26mm;gap:2mm 4mm;align-items:end;margin-top:3mm;font-weight:600}
 .finals .fl span:not(:first-child){border-bottom:1px solid var(--ink);font-weight:400;font-size:8.5pt;font-style:italic;text-align:left}
+.dayhead{break-before:page;text-align:center;margin:0 0 4mm;padding:2.5mm 0;border-top:2.5px solid var(--ink);border-bottom:2.5px solid var(--ink);font-family:"Barlow Condensed",Arial Narrow,sans-serif;font-weight:700;font-size:15pt;text-transform:uppercase;letter-spacing:.02em;line-height:1.15}
+.dayhead small{display:block;font-family:"Barlow",Arial,sans-serif;font-size:9.5pt;font-weight:500;text-transform:none;letter-spacing:0;font-style:italic}
+.cover + .dayhead{break-before:auto}
+.timetable .cg b{text-transform:none;letter-spacing:0;font-size:10.5pt}
 .empty-book{text-align:center;padding:16mm 0;color:#555}
 /* ---- screen-only controls ---- */
 .tools .form{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
@@ -100,8 +104,9 @@
 </div>
 <div class="toast" id="toast"></div>
 <script src="supabase.min.js"></script>
-<script src="api.js?v=2026-11-03g"></script>
-<script src="shell.js?v=2026-11-03g"></script>
+<script src="api.js?v=2026-11-03h"></script>
+<script src="shell.js?v=2026-11-03h"></script>
+<script src="schedule.js?v=2026-11-03h"></script>
 <script>
 mncfShell({page:"catalogue",title:mncfQuery("show")||"Catalogue",kicker:"Catalogue"});
 const esc=mncfEsc, $=id=>document.getElementById(id), SHOW=mncfQuery("show");
@@ -215,15 +220,35 @@ function build(){
   let html=`<section class="cover"><p class="org">${esc(head())}</p><h1>${esc(info.Show||SHOW)}</h1><span class="kind">Catalogue</span>
     ${meta.length?`<dl>${meta.map(([k,v])=>`<dt>${k}</dt><dd>${esc(v)}</dd>`).join("")}</dl>`:""}
     <p>${dogsN} dogs · ${count} entries</p>
+    ${mncfSchedule.list(info).length?`<div class="contents timetable"><h2>Judging times</h2>${mncfSchedule.ordered(mncfSchedule.list(info)).map(ss=>`<div class="cg"><b>${esc(mncfSchedule.heading(ss))}</b><span>${esc(mncfSchedule.summary(ss))}</span></div>`).join("")}</div>`:""}
     ${contents?`<div class="contents"><h2>Breeds entered</h2>${contents}</div>`:""}</section>`;
   if(!all.length){html+=`<p class="empty-book">This show has no entries yet. Add entries first, then come back to print the catalogue.</p>`}
-  gKeys.forEach(g=>{html+=groups[g].map(breedSection).join("")+groupJudging(g,groups[g])+avlbSection(g)});
-  if(gKeys.length){
-    const fin=[["Best in Show",1],["Best Puppy in Show",1],["Best Junior in Show",1],["Best Veteran in Show",0],["Best AV Locally Bred in Show",0]];
-    html+=`<section class="finals">${banner("Best in Show finals",null,true)}${fin.map(([t,r])=>`<div class="fl"><span>${esc(t)}</span><span>Winner</span>${r?"<span>Reserve</span>":'<span style="border:0"></span>'}</div>`).join("")}</section>`;
+  const finals=()=>{if(!gKeys.length)return "";const fin=[["Best in Show",1],["Best Puppy in Show",1],["Best Junior in Show",1],["Best Veteran in Show",0],["Best AV Locally Bred in Show",0]];
+    return `<section class="finals">${banner("Best in Show finals",null,true)}${fin.map(([t,r])=>`<div class="fl"><span>${esc(t)}</span><span>Winner</span>${r?"<span>Reserve</span>":'<span style="border:0"></span>'}</div>`).join("")}</section>`};
+  const personSec=c=>{const l=person[c];if(!l||!l.length)return "";return `<section class="breedsec">${banner(c,null,true)}${classBlock(c,l)}${bests(["1st","2nd","3rd"])}</section>`};
+  const SL=mncfSchedule.list(info);
+  if(!SL.length){
+    gKeys.forEach(g=>{html+=groups[g].map(breedSection).join("")+groupJudging(g,groups[g])+avlbSection(g)});
+    html+=finals();
+    PERSON.forEach(c=>html+=personSec(c));
+  }else{
+    // Split into judging days: each session opens with "Sunday 1st November 2026 – judging starts at 9.00AM",
+    // then its special classes, any single breeds moved into it, its groups (breeds, group judging, AV Locally Bred) and the finals.
+    const dayOfBreed=b=>mncfSchedule.find(SL,{breed:b.name,group:b.group}), dayOfGroup=g=>mncfSchedule.find(SL,{group:g});
+    const finI=mncfSchedule.find(SL,{finals:true});
+    const part=i=>{
+      let h="";
+      PERSON.forEach(c=>{if(mncfSchedule.find(SL,{special:c})===i)h+=personSec(c)});
+      gKeys.forEach(g=>{if(dayOfGroup(g)!==i)groups[g].filter(b=>dayOfBreed(b)===i).forEach(b=>h+=breedSection(b))});
+      gKeys.forEach(g=>{if(dayOfGroup(g)!==i)return;h+=groups[g].filter(b=>dayOfBreed(b)===i).map(breedSection).join("")+groupJudging(g,groups[g])+avlbSection(g)});
+      if(finI===i)h+=finals();
+      return h;
+    };
+    mncfSchedule.ordered(SL).forEach(ss=>{const h=part(ss.i);if(!h&&!ss.finals)return;
+      html+=`<h2 class="dayhead">${esc(mncfSchedule.heading(ss))}${ss.title?`<small>${esc(ss.title)}</small>`:""}</h2>`+h});
+    const rest=part(-1)+(finI<0?finals():"");
+    if(rest)html+=`<h2 class="dayhead">Other classes</h2>`+rest;
   }
-  PERSON.forEach(c=>{const l=person[c];if(!l||!l.length)return;
-    html+=`<section class="breedsec">${banner(c,null,true)}${classBlock(c,l)}${bests(["1st","2nd","3rd"])}</section>`});
   $("book").innerHTML=html;
   $("book").className="book"+($("optSize").value==="A4"?" a4":"");
   pageStyle();

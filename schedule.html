@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="mncf-version" content="2026-11-03h">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MNCF Judging Days</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<link rel="stylesheet" href="style.css?v=2026-11-03h">
+<style>
+.sess .bhead h2{font-size:19px}
+.sess .sbody{padding:12px 14px;display:flex;flex-direction:column;gap:12px;border-top:1px solid var(--line)}
+.sess .when{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:10px}
+.sess input[type=date],.sess input[type=time]{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 10px;width:100%;min-width:0;min-height:var(--tap,46px)}
+.picks{display:flex;flex-wrap:wrap;gap:8px}
+.field label.pick,.pick{text-transform:none;letter-spacing:0;color:var(--fg);display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:6px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);font-weight:600;font-size:15px;cursor:pointer;user-select:none}
+.pick input{width:20px;height:20px;accent-color:var(--accent);margin:0}
+.pick:has(input:checked){background:var(--accent-soft);border-color:var(--accent)}
+.field label.pick small,.pick small{text-transform:none;letter-spacing:0;font-weight:500;color:var(--muted);font-size:12px}
+.moved{display:flex;flex-wrap:wrap;gap:6px}
+.moved span{display:inline-flex;align-items:center;gap:4px;font-size:14px;font-weight:600;padding:4px 4px 4px 10px;border-radius:999px;background:var(--accent-soft);border:1px solid var(--accent)}
+.moved button{min-height:32px!important;width:32px;padding:0;border:0;background:none;font-size:18px;line-height:1;color:var(--fg)}
+.judged{font-size:14px;color:var(--muted);margin:0}
+.judged b{color:var(--fg)}
+.sess .sfoot{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.savebar{position:sticky;bottom:calc(10px + env(safe-area-inset-bottom,0px));z-index:6;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;box-shadow:0 8px 24px rgba(0,0,0,.12)}
+.savebar .note{flex:1 1 160px}
+.savebar.dirty{border-color:var(--accent)}
+.left{border:1px dashed var(--red)}
+.left h2{color:var(--red)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="sub" id="showSub">Loading the show…</div>
+  </header>
+  <section class="panel">
+    <h2>Judging days and times</h2>
+    <p class="note">Split the show into days or sessions, each with its own start time, like "Sunday 1st November 2026 – judging starts at 9.00AM". Pick the groups judged in each session. A single breed can be moved to another session if it's judged away from its group. Entries, Awards and the catalogue then follow this order, and each phone can pick the day it's working on.</p>
+  </section>
+  <div id="sessions" style="display:flex;flex-direction:column;gap:14px"><p class="loading">Loading…</p></div>
+  <section class="panel left" id="leftPanel" hidden><h2>Not on a day yet</h2><p class="note" id="leftNote"></p></section>
+  <div class="btns"><button type="button" id="addBtn">+ Add a day or session</button></div>
+  <div class="savebar" id="saveBar"><span class="note" id="saveNote">No changes yet.</span><span class="btns"><a class="btn" id="backLink" href="awards.html">Back to the show</a><button class="pri" type="button" id="saveBtn" disabled>Save days</button></span></div>
+  <p class="err" id="saveErr"></p>
+</div>
+<div class="toast" id="toast"></div>
+<script src="supabase.min.js"></script>
+<script src="api.js?v=2026-11-03h"></script>
+<script src="shell.js?v=2026-11-03h"></script>
+<script src="schedule.js?v=2026-11-03h"></script>
+<script>
+mncfShell({page:"schedule",title:mncfQuery("show")||"Judging days",kicker:"Judging days"});
+const esc=mncfEsc,$=id=>document.getElementById(id),SCH=mncfSchedule,show=mncfQuery("show");
+const GROUP_ORDER=["Utility","Hound","Gundog","Toy","Working","Terrier","Pastoral"];
+const SPECIALS=["Junior Handler","Childrens Class"];
+const norm=s=>String(s||"").trim().toLowerCase();
+let INFO=null,LIST=[],ENTRIES=[],BREEDS=[],dirty=false;
+const q=encodeURIComponent(show);
+$("backLink").href="awards.html?show="+q;
+// what the show actually has: groups and breeds with entries, and special classes entered
+function present(){
+  const gOf=b=>(BREEDS.find(x=>norm(x.Breed)===norm(b))||{}).Group||"";
+  const live=ENTRIES.filter(e=>String(e["Dog name"]||"").trim());
+  const breeds={},specials=new Set(),groups=new Set();
+  live.forEach(e=>{
+    if(SPECIALS.includes(e.Class)){specials.add(e.Class);return}
+    const g=e.Group||gOf(e.Breed);if(g)groups.add(g);
+    if(e.Class==="AV Locally Bred")return;
+    const b=e.Breed||"";if(!b)return;(breeds[b]=breeds[b]||{name:b,group:g,n:0}).n++;
+  });
+  return {breeds:Object.values(breeds).sort((a,b)=>a.name.localeCompare(b.name)),specials:[...specials],groups:[...groups]};
+}
+const allGroups=()=>[...new Set([...GROUP_ORDER,...BREEDS.map(b=>b.Group).filter(Boolean)])];
+function owner(kind,val){return LIST.findIndex(s=>(s[kind]||[]).some(x=>norm(x)===norm(val)))}
+function draw(){
+  const P=present(),groups=allGroups(),ord=SCH.ordered(LIST);
+  if(!LIST.length){$("sessions").innerHTML='<div class="empty">This show is judged as one session. Add a day or session to split it up.</div>'}
+  else $("sessions").innerHTML=ord.map((s,n)=>{
+    const i=s.i,judged=P.breeds.filter(b=>SCH.find(LIST,{breed:b.name,group:b.group})===i);
+    const gp=g=>{const o=owner("groups",g),cnt=P.breeds.filter(b=>b.group===g).length;return `<label class="pick"><input type="checkbox" data-i="${i}" data-group="${esc(g)}"${o===i?" checked":""}>${esc(g)}${o>=0&&o!==i?` <small>now ${esc(SCH.short(LIST[o]))}</small>`:cnt?` <small>${cnt}</small>`:""}</label>`};
+    const sp=c=>{const o=owner("specials",c);return `<label class="pick"><input type="checkbox" data-i="${i}" data-special="${esc(c)}"${o===i?" checked":""}>${esc(c)}${o>=0&&o!==i?` <small>now ${esc(SCH.short(LIST[o]))}</small>`:P.specials.includes(c)?"":" <small>no entries</small>"}</label>`};
+    const fo=LIST.findIndex(x=>x.finals);
+    const movable=P.breeds.filter(b=>!(s.breeds||[]).some(x=>norm(x)===norm(b.name)));
+    return `<article class="breed sess"><div class="bhead"><div><small>Session ${n+1}${s.date?"":" · pick a date"}</small><h2>${esc(SCH.heading(s))}</h2></div></div>
+      <div class="sbody">
+        <div class="when"><div class="field"><label for="d${i}">Date</label><input type="date" id="d${i}" data-i="${i}" data-f="date" value="${esc(s.date||"")}"></div>
+          <div class="field"><label for="t${i}">Judging starts</label><input type="time" id="t${i}" data-i="${i}" data-f="start" value="${esc(s.start||"")}"></div></div>
+        <div class="field"><label for="n${i}">Name (optional)</label><input type="text" id="n${i}" data-i="${i}" data-f="title" value="${esc(s.title||"")}" placeholder="e.g. Sunday morning"></div>
+        <div class="field"><label>Groups judged</label><div class="picks">${groups.map(gp).join("")}</div></div>
+        <div class="field"><label>Special classes</label><div class="picks">${SPECIALS.map(sp).join("")}<label class="pick"><input type="checkbox" data-i="${i}" data-finals${s.finals?" checked":""}>Best in Show finals${fo>=0&&fo!==i?` <small>now ${esc(SCH.short(LIST[fo]))}</small>`:""}</label></div></div>
+        <div class="field"><label for="m${i}">Single breeds moved to this session</label>
+          ${(s.breeds||[]).length?`<div class="moved">${s.breeds.map(b=>`<span>${esc(b)}<button type="button" data-i="${i}" data-unmove="${esc(b)}" aria-label="Put ${esc(b)} back with its group">×</button></span>`).join("")}</div>`:""}
+          <select id="m${i}" data-i="${i}" data-move><option value="">Move a breed here…</option>${movable.map(b=>`<option value="${esc(b.name)}">${esc(b.name)}${b.group?" ("+esc(b.group)+")":""}</option>`).join("")}</select></div>
+        <p class="judged">${judged.length?`<b>${judged.length} breed${judged.length>1?"s":""}:</b> ${judged.map(b=>esc(b.name)).join(", ")}`:"No breeds with entries in this session yet."}</p>
+        <div class="sfoot"><span></span><button type="button" class="danger" data-i="${i}" data-remove>Remove this session</button></div>
+      </div></article>`}).join("");
+  // what's left over
+  if(LIST.length){
+    const lb=P.breeds.filter(b=>SCH.find(LIST,{breed:b.name,group:b.group})<0),ls=P.specials.filter(c=>SCH.find(LIST,{special:c})<0),nf=LIST.every(s=>!s.finals);
+    const parts=[lb.length?`${lb.length} breed${lb.length>1?"s":""}: ${lb.map(b=>esc(b.name)+(b.group?" ("+esc(b.group)+")":"")).join(", ")}`:"",ls.length?ls.map(esc).join(", "):"",nf?"Best in Show finals":""].filter(Boolean);
+    $("leftPanel").hidden=!parts.length;$("leftNote").innerHTML=parts.join(". ")+(parts.length?". They show under \"Not on a day\" until you pick a session for them.":"");
+  }else $("leftPanel").hidden=true;
+}
+function touch(msg){dirty=true;$("saveBtn").disabled=false;$("saveBar").classList.add("dirty");$("saveNote").textContent=msg||"Changes not saved yet."}
+function only(kind,val,i,on){LIST.forEach((s,j)=>{s[kind]=(s[kind]||[]).filter(x=>norm(x)!==norm(val))});if(on)LIST[i][kind].push(val)}
+document.addEventListener("change",e=>{
+  const t=e.target;if(t.dataset.i===undefined)return;const i=+t.dataset.i,s=LIST[i];if(!s)return;
+  if(t.dataset.f){s[t.dataset.f]=t.value;touch();if(t.dataset.f!=="title")draw();return}
+  if(t.dataset.group!==undefined){only("groups",t.dataset.group,i,t.checked);touch();draw();return}
+  if(t.dataset.special!==undefined){only("specials",t.dataset.special,i,t.checked);touch();draw();return}
+  if(t.dataset.finals!==undefined){LIST.forEach((x,j)=>x.finals=j===i&&t.checked);touch();draw();return}
+  if(t.dataset.move!==undefined&&t.value){only("breeds",t.value,i,true);touch();draw();return}
+});
+document.addEventListener("input",e=>{const t=e.target;if(t.dataset.f==="title"&&LIST[+t.dataset.i]){LIST[+t.dataset.i].title=t.value;touch()}});
+document.addEventListener("click",e=>{
+  const t=e.target.closest("button");if(!t||t.dataset.i===undefined)return;const i=+t.dataset.i;
+  if(t.dataset.unmove!==undefined){only("breeds",t.dataset.unmove,i,false);touch();draw();return}
+  if(t.dataset.remove!==undefined){
+    if(t.dataset.armed!=="1"){t.dataset.armed="1";t.textContent="Tap again to remove";setTimeout(()=>{t.dataset.armed="";t.textContent="Remove this session"},3000);return}
+    LIST.splice(i,1);touch("Session removed. Save to keep the change.");draw();
+  }
+});
+$("addBtn").onclick=()=>{
+  // a new session follows the last one: the same afternoon if that started in the morning, otherwise 9:00 the next day
+  const last=SCH.ordered(LIST).pop();let date="",start="09:00";
+  if(last&&last.date){
+    if(last.start&&last.start<"12:00"){date=last.date;start="14:00"}
+    else{const d=new Date(last.date+"T12:00:00");d.setDate(d.getDate()+1);date=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`}
+  }
+  LIST.push({id:"s"+Date.now().toString(36),date,start,title:"",groups:[],breeds:[],specials:[],finals:false});
+  touch();draw();
+  const cards=document.querySelectorAll(".sess");const c=[...cards].find(x=>x.querySelector(`[data-i="${LIST.length-1}"]`));if(c)c.scrollIntoView({behavior:"smooth",block:"start"});
+};
+$("saveBtn").onclick=async()=>{
+  const b=$("saveBtn");b.disabled=true;b.textContent="Saving…";$("saveErr").textContent="";
+  const clean=LIST.map(s=>({id:s.id||("s"+Math.random().toString(36).slice(2,8)),date:s.date||"",start:s.start||"",title:String(s.title||"").trim(),groups:s.groups||[],breeds:s.breeds||[],specials:s.specials||[],finals:!!s.finals}));
+  try{
+    const j=await mncfApi("setSchedule",{id:INFO.id,schedule:clean});INFO=j.show;LIST=JSON.parse(JSON.stringify(SCH.list(INFO)));
+    const c=mncfCache.get("show::"+show);if(c){c.show=INFO;mncfCache.set("show::"+show,c)}
+    dirty=false;$("saveBar").classList.remove("dirty");$("saveNote").textContent="Saved. Every phone sees the new days next time it opens the show.";mncfToast("Judging days saved");draw();
+  }catch(er){$("saveErr").textContent=er.message;b.disabled=false}
+  b.textContent="Save days";
+};
+window.addEventListener("beforeunload",e=>{if(dirty){e.preventDefault();e.returnValue=""}});
+(async()=>{
+  if(!show){$("showSub").innerHTML='No show picked. <a href="index.html">Choose a show</a>.';$("sessions").innerHTML="";return}
+  try{
+    const j=await mncfApi("show",{show});
+    if(!j.show){$("showSub").innerHTML='That show isn\'t in the list. <a href="index.html">Choose a show</a>.';$("sessions").innerHTML="";return}
+    INFO=j.show;ENTRIES=j.entries||[];BREEDS=j.breeds||[];LIST=JSON.parse(JSON.stringify(SCH.list(INFO)));
+    $("showSub").textContent=[INFO.Show,INFO.Date,INFO.Judge?"Judge: "+INFO.Judge:""].filter(Boolean).join(" · ");
+    draw();
+  }catch(e){$("sessions").innerHTML=`<p class="err">${esc(e.message)}</p>`}
+})();
+</script>
+</body>
+</html>

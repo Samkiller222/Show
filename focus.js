@@ -63,6 +63,8 @@ body.results-view #resultsText{max-height:none}
         if(mode==="round")document.body.classList.remove("hide-done");
         apply();
       },
+      // remember the round separately for each judging day: key "mncf-round@<day>::<show>"
+      rekey(k){KEY=k;try{cur=+localStorage.getItem(KEY)||0}catch(e){cur=0}apply()},
       active(){return mode==="round"&&!document.body.classList.contains("results-view")},
       step(d){const n=cards().length;const i=cur+d;if(i>=0&&i<n)go(i)},
       goCard(card){const i=cards().indexOf(card);if(i>=0)go(i)},

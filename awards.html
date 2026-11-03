@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="mncf-version" content="2026-11-03g">
+<meta name="mncf-version" content="2026-11-03h">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>MNCF Show Awards</title>
@@ -160,10 +160,11 @@ pre{white-space:pre-wrap;font-size:13px;background:var(--bg);border:1px solid va
 
 <script src="xlsx.full.min.js"></script>
 <script src="supabase.min.js"></script>
-<script src="api.js?v=2026-11-03g"></script>
-<script src="shell.js?v=2026-11-03g"></script>
-<script src="focus.js?v=2026-11-03g"></script>
-<script src="nav.js?v=2026-11-03g"></script>
+<script src="api.js?v=2026-11-03h"></script>
+<script src="shell.js?v=2026-11-03h"></script>
+<script src="focus.js?v=2026-11-03h"></script>
+<script src="nav.js?v=2026-11-03h"></script>
+<script src="schedule.js?v=2026-11-03h"></script>
 <script>mncfShell({page:new URLSearchParams(location.search).get("view")==="results"?"results":"awards"});</script>
 <script>
 function startEngine(){
@@ -344,7 +345,11 @@ function drawAll(){
 
 
   let total=0,given=0,doneBreeds=0;
-  document.getElementById("breeds").innerHTML=breeds.map((b,bi)=>{
+  const DAY=window.mncfDay?window.mncfDay():"all",SL=(window.SHOW_INFO||{}).Schedule||[],SCH=window.mncfSchedule;
+  const onDay=i=>!SCH||SCH.matches(DAY,i);
+  const shown=breeds.filter(b=>onDay(b.day==null?-1:b.day));
+  const dayNote=SCH&&DAY!=="all"&&SL.length?(DAY==="none"?" not on a day":" on "+SCH.short(SL[+DAY]||{})):"";
+  document.getElementById("breeds").innerHTML=shown.map(b=>{const bi=breeds.indexOf(b);
     const aw=breedAwards(b);
     const keys=[...b.classes.flatMap(c=>PLACES.slice(0,nPlaces(b,c)).map(pl=>ck(b,c,pl.p))),...aw.map(a=>bk(b,a.id))];
     const g=keys.filter(k=>res["g|"+k]).length; total+=keys.length; given+=g;
@@ -374,11 +379,12 @@ function drawAll(){
   }).join("");
 
   // groups
-  const secs=[...new Set(gAw.map(a=>a.sec))];
+  const secDay=sec=>!SCH?-1:sec==="Best in Show finals"?SCH.find(SL,{finals:true}):SCH.find(SL,{group:sec.replace(/ Group$/,"").replace(/^Best Veteran /,"")});
+  const allSecs=[...new Set(gAw.map(a=>a.sec))],secs=allSecs.filter(sec=>onDay(secDay(sec)));
   document.getElementById("groups").innerHTML=secs.map((sec,si)=>{
     const list=gAw.filter(a=>a.sec===sec);
     const g=list.filter(a=>res["g|"+a.k]).length; total+=list.length; given+=g;
-    let h=`<article class="breed${g===list.length?" done":""}"><div class="bhead"><div><small>Round ${breeds.length+si+1} · Group judging</small><h2>${esc(sec)}</h2></div><span class="count">${g} / ${list.length} given</span></div><div class="bneeds">${chips(list.map(a=>({c:"rc",g:1,t:a.t,n:1})))}</div><div class="cls">`;
+    let h=`<article class="breed${g===list.length?" done":""}"><div class="bhead"><div><small>Round ${breeds.length+allSecs.indexOf(sec)+1} · ${sec==="Best in Show finals"?"Finals":"Group judging"}</small><h2>${esc(sec)}</h2></div><span class="count">${g} / ${list.length} given</span></div><div class="bneeds">${chips(list.map(a=>({c:"rc",g:1,t:a.t,n:1})))}</div><div class="cls">`;
     const prep=[];
     list.forEach(a=>{const cur=res[a.k]||"";
       const only=a.pool.length===1?a.pool[0].l:null;if(only)prep.push({t:a.t,d:only,c:"rc",g:!!res["g|"+a.k]});
@@ -387,8 +393,9 @@ function drawAll(){
   }).join("");
 
   document.getElementById("barFill").style.width=(total?given/total*100:0)+"%";
-  document.getElementById("progText").textContent=`${given} of ${total} awards given`;
-  document.getElementById("progBreeds").textContent=`${doneBreeds} / ${breeds.length} breeds done`;
+  document.getElementById("progText").textContent=`${given} of ${total} awards given${dayNote}`;
+  document.getElementById("progBreeds").textContent=`${doneBreeds} / ${shown.length} breeds done`;
+  if(!shown.length&&!secs.length&&breeds.length)document.getElementById("breeds").innerHTML=`<div class="empty">Nothing is judged${esc(dayNote)}. Pick another day above${SL.length?`, or <a href="schedule.html?show=${encodeURIComponent((window.SHOW_INFO||{}).Show)}">change the judging days</a>`:""}.</div>`;
 
   document.getElementById("bobList").innerHTML=breeds.filter(b=>!b.special).map(b=>{
     const v=res[bk(b,"BOB")];const e=v&&v!==W?findEntry(b,v):null;
@@ -664,7 +671,7 @@ window.mncfLive=(function(){
   document.getElementById("regLink").href="register.html?show="+q;document.getElementById("awLink").href="awards.html?show="+q;
   const KNOWN_GROUPS={}; // groups come only from the breed list you manage
   let BREED_GROUPS={};
-  function build(entries){
+  function build(entries,sched){
     const gOf=br=>BREED_GROUPS[String(br||"").trim().toLowerCase()]||"";
     entries.forEach(e=>{if(!e.Group)e.Group=gOf(e.Breed)});
     const live=entries.filter(e=>e.Absent!==true&&String(e["Dog name"]).trim());
@@ -683,12 +690,35 @@ window.mncfLive=(function(){
     Object.values(byBreed).sort((a,b)=>gi(a.group)-gi(b.group)||a.name.localeCompare(b.name)).forEach(b=>{
       base.push({name:b.name,group:b.group,classes:Object.keys(b.classes).sort((x,y)=>CLASS_ORDER.indexOf(x)-CLASS_ORDER.indexOf(y)).map(c=>({name:c,entries:sortE(b.classes[c])}))});
     });
-    Object.keys(avlb).sort((a,b)=>gi(a)-gi(b)).forEach(g=>base.push({name:"Any Variety Locally Bred "+g,special:true,firstOnly:true,classes:[{name:"Any Variety Locally Bred",entries:sortE(avlb[g])}]}));
+    Object.keys(avlb).sort((a,b)=>gi(a)-gi(b)).forEach(g=>base.push({name:"Any Variety Locally Bred "+g,group:g,avlb:true,special:true,firstOnly:true,classes:[{name:"Any Variety Locally Bred",entries:sortE(avlb[g])}]}));
+    // judging days: each round knows its session, and rounds run in session order
+    // (within a session: Junior Handler / Childrens Class, then breeds in group order, then AV Locally Bred)
+    const SL=sched||[],SCH=window.mncfSchedule;
+    if(SCH&&SL.length){
+      base.forEach((b,i)=>{b._o=i;b.day=b.avlb?SCH.find(SL,{group:b.group}):b.special?SCH.find(SL,{special:b.name}):SCH.find(SL,{breed:b.name,group:b.group})});
+      base.sort((a,b)=>SCH.rank(SL,a.day)-SCH.rank(SL,b.day)||a._o-b._o);
+    }
     return base;
   }
   window.mncfBuildBase=build;
+  // Day picker in the header, when the show is split into judging days
+  let dayCtl=null;
+  window.mncfDay=()=>dayCtl?dayCtl.value():"all";
+  function dayBar(info){
+    const SL=info.Schedule||[];if(!SL.length||dayCtl||!window.mncfSchedule||document.body.classList.contains("results-view")||mncfQuery("view")==="results")return;
+    const un=window.SHOW_BASE.some(b=>b.day<0)||mncfSchedule.find(SL,{finals:true})<0;
+    const wrap=document.createElement("div");const hdr=document.querySelector("header"),jump=hdr.querySelector(".jump");hdr.insertBefore(wrap,jump||null);
+    dayCtl=mncfSchedule.bar({mount:wrap,show:info.Show,list:SL,hasUnscheduled:un,editHref:"schedule.html?show="+q,onChange(){
+      if(!window.mncfEngine)return;
+      // round mode: back to where this phone was on that day, or the day's first round still to do
+      let seen=null;if(window.mncfFocus&&window.mncfDayKey){const k=window.mncfDayKey();try{seen=localStorage.getItem(k)}catch(e){}mncfFocus.rekey(k)}
+      window.mncfEngine.render();
+      const c=[...document.querySelectorAll("#breeds > .breed, #groups > .breed")];const f=c.find(x=>!x.classList.contains("done"))||c[0];
+      if(window.mncfFocus&&mncfFocus.active()&&f&&seen==null)mncfFocus.goCard(f);else window.scrollTo({top:0});
+    }});
+  }
   function start(info,entries,note){
-    window.SHOW_INFO=info;window.SHOW_BASE=build(entries);window.mncfLive.init(info.Show);
+    window.SHOW_INFO=info;window.SHOW_BASE=build(entries,info.Schedule);dayBar(info);window.mncfLive.init(info.Show);
     document.getElementById("showTitle").textContent=info.Show;
     document.getElementById("showSub").textContent=[info.Date,info.Venue,info.Judge?"Judge: "+info.Judge:""].filter(Boolean).join(" · ");
     document.title="Awards · "+info.Show;
@@ -696,6 +726,8 @@ window.mncfLive=(function(){
     document.getElementById("loadNote").innerHTML=`${entries.length} entries${ab?`, ${ab} marked absent and left out`:""}. ${note||""}`;
     startEngine();
     window.mncfFocus&&window.mncfFocus.init(info.Show);
+    const dk=()=>{const d=window.mncfDay();return d==="all"?"mncf-round::"+info.Show:"mncf-round@"+d+"::"+info.Show};
+    if(window.mncfFocus&&dayCtl){if(window.mncfDay()!=="all")mncfFocus.rekey(dk());window.mncfDayKey=dk}
     if(!entries.length) document.getElementById("breeds").innerHTML=`<div class="empty">This show has no entries yet. <a href="register.html?show=${q}">Register dogs</a> first.</div>`;
   }
   if(!show){document.getElementById("showSub").innerHTML='No show picked. <a href="index.html">Choose a show</a>.';return}
