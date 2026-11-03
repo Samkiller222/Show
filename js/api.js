@@ -41,19 +41,30 @@
     return gateP;
   }
   async function signedIn(){const {data}=await sb.auth.getSession();if(!data.session)await askLogin();}
-  window.mncfSignOut=async()=>{try{localStorage.removeItem("mncf-role")}catch(e){}await sb.auth.signOut();location.reload()};
+  window.mncfSignOut=async()=>{try{localStorage.removeItem("mncf-role");sessionStorage.removeItem("mncf-preview-role")}catch(e){}await sb.auth.signOut();location.reload()};
   // ---- roles: admin, organiser, steward (awards only), viewer (read only) ----
   // The database enforces these; pages only use the role to hide what this login can't do.
   const ROLE_NAMES={admin:"Admin",organiser:"Organiser",steward:"Steward",viewer:"Viewer"};
   let roleP=null;
   window.mncfRoleName=r=>ROLE_NAMES[r]||"Not on the team";
-  window.mncfRole=(fresh)=>{
+  // Admins can preview the site as another role (kept for this browser tab only).
+  // The preview only changes what this page shows and allows; the database still sees an admin.
+  const PREVIEW_KEY="mncf-preview-role";
+  window.mncfPreview={
+    get(){try{const r=sessionStorage.getItem(PREVIEW_KEY)||"";return ["organiser","steward","viewer"].includes(r)?r:""}catch(e){return ""}},
+    set(r){try{if(r&&r!=="admin")sessionStorage.setItem(PREVIEW_KEY,r);else sessionStorage.removeItem(PREVIEW_KEY)}catch(e){}}
+  };
+  const asPreview=r=>r==="admin"&&mncfPreview.get()?mncfPreview.get():r;
+  // the login's real role
+  window.mncfRealRole=(fresh)=>{
     if(!roleP||fresh) roleP=(async()=>{await signedIn();const {data,error}=await sb.rpc("my_role");if(error)throw error;
       try{localStorage.setItem("mncf-role",data||"")}catch(e){}return data||""})().catch(e=>{roleP=null;return null}); // null: unknown, the database still decides
     return roleP;
   };
+  // the role the page acts as: the real role, or the previewed one for an admin
+  window.mncfRole=async(fresh)=>{const r=await mncfRealRole(fresh);return r===null?null:asPreview(r)};
   // last known role on this phone, so the page can hide things before the database answers
-  window.mncfRoleCached=()=>{try{return localStorage.getItem("mncf-role")||""}catch(e){return ""}};
+  window.mncfRoleCached=()=>{try{return asPreview(localStorage.getItem("mncf-role")||"")}catch(e){return ""}};
   const EDIT_ACTIONS=["addShow","updateShow","setSchedule","saveEntry","deleteEntry","setAbsent","addBreed","setBreedGroup","saveDog","importEntries"];
   const canEdit=r=>r==="admin"||r==="organiser", canAward=r=>canEdit(r)||r==="steward";
   function roleBlock(action,data,r){

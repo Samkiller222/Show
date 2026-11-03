@@ -93,6 +93,10 @@ body.ro-edit .tabs{grid-template-columns:repeat(3,1fr)}
 body.ro-edit select[data-breed]{pointer-events:none;appearance:none;-webkit-appearance:none;border-color:transparent;background:transparent}
 body.ro-award [data-k],body.ro-award [data-g]{pointer-events:none;opacity:.75}
 .drawer .role{display:inline-block;margin-left:6px;padding:2px 8px;border-radius:999px;background:var(--accent-soft);color:var(--fg);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+.previewbar{margin:-12px calc(-1 * max(16px,env(safe-area-inset-left,0px))) 10px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 16px;background:#b45309;color:#fff;font-size:14px;font-weight:600}
+.previewbar button{flex:none;min-height:40px;padding:6px 14px;border-radius:8px;border:1.5px solid #fff;background:transparent;color:#fff;font:inherit;font-weight:700}
+.drawer .seg.four{grid-template-columns:repeat(4,1fr)}
+.drawer .seg.four button{font-size:13px;padding:10px 2px}
 .viewonly{margin:8px 0 0;padding:8px 12px;border-radius:8px;background:var(--accent-soft);font-size:14px;font-weight:600}
 @media (prefers-reduced-motion:reduce){.toast{transform:translate(-50%,0)}*,*::before,*::after{animation:none!important;transition:none!important}}
 `;
@@ -117,7 +121,7 @@ body.ro-award [data-k],body.ro-award [data-g]{pointer-events:none;opacity:.75}
     const header=document.querySelector("header");
     const bar=document.createElement("div");bar.className="appbar";
     bar.innerHTML=`<button class="burger" type="button" aria-label="Open menu" aria-expanded="false">${ico.burger}</button><div class="crumb"><small>${esc(opt.kicker||(show?{entries:"Entries",add:"Add entry",awards:"Awards",results:"Results"}[opt.page]||"":"MNCF Show Desk"))}</small><b id="crumbTitle">${esc(opt.title||show||"All shows")}</b></div>${show?`<button class="editshow" type="button" id="editShowBtn" aria-label="Edit this show's details">${ico.pencil}<span>Edit show</span></button>`:""}`;
-    if(header) header.insertBefore(bar,header.firstChild); else document.body.insertBefore(bar,document.body.firstChild);
+    if(header) header.insertBefore(bar,header.firstChild); else if(header)header.insertBefore(bar,header.firstChild);else document.body.insertBefore(bar,document.body.firstChild);
     if(header){const h1=header.querySelector("h1");if(h1&&show)h1.hidden=true}
     // drawer
     const bg=document.createElement("div");bg.className="drawer-bg";
@@ -128,6 +132,7 @@ body.ro-award [data-k],body.ro-award [data-g]{pointer-events:none;opacity:.75}
         <a class="item${opt.page==="shows"?" here":""}" href="index.html">All shows and new show <small>›</small></a></div>
       ${show?`<div class="sec"><h3>This show</h3><button class="item" type="button" id="drawerEdit">Edit show details <small>›</small></button><a class="item${opt.page==="schedule"?" here":""}" href="schedule.html${q}">Judging days and times <small>›</small></a><a class="item${opt.page==="catalogue"?" here":""}" href="catalogue.html${q}">Show catalogue to print <small>›</small></a></div>`:""}
       <div class="sec"><h3>Manage</h3><a class="item${opt.page==="dogs"?" here":""}" href="dogs.html">Club dogs <small>›</small></a><a class="item${opt.page==="breeds"?" here":""}" href="breeds.html">Breeds and groups <small>›</small></a><a class="item${opt.page==="users"?" here":""}" href="users.html" id="drawerUsers" hidden>Users and roles <small>›</small></a></div>
+      <div class="sec" id="drawerPreview" hidden><h3>Preview the site as</h3><div class="seg four" role="group" aria-label="Preview as">${["admin","organiser","steward","viewer"].map(r=>`<button type="button" data-preview="${r}" aria-pressed="false">${r==="admin"?"Me":r[0].toUpperCase()+r.slice(1)}</button>`).join("")}</div><p class="note" style="margin:0;font-size:12px">See the screens as that role would. Only this tab changes.</p></div>
       <div class="sec"><h3>Awards view on this phone</h3><div class="seg" role="group" aria-label="Awards view"><button type="button" data-view="round" aria-pressed="${mode==="round"}">One round at a time</button><button type="button" data-view="list" aria-pressed="${mode==="list"}">Full list</button></div></div>
       <div class="sec keys"><h3>Keyboard shortcuts</h3><p><kbd>/</kbd>Search</p>${show?`<p><kbd>N</kbd>Add entry</p><p><kbd>←</kbd><kbd>→</kbd>Previous or next round</p>`:""}<p><kbd>Esc</kbd>Close menu</p></div>
       <div class="sec"><h3>Older pages</h3><a class="item" href="legacy/nov-2026.html">November 2026, first version <small>›</small></a></div>
@@ -153,6 +158,20 @@ body.ro-award [data-k],body.ro-award [data-g]{pointer-events:none;opacity:.75}
         header.appendChild(p)}
     }
     if(window.mncfRole)mncfRole().then(r=>applyRole(r,true));
+    // ---- admins: preview another role ----
+    if(window.mncfRealRole)mncfRealRole().then(real=>{
+      const pv=window.mncfPreview?mncfPreview.get():"";
+      if(real!=="admin"){if(pv)mncfPreview.set("");return}
+      const sec=dr.querySelector("#drawerPreview");sec.hidden=false;
+      sec.querySelectorAll("[data-preview]").forEach(b=>{b.setAttribute("aria-pressed",String((pv||"admin")===b.dataset.preview));
+        b.onclick=()=>{mncfPreview.set(b.dataset.preview);location.reload()}});
+      if(pv){
+        const bar=document.createElement("div");bar.className="previewbar";bar.setAttribute("role","status");
+        bar.innerHTML=`<span>Previewing as ${esc(mncfRoleName(pv))}. This is what they see.</span><button type="button">Exit preview</button>`;
+        bar.querySelector("button").onclick=()=>{mncfPreview.set("");location.reload()};
+        if(header)header.insertBefore(bar,header.firstChild);else document.body.insertBefore(bar,document.body.firstChild);
+      }
+    });
     // Read-only logins: stop award picks and entry drags before the page acts on them.
     window.addEventListener("change",e=>{const t=e.target;if(!document.body.classList.contains("ro-award")||!t||!(t.dataset&&(t.dataset.k||t.dataset.g)))return;
       e.stopImmediatePropagation();if(window.mncfEngine)mncfEngine.render();if(window.mncfToast)mncfToast("View only: your login can't record awards.")},true);
