@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="mncf-version" content="2026-11-03f">
+<meta name="mncf-version" content="2026-11-03g">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>MNCF Entries</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<link rel="stylesheet" href="style.css?v=2026-11-03f">
+<link rel="stylesheet" href="style.css?v=2026-11-03g">
 </head>
 <body class="wide">
 <div class="wrap">
@@ -20,7 +20,7 @@
     <div class="field"><label for="showSel">Show</label><select id="showSel"><option value="">Loading shows…</option></select></div>
   </section>
   <section class="panel">
-    <div class="lhead"><h2>Entries <span class="note" id="countNote"></span></h2><a class="btn pri" id="addLink" href="entry.html">+ Add entry</a></div>
+    <div class="lhead"><h2>Entries <span class="note" id="countNote"></span></h2><span class="btns" style="margin:0"><a class="btn" id="catLink" href="catalogue.html">Catalogue</a><a class="btn pri" id="addLink" href="entry.html">+ Add entry</a></span></div>
     <p class="note">To move a dog between Puppy, Junior and Open, drag its card into another class (on a phone, hold the ⠿ handle), or pick the class from its menu.</p>
     <div class="find"><input type="text" id="q" placeholder="Search ring number, dog or breed"></div>
     <p class="note" id="warnNote"></p>
@@ -29,9 +29,9 @@
 </div>
 <div class="toast" id="toast"></div>
 <script src="supabase.min.js"></script>
-<script src="api.js?v=2026-11-03f"></script>
-<script src="shell.js?v=2026-11-03f"></script>
-<script src="nav.js?v=2026-11-03f"></script>
+<script src="api.js?v=2026-11-03g"></script>
+<script src="shell.js?v=2026-11-03g"></script>
+<script src="nav.js?v=2026-11-03g"></script>
 <script>
 mncfShell({page:"entries",title:mncfQuery("show")||"Register dogs",kicker:mncfQuery("show")?"Entries":"Register dogs"});
 const esc=mncfEsc, $=id=>document.getElementById(id);
@@ -46,6 +46,7 @@ function fillShows(){
   $("showSub").textContent=s?[s.Date,s.Judge?"Judge: "+s.Judge:"",s.Status].filter(Boolean).join(" · "):"Pick a show to see its entries.";
   $("awardsLink").href="awards.html"+(S.show?"?show="+encodeURIComponent(S.show):"");
   $("addLink").href="entry.html"+(S.show?"?show="+encodeURIComponent(S.show):"");
+  $("catLink").href="catalogue.html"+(S.show?"?show="+encodeURIComponent(S.show):"");$("catLink").hidden=!S.show;
   $("pickPanel").hidden=!!S.show&&!!s;
 }
 async function loadShow(){

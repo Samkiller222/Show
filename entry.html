@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="mncf-version" content="2026-11-03f">
+<meta name="mncf-version" content="2026-11-03g">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>MNCF Add Entry</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<link rel="stylesheet" href="style.css?v=2026-11-03f">
+<link rel="stylesheet" href="style.css?v=2026-11-03g">
 </head>
 <body>
 <div class="wrap">
@@ -36,6 +36,14 @@
           <div class="field wide"><label for="fAddress">Address</label><input type="text" id="fAddress"></div>
         </div>
       </details>
+      <details class="field wide dogonly"><summary style="cursor:pointer;font-weight:600;font-size:14px">Pedigree (printed in the catalogue)</summary>
+        <div class="form" style="margin-top:10px">
+          <div class="field"><label for="fDob">Date of birth</label><input type="text" id="fDob" inputmode="numeric" placeholder="dd/mm/yyyy"></div>
+          <div class="field"><label for="fBreeder">Breeder</label><input type="text" id="fBreeder" placeholder="Name, or Exh if the owner bred it"></div>
+          <div class="field"><label for="fSire">Sire (father)</label><input type="text" id="fSire"></div>
+          <div class="field"><label for="fDam">Dam (mother)</label><input type="text" id="fDam"></div>
+        </div>
+      </details>
       <div class="field wide"><div class="btns"><button class="pri" type="submit" id="saveBtn">Save entry</button><button type="button" id="cancelBtn" hidden>Cancel edit</button></div><p class="err" id="formErr"></p></div>
     </form>
   </section>
@@ -47,8 +55,8 @@
 </div>
 <div class="toast" id="toast"></div>
 <script src="supabase.min.js"></script>
-<script src="api.js?v=2026-11-03f"></script>
-<script src="shell.js?v=2026-11-03f"></script>
+<script src="api.js?v=2026-11-03g"></script>
+<script src="shell.js?v=2026-11-03g"></script>
 <script>
 mncfShell({page:"add",title:mncfQuery("show")||"Add an entry",kicker:mncfQuery("show")?(mncfQuery("edit")?"Edit entry":"Add entry"):"Add an entry"});
 const esc=mncfEsc, $=id=>document.getElementById(id);
@@ -88,7 +96,7 @@ function syncForm(){
   $("fName").placeholder=person?"Child's or handler's name":"Start typing to find a registered dog";
   const nb=$("fBreed").value==="__new"&&!person;$("newBreedBox").hidden=!nb;$("newGroupBox").hidden=!nb;
 }
-const FIELDS={fBreed:"Breed",fSex:"Sex",fOwner:"Owner",fPhone:"Phone",fAddress:"Address"};
+const FIELDS={fBreed:"Breed",fSex:"Sex",fOwner:"Owner",fPhone:"Phone",fAddress:"Address",fDob:"Date of birth",fBreeder:"Breeder",fSire:"Sire",fDam:"Dam"};
 function lookupDog(){
   const d=S.dogs.find(x=>norm(x["Dog name"])===norm($("fName").value));
   $("known").innerHTML=d&&!PERSON.includes($("fClass").value)?`<span class="tag">Registered dog · ${esc(d.Breed)}</span>`:($("fName").value.trim()&&!PERSON.includes($("fClass").value)?'<span class="tag warn">New dog · will be registered</span>':"");
