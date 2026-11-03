@@ -135,4 +135,13 @@ a.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--card)}
 .lane.over{border-style:solid;box-shadow:0 0 0 3px color-mix(in srgb,var(--agec) 35%,transparent);background:color-mix(in srgb,var(--agec) 16%,var(--card))}
 .erow.dragging{opacity:.35}
 .erow.ghost{position:fixed;z-index:40;margin:0;pointer-events:none;background:var(--card);border:2px solid var(--accent);border-radius:8px;box-shadow:0 10px 26px rgba(0,0,0,.22);transform:rotate(-1.5deg)}
+.wide .wrap{max-width:1320px}
+.lane .erow{grid-template-columns:auto auto minmax(0,1fr);gap:2px 6px;padding:4px 8px 8px 2px}
+.lane .erow .no{min-width:1.6em;font-size:18px}
+.lane .erow .nm{font-weight:600;overflow-wrap:anywhere}
+.lane .erow:not(.mv){grid-template-columns:auto minmax(0,1fr)}
+.lane .erow.mv .acts{padding-left:36px}
+.lane .erow .acts{gap:4px 6px}
+.lane .erow .acts button{padding:5px 9px;min-height:36px}
+.lane .erow .given{font-size:13px!important}
 .lhead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
