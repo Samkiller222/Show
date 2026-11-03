@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="mncf-version" content="2026-11-03c">
+<meta name="mncf-version" content="2026-11-03d">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>MNCF Show Awards</title>
@@ -160,10 +160,10 @@ pre{white-space:pre-wrap;font-size:13px;background:var(--bg);border:1px solid va
 
 <script src="xlsx.full.min.js"></script>
 <script src="supabase.min.js"></script>
-<script src="api.js?v=2026-11-03c"></script>
-<script src="shell.js?v=2026-11-03c"></script>
-<script src="focus.js?v=2026-11-03c"></script>
-<script src="nav.js?v=2026-11-03c"></script>
+<script src="api.js?v=2026-11-03d"></script>
+<script src="shell.js?v=2026-11-03d"></script>
+<script src="focus.js?v=2026-11-03d"></script>
+<script src="nav.js?v=2026-11-03d"></script>
 <script>mncfShell({page:new URLSearchParams(location.search).get("view")==="results"?"results":"awards"});</script>
 <script>
 function startEngine(){
@@ -319,7 +319,15 @@ function prepBox(list){
   return `<div class="prep"><b>Prepare now · only one dog can win</b><ul>${list.map(x=>`<li${x.g?' class="gv"':""}><span class="rib ${x.c}"></span><span class="pt">${esc(x.t)}</span><span class="pd">${esc(x.d)}</span></li>`).join("")}</ul></div>`;
 }
 const chips=list=>list.map(x=>`<span class="need"><span class="rib ${x.c}"${x.g?' style="background:var(--muted)"':''}></span>${x.n>1?x.n+" × ":""}${esc(x.t)}</span>`).join("");
+// Redraw everything, without a visible flash: keep the open round showing, the scroll position and the focused control.
 function render(){
+  const ae=document.activeElement, fk=ae&&ae.dataset?(ae.dataset.g?["g",ae.dataset.g]:ae.dataset.k?["k",ae.dataset.k]:null):null, sy=window.scrollY;
+  drawAll();
+  if(window.mncfFocus&&mncfFocus.refresh)mncfFocus.refresh();
+  if(Math.abs(window.scrollY-sy)>1)window.scrollTo(0,sy);
+  if(fk){const el=document.querySelector(`[data-${fk[0]}="${CSS.escape(fk[1])}"]`);if(el)try{el.focus({preventScroll:true})}catch(e){}}
+}
+function drawAll(){
   const breeds=allBreeds();
   reconcile(breeds); save(KS,res);
   const gAw=groupAwards(breeds);
@@ -413,7 +421,7 @@ function resultsText(breeds,gAw){
 document.addEventListener("change",ev=>{
   const t=ev.target;
   if(t.dataset.k){const k=t.dataset.k;if(t.value){res[k]=t.value;delete res["auto-off|"+k]}else{delete res[k];res["auto-off|"+k]=1}save(KS,res);render()}
-  if(t.dataset.g){if(t.checked)res["g|"+t.dataset.g]=1;else delete res["g|"+t.dataset.g];save(KS,res);render()}
+  if(t.dataset.g){if(t.checked)res["g|"+t.dataset.g]=1;else delete res["g|"+t.dataset.g];save(KS,res);const r=t.closest(".row");if(r)r.classList.toggle("isgiven",t.checked);render()}
 });
 function toast(t){const el=document.getElementById("toast");el.textContent=t;el.classList.add("show");setTimeout(()=>el.classList.remove("show"),1800)}
 let rq=null,rlast="";
