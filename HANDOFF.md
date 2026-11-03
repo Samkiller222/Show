@@ -1,6 +1,6 @@
 # Handoff: MNCF dog show awards organiser
 
-Notes for picking this project up in a new chat. Last updated 3 November 2026 (judging days).
+Notes for picking this project up in a new chat. Last updated 3 November 2026 (repo organised into folders).
 
 ## What it is
 
@@ -13,7 +13,7 @@ The site helps the MNCF (Malta) team at dog shows:
 
 - **Live site:** https://samkiller222.github.io/Show/ (GitHub Pages, branch `main`, repo `Samkiller222/Show`)
 - **Owner:** Sam Micallef (sammicallef12@gmail.com)
-- **Stack:** plain HTML, CSS and JavaScript with no build step, plus a Supabase database. Vendored libraries: `supabase.min.js` (supabase-js 2.49.4 UMD) and `591.supabase.js`, and `xlsx.full.min.js` (SheetJS).
+- **Stack:** plain HTML, CSS and JavaScript with no build step, plus a Supabase database. Vendored libraries in `vendor/`: `supabase.min.js` (supabase-js 2.49.4 UMD) with its chunk `591.supabase.js` (keep the two side by side), and `xlsx.full.min.js` (SheetJS).
 
 ## Decisions already made (don't undo these)
 
@@ -30,7 +30,23 @@ The site helps the MNCF (Malta) team at dog shows:
 - **Add entry is its own screen** (`entry.html`), separate from the Entries list (Sam, 3 Nov 2026).
 - **The open show can be edited at any time:** "Edit show" button in the top bar (and "Edit show details" in the drawer) on every show screen.
 - **Awards view:** each user can switch, from the drawer, between one round at a time (the default) and the full list. The choice is saved per phone.
-- **Old Google Sheet, `apps-script.gs`, `sync.js` and `data.js`:** no longer used by the new pages. They are kept for reference.
+- **Old Google Sheet, `apps-script.gs`, `sync.js` and `data.js` (all in `legacy/`):** no longer used by the new pages. They are kept for reference.
+
+## Folders (3 Nov 2026)
+
+Sam asked to organise the repo instead of one long list of files. The live pages stay at the top level so their links and bookmarks keep working; everything else lives in folders:
+
+| Folder | What's in it |
+|---|---|
+| (top level) | The pages people open: `index`, `register`, `entry`, `awards`, `breeds`, `catalogue`, `schedule`, `import` (hidden), plus `404.html`, `version.json`, `README.md`, this file |
+| `css/` | `style.css` |
+| `js/` | Shared scripts: `api.js`, `shell.js`, `focus.js`, `nav.js`, `schedule.js` |
+| `vendor/` | Third-party libraries (Supabase, SheetJS); don't edit |
+| `legacy/` | The first version (`nov-2026.html` and its pages), `data.js`, `sync.js`, and the old Google Sheets `apps-script.gs` |
+| `supabase/` | Database migrations and the edge function source |
+| `docs/screenshots/` | Old screenshots |
+
+`404.html` sends old bookmarks of the first-version pages (for example `/Show/saturday.html`) to `legacy/`. New pages go at the top level and load `css/style.css`, `js/…` and `vendor/…`; `shell.js` fetches `version.json` relative to the page, so pages must stay at the top level.
 
 ## Pages
 
@@ -44,9 +60,9 @@ The site helps the MNCF (Malta) team at dog shows:
 | `schedule.html` | **Judging days and times** (`?show=`): split a show into sessions, each with a date, start time, optional name, the groups judged, single breeds moved in, Junior Handler / Childrens Class, and which session has the Best in Show finals. Opened from the drawer ("Judging days and times"), the "Edit days" chip, or "days" on a show card. |
 | `breeds.html` | Add breeds (a group is required) and change a breed's group |
 | `import.html` | Hidden. Claude API file import. |
-| `saturday.html`, `sunday-morning.html`, `sunday-evening.html`, `absent.html`, `best-in-show.html`, `nov-2026.html` | The first version, hard-coded for the November 2026 show. Kept as a fallback. |
+| `legacy/` `saturday.html`, `sunday-morning.html`, `sunday-evening.html`, `absent.html`, `best-in-show.html`, `nov-2026.html` | The first version, hard-coded for the November 2026 show. Kept as a fallback. |
 
-Shared scripts:
+Shared scripts (in `js/`; styles in `css/`):
 - `api.js`: Supabase client, sign-in overlay and `mncfApi(action, data)`. Actions:
   - `bootstrap`, `show`, `addShow`, `updateShow` (by id, so renaming keeps entries and results)
   - `saveEntry`, `deleteEntry`, `setAbsent`
@@ -182,7 +198,7 @@ None yet.
 
 ## How to work on it
 
-- **Bump the version on every change.** Browsers keep old copies of pages and files for a while, which mixed old and new screens (unstyled lanes, the old entry form still showing). Each new-system page (`index`, `register`, `entry`, `awards`, `breeds`) has `<meta name="mncf-version">` and loads `style.css`, `api.js`, `shell.js`, `nav.js`, `focus.js` with `?v=<version>`. `shell.js` fetches `version.json` without cache and, if it differs from the page's meta, reloads once with `&_v=<version>`. When you change anything, replace the old version string everywhere: `grep -rl OLD --include=*.html --include=version.json . | xargs sed -i s/OLD/NEW/g`.
+- **Bump the version on every change.** Browsers keep old copies of pages and files for a while, which mixed old and new screens (unstyled lanes, the old entry form still showing). Each new-system page (`index`, `register`, `entry`, `awards`, `breeds`) has `<meta name="mncf-version">` and loads `css/style.css` and `js/api.js`, `js/shell.js`, `js/nav.js`, `js/focus.js`, `js/schedule.js` with `?v=<version>`. `shell.js` fetches `version.json` without cache and, if it differs from the page's meta, reloads once with `&_v=<version>`. When you change anything, replace the old version string everywhere: `grep -rl OLD --include=*.html --include=version.json . | xargs sed -i s/OLD/NEW/g`.
 
 - Clone the repo, edit the files and push to `main`. GitHub Pages redeploys in about a minute.
 - **Commit identity:** `Sam Micallef <sammicallef12@gmail.com>`.
