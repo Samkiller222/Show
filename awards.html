@@ -106,6 +106,11 @@ pre{white-space:pre-wrap;font-size:13px;background:var(--bg);border:1px solid va
     <h2>Show totals</h2>
     <div class="stock" id="stock"></div>
     <p class="note" id="absentNote" hidden></p>
+    <div id="legacyBox" hidden style="border:1px solid var(--accent);background:var(--accent-soft);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:8px">
+      <b>This phone has November results from the first version of the site</b>
+      <span class="note" id="legacyNote"></span>
+      <div class="btns"><button class="pri" id="legacyBtn" type="button">Bring in results saved on this phone</button></div>
+    </div>
     <p class="note">Built from this show's entries. Each round lists the awards to take into the ring. A class with one dog only needs a 1st. AV Locally Bred and Best Veteran give a 1st only. Best in Show finals at the end take the group winners as their competitors.</p>
     <p class="note" id="loadNote"></p>
   </section>
@@ -483,9 +488,76 @@ document.getElementById("resetBtn").onclick=ev=>{
   armed=false;b.textContent="Clear all results";res={};save(KS,res);render();toast("Results cleared");
 };
 window.mncfEngine={res:()=>res,render};
+setTimeout(()=>window.mncfLegacy&&window.mncfLegacy.check(),300);
 render();
 window.mncfLive&&window.mncfLive.start();
 }
+</script>
+<script>
+// Brings results saved on this phone by the first version of the site (the November 2026 day pages) into this show.
+(function(){
+  const SOURCES=["mncf-awards-results-v2","mncf-awards-sun-results-v1","mncf-awards-sunpm-results-v1"];
+  const FINALS="mncf-finals-v1";
+  const read=k=>{try{return JSON.parse(localStorage.getItem(k))||{}}catch(e){return {}}};
+  function convert(){
+    const base=window.SHOW_BASE||[], out={};
+    const breedOfNo=no=>{for(const b of base)for(const c of b.classes)for(const e of c.entries)if(String(e.no)===String(no)&&!b.special)return b;return null};
+    const avlbOfNo=no=>{for(const b of base)if(b.firstOnly)for(const e of b.classes[0].entries)if(String(e.no)===String(no))return b;return null};
+    const groupOf=name=>(base.find(b=>b.name===name)||{}).group||"";
+    const mapKey=(k,v)=>{
+      if(k.startsWith("GROUP|")){
+        const [,sec,...rest]=k.split("|");
+        if(/^Best Veteran /.test(sec)){const br=String(v||"").split("::")[0];const g=groupOf(br);return g?["GROUP|Best Veteran "+g+"|"+rest.join("|"),v]:null}
+        return [k,v];
+      }
+      if(k.includes("|*|")) return [k,v];
+      const parts=k.split("|");
+      if(parts.length===3&&/^Any Variety Locally Bred/.test(parts[0])){
+        if(parts[2]!=="1"||v==="__W") return null;
+        const b=avlbOfNo(v);return b?[`${b.name}|${b.classes[0].name}|1`,v]:null;
+      }
+      return [k,v];
+    };
+    SOURCES.forEach(src=>{const r=read(src);
+      Object.entries(r).forEach(([k,v])=>{
+        if(k.startsWith("auto-off|")) return;
+        if(k.startsWith("g|")){const m=mapKey(k.slice(2),r[k.slice(2)]);if(m)out["g|"+m[0]]=1;return}
+        const m=mapKey(k,v);if(m&&m[1]!==undefined&&m[1]!=="")out[m[0]]=m[1];
+      });
+    });
+    // Best in Show page
+    const f=read(FINALS),FID={BIS:"BIS",BPIS:"BPIS",BJIS:"BJIS",BVIS:"BVIS",AVLB:"AVLB"};
+    Object.entries(f).forEach(([k,v])=>{
+      const given=k.startsWith("g|"),kk=given?k.slice(2):k;const m=kk.match(/^(BIS|BPIS|BJIS|BVIS|AVLB)\|(WIN|RES)$/);if(!m)return;
+      const nk="SHOW|"+FID[m[1]]+(m[2]==="RES"?"|R":"");
+      if(given){out["g|"+nk]=1;return}
+      if(v==="__W"){out[nk]="__W";return}
+      const b=m[1]==="AVLB"?avlbOfNo(v):breedOfNo(v);if(b)out[nk]=b.name+"::"+v;
+    });
+    return out;
+  }
+  function count(){return Object.keys(convert()).filter(k=>!k.startsWith("g|")).length}
+  window.mncfLegacy={
+    check(){
+      if(!/November 2026/i.test((window.SHOW_INFO||{}).Show||"")) return;
+      const n=count(),box=document.getElementById("legacyBox");if(!n){box.hidden=true;return}
+      const E=window.mncfEngine,res=E?E.res():{};const fresh=Object.entries(convert()).filter(([k])=>!k.startsWith("g|")&&res[k]===undefined).length;
+      box.hidden=!fresh;
+      document.getElementById("legacyNote").textContent=`${n} results found on this phone, ${fresh} not on this page yet. Results already here are kept as they are.`;
+    }
+  };
+  document.addEventListener("click",e=>{
+    if(e.target.id!=="legacyBtn")return;
+    const E=window.mncfEngine;if(!E)return;
+    const res=E.res(),c=convert();let n=0;
+    // class placings first, then breed, group and final awards, so each round has its winners in place
+    const order=k=>k.startsWith("g|")?4:k.startsWith("SHOW|")?3:k.startsWith("GROUP|")?2:k.includes("|*|")?1:0;
+    Object.keys(c).sort((a,b)=>order(a)-order(b)).forEach(k=>{if(res[k]===undefined){res[k]=c[k];delete res["auto-off|"+k];n++}});
+    E.render();
+    mncfToast(`${n} results brought in`);
+    window.mncfLegacy.check();
+  });
+})();
 </script>
 <script>
 // Live results: every change goes to the sheet, and changes from other phones are pulled in.
