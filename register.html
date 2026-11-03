@@ -23,8 +23,8 @@
     <form id="entryForm" class="form" autocomplete="off">
       <div class="field"><label for="fClass">Class</label><select id="fClass" required></select></div>
       <div class="field"><label for="fRing">Ring number</label><input type="text" id="fRing" inputmode="numeric" placeholder="e.g. 42"></div>
-      <div class="field wide"><label for="fName" id="fNameLab">Dog name</label><input type="text" id="fName" list="dogList" required placeholder="Start typing to find a registered dog"><datalist id="dogList"></datalist><span id="known"></span></div>
       <div class="field dogonly"><label for="fBreed">Breed</label><select id="fBreed"></select></div>
+      <div class="field wide"><label for="fName" id="fNameLab">Dog name</label><input type="text" id="fName" list="dogList" required placeholder="Start typing to find a registered dog"><datalist id="dogList"></datalist><span class="note" id="dogHint"></span><span id="known"></span></div>
       <div class="field dogonly" id="newBreedBox" hidden><label for="fNewBreed">New breed</label><input type="text" id="fNewBreed" placeholder="Breed name"></div>
       <div class="field dogonly" id="newGroupBox" hidden><label for="fGroup">Group</label><select id="fGroup"></select></div>
       <div class="field dogonly"><label for="fSex">Sex</label><select id="fSex"><option value="">—</option><option>Dog</option><option>Bitch</option></select></div>
@@ -71,7 +71,15 @@ function fillLists(){
   const byG={};S.breeds.forEach(b=>{(byG[b.Group]=byG[b.Group]||[]).push(b.Breed)});
   $("fBreed").innerHTML='<option value="">Pick a breed…</option>'+Object.keys(byG).sort((a,b)=>GROUP_ORDER.indexOf(a)-GROUP_ORDER.indexOf(b)).map(g=>`<optgroup label="${esc(g)}">${byG[g].sort().map(b=>`<option>${esc(b)}</option>`).join("")}</optgroup>`).join("")+'<option value="__new">Add a new breed…</option>';
   $("fGroup").innerHTML='<option value="">Pick a group…</option>'+S.groups.map(g=>`<option>${esc(g)}</option>`).join("");
-  $("dogList").innerHTML=S.dogs.map(d=>`<option value="${esc(d["Dog name"])}">${esc(d.Breed)}</option>`).join("");
+  fillDogList();
+}
+// Dog name suggestions only show registered dogs of the chosen breed
+function fillDogList(){
+  const br=$("fBreed").value, person=PERSON.includes($("fClass").value);
+  const list=person||br==="__new"?[]:S.dogs.filter(d=>!br||norm(d.Breed)===norm(br)).sort((a,b)=>a["Dog name"].localeCompare(b["Dog name"]));
+  $("dogList").innerHTML=list.map(d=>`<option value="${esc(d["Dog name"])}">${esc(d.Breed)}</option>`).join("");
+  $("dogHint").textContent=person?"":br==="__new"?"New breed: type the dog's name.":br?`${list.length} registered ${br} dog${list.length===1?"":"s"}. Type to pick one, or a new name to register it.`:"Pick a breed to narrow the list.";
+  $("fName").placeholder=person?"Child's or handler's name":br&&br!=="__new"?`Start typing a ${br} name`:"Start typing to find a registered dog";
 }
 function syncForm(){
   const person=PERSON.includes($("fClass").value);
@@ -88,9 +96,11 @@ function lookupDog(){
   Object.entries(FIELDS).forEach(([id,k])=>{if(d[k]!==undefined&&d[k]!==null&&d[k]!=="")$(id).value=d[k]});
   syncForm();
 }
-function resetForm(){
-  const keepClass=$("fClass").value;$("entryForm").reset();$("fClass").value=keepClass;S.editing=null;
-  $("formTitle").textContent="Add an entry";$("saveBtn").textContent="Save entry";$("cancelBtn").hidden=true;$("known").innerHTML="";$("formErr").textContent="";syncForm();
+function resetForm(keep){
+  keep=keep||{};const keepClass=keep.cls||$("fClass").value,keepBreed=keep.breed!=null?keep.breed:($("fBreed").value==="__new"?"":$("fBreed").value);
+  $("entryForm").reset();$("fClass").value=keepClass;S.editing=null;
+  if(keepBreed&&[...$("fBreed").options].some(o=>o.value===keepBreed))$("fBreed").value=keepBreed;
+  $("formTitle").textContent="Add an entry";$("saveBtn").textContent="Save entry";$("cancelBtn").hidden=true;$("known").innerHTML="";$("formErr").textContent="";syncForm();fillDogList();
 }
 async function loadShow(){
   if(!S.show){$("entries").innerHTML="";return}
@@ -115,11 +125,11 @@ function drawEntries(){
       return `<div class="erow${ab?" isabs":""}"><span class="no${String(e["Ring No"]).trim()?"":" missing"}">${esc(String(e["Ring No"]).trim()||"No no.")}</span><span><span class="nm">${esc(e["Dog name"])}</span><small>${esc(e.Class)}${e.Class==="AV Locally Bred"&&e.Breed?" · "+esc(e.Breed):""}${e.Owner?" · "+esc(e.Owner):""}</small></span><span class="acts"><label class="given"><input type="checkbox" data-abs="${e._row}"${ab?" checked":""}>Absent</label><button data-edit="${e._row}">Edit</button><button class="danger" data-del="${e._row}">Remove</button></span></div>`}).join("")+`</article>`}).join("")||'<div class="empty">No entries yet. Use the form above to enter the first dog.</div>';
 }
 $("showSel").onchange=()=>{S.show=$("showSel").value;history.replaceState(null,"",S.show?"?show="+encodeURIComponent(S.show):"register.html");fillShows();resetForm();loadShow()};
-$("fClass").onchange=()=>{syncForm();lookupDog()};
-$("fBreed").onchange=syncForm;$("fSex").onchange=syncForm;
+$("fClass").onchange=()=>{syncForm();fillDogList();lookupDog()};
+$("fBreed").onchange=()=>{syncForm();fillDogList()};$("fSex").onchange=syncForm;
 $("fName").addEventListener("input",lookupDog);
 $("q").addEventListener("input",drawEntries);
-$("cancelBtn").onclick=resetForm;
+$("cancelBtn").onclick=()=>resetForm();
 $("entryForm").addEventListener("submit",async ev=>{
   ev.preventDefault();const err=$("formErr");err.textContent="";
   const cls=$("fClass").value, person=PERSON.includes(cls);
@@ -134,7 +144,7 @@ $("entryForm").addEventListener("submit",async ev=>{
   if(S.editing) entry._row=S.editing._row;
   const b=$("saveBtn");b.disabled=true;b.textContent="Saving…";
   try{const j=await mncfApi("saveEntry",{entry,dog:person?null:dog});S.entries=j.entries;S.dogs=j.dogs;S.breeds=j.breeds;fillLists();drawEntries();
-    mncfToast(`${entry["Dog name"]} ${S.editing?"updated":"entered in "+cls}`);resetForm();$("fName").focus()}
+    mncfToast(`${entry["Dog name"]} ${S.editing?"updated":"entered in "+cls}`);resetForm({cls,breed:person?"":breed});$("fName").focus()}
   catch(e){err.textContent=e.message}
   b.disabled=false;b.textContent=S.editing?"Save changes":"Save entry";
 });
