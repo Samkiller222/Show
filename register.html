@@ -108,6 +108,17 @@ async function loadShow(){
   try{const j=await mncfApi("show",{show:S.show});S.entries=j.entries;S.dogs=j.dogs;S.breeds=j.breeds;fillLists();drawEntries()}
   catch(e){$("entries").innerHTML=`<p class="err">${esc(e.message)}</p>`}
 }
+// Entries list: one card per breed, with Puppy / Junior / Open lanes for dogs and for bitches.
+// Dogs can be dragged (by the handle) or moved with the class menu between lanes of the same sex.
+const LANES=["Puppy","Junior","Open"], SEXES=["Dog","Bitch"];
+const laneOf=c=>{const m=/^(Puppy|Junior|Open|Veteran) (Dog|Bitch)$/.exec(c||"");return m?{age:m[1],sex:m[2]}:null};
+const movable=e=>{const l=laneOf(e.Class);return !!l&&LANES.includes(l.age)};
+function entryRow(e){
+  const ab=e.Absent===true, l=laneOf(e.Class), mv=movable(e);
+  const menu=mv?`<select class="mvsel" data-move="${e._row}" aria-label="Move ${esc(e["Dog name"])} to another class">${LANES.map(a=>`<option${a===l.age?" selected":""}>${a} ${l.sex}</option>`).join("")}</select>`:"";
+  const sub=l?[e.Owner].filter(Boolean):[e.Class+(e.Class==="AV Locally Bred"&&e.Breed?" · "+e.Breed:""),e.Owner].filter(Boolean);
+  return `<div class="erow${ab?" isabs":""}${mv?" mv":""}" data-row="${e._row}">${mv?`<span class="grip" data-grip="${e._row}" aria-hidden="true" title="Drag to another class">⠿</span>`:""}<span class="no${String(e["Ring No"]).trim()?"":" missing"}">${esc(String(e["Ring No"]).trim()||"No no.")}</span><span><span class="nm">${esc(e["Dog name"])}</span><small>${sub.map(esc).join(" · ")}</small></span><span class="acts">${menu}<label class="given"><input type="checkbox" data-abs="${e._row}"${ab?" checked":""}>Absent</label><button data-edit="${e._row}">Edit</button><button class="danger" data-del="${e._row}">Remove</button></span></div>`;
+}
 function drawEntries(){
   const q=norm($("q").value);
   const list=S.entries.filter(e=>!q||String(e["Ring No"])===q||norm(e["Dog name"]+" "+e.Breed+" "+e.Class).includes(q));
@@ -119,11 +130,58 @@ function drawEntries(){
   const gOf=e=>PERSON.includes(e.Class)?-1:e.Class==="AV Locally Bred"?99:(GROUP_ORDER.indexOf(e.Group)+1||98);
   const groups={};list.forEach(e=>{(groups[sec(e)]=groups[sec(e)]||{g:gOf(e),group:e.Group,items:[]}).items.push(e)});
   const keys=Object.keys(groups).sort((a,b)=>groups[a].g-groups[b].g||a.localeCompare(b));
-  $("entries").innerHTML=keys.map(k=>{const G=groups[k];
-    return `<article class="breed"><div class="bhead"><div><small>${esc(G.g>0&&G.g<98?G.group+" Group":"Special class")}</small><h2>${esc(k)}</h2></div><span class="count">${G.items.length}</span></div>`+
-    G.items.sort((a,b)=>(+a["Ring No"]||1e9)-(+b["Ring No"]||1e9)).map(e=>{const ab=e.Absent===true;
-      return `<div class="erow${ab?" isabs":""}"><span class="no${String(e["Ring No"]).trim()?"":" missing"}">${esc(String(e["Ring No"]).trim()||"No no.")}</span><span><span class="nm">${esc(e["Dog name"])}</span><small>${esc(e.Class)}${e.Class==="AV Locally Bred"&&e.Breed?" · "+esc(e.Breed):""}${e.Owner?" · "+esc(e.Owner):""}</small></span><span class="acts"><label class="given"><input type="checkbox" data-abs="${e._row}"${ab?" checked":""}>Absent</label><button data-edit="${e._row}">Edit</button><button class="danger" data-del="${e._row}">Remove</button></span></div>`}).join("")+`</article>`}).join("")||'<div class="empty">No entries yet. Use the form above to enter the first dog.</div>';
+  const byNo=(a,b)=>(+a["Ring No"]||1e9)-(+b["Ring No"]||1e9)||a["Dog name"].localeCompare(b["Dog name"]);
+  $("entries").innerHTML=keys.map(k=>{const G=groups[k], items=G.items.sort(byNo);
+    const gname=G.g>0&&G.g<98?G.group+" Group":G.g===98?"Group not set":"Special class";
+    let body;
+    if(G.g===-1||G.g===99) body=items.map(entryRow).join("");
+    else{
+      body=SEXES.filter(sx=>items.some(e=>(laneOf(e.Class)||{}).sex===sx)).map(sx=>
+        `<div class="lanes" aria-label="${sx==="Dog"?"Dogs":"Bitches"}"><div class="lanes-h">${sx==="Dog"?"Dogs":"Bitches"}</div>`+
+        LANES.map(a=>{const c=`${a} ${sx}`, its=items.filter(e=>e.Class===c);
+          return `<section class="lane" data-lane="${esc(k)}|${c}"><h4>${a} ${sx} <span>${its.length}</span></h4>${its.map(entryRow).join("")||'<p class="lane-empty">Drop a dog here</p>'}</section>`}).join("")+
+        (items.some(e=>e.Class==="Veteran "+sx)?`<section class="lane fixed"><h4>Veteran ${sx} <span>${items.filter(e=>e.Class==="Veteran "+sx).length}</span></h4>${items.filter(e=>e.Class==="Veteran "+sx).map(entryRow).join("")}</section>`:"")+
+        `</div>`).join("");
+      const other=items.filter(e=>!laneOf(e.Class));if(other.length)body+=other.map(entryRow).join("");
+    }
+    return `<article class="breed"><div class="bhead"><div><small>${esc(gname)}</small><h2>${esc(k)}</h2></div><span class="count">${items.length}</span></div>${body}</article>`}).join("")||'<div class="empty">No entries yet. Use the form above to enter the first dog.</div>';
 }
+// Move an entry to another class, keeping everything else. Shows the change at once, undoes it if saving fails.
+async function moveEntry(row,cls){
+  const e=S.entries.find(x=>x._row==row);if(!e||e.Class===cls)return;
+  const from=e.Class;e.Class=cls;drawEntries();
+  try{const j=await mncfApi("saveEntry",{entry:{Show:S.show,"Ring No":String(e["Ring No"]||"").trim(),"Dog name":e["Dog name"],Class:cls,Absent:e.Absent===true,_row:e._row},dog:null});
+    S.entries=j.entries;drawEntries();mncfToast(`${e["Dog name"]} moved to ${cls}`)}
+  catch(er){e.Class=from;drawEntries();mncfToast(er.message)}
+}
+// Drag by the ⠿ handle with pointer events, so it works by touch on phones as well as with a mouse.
+(function(){
+  let d=null;
+  const laneAt=(x,y)=>{const el=document.elementFromPoint(x,y);const l=el&&el.closest(".lane[data-lane]");return l&&l.dataset.lane.startsWith(d.breed+"|")&&laneOf(l.dataset.lane.slice(d.breed.length+1)).sex===d.sex?l:null};
+  function scroll(){if(!d)return;const h=innerHeight,y=d.y,edge=90;const v=y<edge?-(edge-y)/4:y>h-edge?(y-(h-edge))/4:0;if(v)scrollBy(0,v);d.raf=requestAnimationFrame(scroll)}
+  document.addEventListener("pointerdown",ev=>{
+    const g=ev.target.closest("[data-grip]");if(!g||ev.button>0)return;
+    const e=S.entries.find(x=>x._row==g.dataset.grip);if(!e)return;ev.preventDefault();
+    const row=g.closest(".erow"),r=row.getBoundingClientRect(),ghost=row.cloneNode(true);
+    ghost.classList.add("ghost");Object.assign(ghost.style,{width:r.width+"px",left:r.left+"px",top:r.top+"px"});document.body.appendChild(ghost);
+    row.classList.add("dragging");
+    d={row:e._row,breed:sec2(e),sex:laneOf(e.Class).sex,from:e.Class,ghost,src:row,dx:ev.clientX-r.left,dy:ev.clientY-r.top,x:ev.clientX,y:ev.clientY,over:null,id:ev.pointerId};
+    document.querySelectorAll(".lane[data-lane]").forEach(l=>{if(l.dataset.lane.startsWith(d.breed+"|")&&laneOf(l.dataset.lane.slice(d.breed.length+1)).sex===d.sex)l.classList.add("can")});
+    document.body.classList.add("dragmode");d.raf=requestAnimationFrame(scroll);
+  });
+  document.addEventListener("pointermove",ev=>{
+    if(!d||ev.pointerId!==d.id)return;ev.preventDefault();d.x=ev.clientX;d.y=ev.clientY;
+    d.ghost.style.left=(ev.clientX-d.dx)+"px";d.ghost.style.top=(ev.clientY-d.dy)+"px";
+    const l=laneAt(ev.clientX,ev.clientY);if(l!==d.over){if(d.over)d.over.classList.remove("over");d.over=l;if(l)l.classList.add("over")}
+  },{passive:false});
+  function end(ev){
+    if(!d||ev.pointerId!==d.id)return;const t=d;d=null;cancelAnimationFrame(t.raf);t.ghost.remove();t.src.classList.remove("dragging");
+    document.body.classList.remove("dragmode");document.querySelectorAll(".lane.can,.lane.over").forEach(l=>l.classList.remove("can","over"));
+    if(ev.type==="pointerup"&&t.over){const cls=t.over.dataset.lane.slice(t.breed.length+1);if(cls!==t.from)moveEntry(t.row,cls)}
+  }
+  document.addEventListener("pointerup",end);document.addEventListener("pointercancel",end);
+  const sec2=e=>e.Breed||"Breed not set";
+})();
 $("showSel").onchange=()=>{S.show=$("showSel").value;history.replaceState(null,"",S.show?"?show="+encodeURIComponent(S.show):"register.html");fillShows();resetForm();loadShow()};
 $("fClass").onchange=()=>{syncForm();fillDogList();lookupDog()};
 $("fBreed").onchange=()=>{syncForm();fillDogList()};$("fSex").onchange=syncForm;
@@ -161,7 +219,8 @@ document.addEventListener("click",async ev=>{
   }
 });
 document.addEventListener("change",async ev=>{
-  const t=ev.target;if(!t.dataset.abs)return;const e=S.entries.find(x=>x._row==t.dataset.abs);
+  const t=ev.target;if(t.dataset.move){moveEntry(t.dataset.move,t.value);return}
+  if(!t.dataset.abs)return;const e=S.entries.find(x=>x._row==t.dataset.abs);
   try{await mncfApi("setAbsent",{_row:e._row,show:S.show,absent:t.checked});e.Absent=t.checked;drawEntries()}
   catch(er){t.checked=!t.checked;mncfToast(er.message)}
 });

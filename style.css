@@ -110,3 +110,24 @@ a.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--card)}
 .gate h2{margin:0}
 .loading{color:var(--muted);font-size:14px;padding:18px 0}
 @media (max-width:520px){.show-card{flex-direction:column;align-items:stretch}}
+/* Entries: breed cards with Puppy / Junior / Open lanes; drag a dog by its handle to change class */
+.lanes{border-top:1px solid var(--line);padding:8px 10px 10px;display:grid;grid-template-columns:1fr;gap:8px}
+.lanes-h{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+@media (min-width:760px){.lanes{grid-template-columns:repeat(3,minmax(0,1fr))}.lanes-h{grid-column:1/-1}.lane.fixed{grid-column:1/-1}}
+.lane{border:1px dashed var(--line);border-radius:8px;background:var(--bg);overflow:hidden;transition:background .15s,border-color .15s}
+.lane h4{margin:0;padding:6px 10px;font-size:13px;font-weight:600;display:flex;justify-content:space-between;gap:8px}
+.lane h4 span{color:var(--muted);font-variant-numeric:tabular-nums}
+.lane .erow{background:var(--card);padding:4px 10px 8px 4px;grid-template-columns:auto 2.6em minmax(0,1fr);gap:2px 8px}
+.lane .erow:not(.mv){grid-template-columns:2.6em minmax(0,1fr);padding-left:10px}
+.lane .erow .acts{grid-column:1/-1;justify-content:flex-start}
+.lane .erow.mv .acts{padding-left:42px}
+.lane-empty{margin:0;padding:10px;font-size:13px;color:var(--muted);text-align:center;border-top:1px solid var(--line)}
+.grip{display:flex;align-items:center;justify-content:center;min-width:34px;min-height:46px;font-size:22px;color:var(--muted);cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;border-radius:6px}
+.grip:hover{background:var(--accent-soft);color:var(--accent)}
+.mvsel{width:auto;padding:6px 8px;font-size:13px;min-height:36px}
+.dragmode,.dragmode *{cursor:grabbing!important;user-select:none;-webkit-user-select:none}
+.dragmode .lane:not(.can){opacity:.45}
+.lane.can{border-color:var(--accent)}
+.lane.over{background:var(--accent-soft);border-style:solid;border-width:2px}
+.erow.dragging{opacity:.35}
+.erow.ghost{position:fixed;z-index:40;margin:0;pointer-events:none;background:var(--card);border:1px solid var(--accent);border-radius:8px;box-shadow:0 10px 26px rgba(0,0,0,.22);transform:rotate(-1.5deg)}

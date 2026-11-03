@@ -1,6 +1,6 @@
 # Handoff: MNCF dog show awards organiser
 
-Notes for picking this project up in a new chat. Last updated 3 November 2026.
+Notes for picking this project up in a new chat. Last updated 3 November 2026 (drag lanes).
 
 ## What it is
 
@@ -117,16 +117,18 @@ On the Entries form, the dog-name suggestions are now filtered by the chosen bre
 - After saving, the class and breed stay selected, so several dogs of one breed go in quickly.
 - Junior Handler and Childrens Class show no dog list.
 
-## Next request (not started)
+## Entries lanes and drag between classes (3 Nov 2026, PR on branch `entries-drag-lanes`)
 
-Sam asked: *"in that screen [Entries / show setup] have the breeds grouped up and the names of the dogs be dragable between the junior, puppy and open classes"*.
+Sam asked: *"have the breeds grouped up and the names of the dogs be dragable between the junior, puppy and open classes"*. Done in `register.html`:
+- Each breed card (still ordered by group, group named in the card header) shows a **Dogs** block and a **Bitches** block, each with Puppy, Junior and Open lanes. Empty lanes say "Drop a dog here". Veteran entries sit in a fixed lane below and can't be dragged. AV Locally Bred and the handler classes stay as plain lists.
+- Drag a dog by its ⠿ handle (pointer events with `touch-action:none` on the handle only, so the page still scrolls by touch). Only lanes of the same breed and sex accept the drop; the page auto-scrolls near the screen edges.
+- Tap fallback: a class menu on each movable card.
+- `moveEntry(row, cls)` updates the list at once, then saves with `mncfApi("saveEntry",{entry:{...,Class,_row},dog:null})`. If saving fails the dog jumps back and a toast shows the error. `save_entry` with a null dog leaves the dog record alone.
+- Styles are at the end of `style.css` (`.lanes`, `.lane`, `.grip`, `.mvsel`, `.ghost`).
 
-Suggested approach:
-- In `register.html` `drawEntries()`, group the entries list by breed, under breed-group headings.
-- Inside each breed, show columns or lanes for Puppy, Junior and Open (keep Dog and Bitch apart, since the sex comes from the class).
-- Make each dog a card that can be dragged to another lane. On drop, change the class with `mncfApi("saveEntry", {entry:{...entry, Class:newClass, _row}, dog:null})`.
-- Use pointer events, not the HTML5 drag API, so it works on phones by touch. Also offer a tap fallback, such as a small class menu on each card, for accessibility.
-- Don't allow moves into Veteran or the special classes unless Sam asks for that.
+## Next request
+
+None yet.
 
 ## Things Sam still has to do in Supabase
 
