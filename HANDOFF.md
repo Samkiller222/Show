@@ -1,6 +1,6 @@
 # Handoff: MNCF dog show awards organiser
 
-Notes for picking this project up in a new chat. Last updated 3 November 2026 (repo organised into folders).
+Notes for picking this project up in a new chat. Last updated 3 November 2026 (club dog register).
 
 ## What it is
 
@@ -58,6 +58,7 @@ Sam asked to organise the repo instead of one long list of files. The live pages
 | `awards.html` | **Awards** tab (`?show=`) and **Results** tab (`?show=&view=results`). This is the awards engine. |
 | `catalogue.html` | **Show catalogue** (`?show=`): a print-ready booklet for visitors. Opened from the "Catalogue" button on Entries or "Show catalogue to print" in the drawer. Print or save as PDF. |
 | `schedule.html` | **Judging days and times** (`?show=`): split a show into sessions, each with a date, start time, optional name, the groups judged, single breeds moved in, Junior Handler / Childrens Class, and which session has the Best in Show finals. Opened from the drawer ("Judging days and times"), the "Edit days" chip, or "days" on a show card. |
+| `dogs.html` | **Club dogs** (Manage section of the drawer): every dog in the `dogs` table, A to Z, with search and a breed filter, and "+ Add dog". `?dog=<id>` opens one dog: breed, sex, date of birth, breeder, sire, dam, owner, phone, address, then every show it was entered in with its classes and the results recorded for it. "Edit details" changes any field. `&add=1` on the list opens the add form. |
 | `breeds.html` | Add breeds (a group is required) and change a breed's group |
 | `import.html` | Hidden. Claude API file import. |
 | `legacy/` `saturday.html`, `sunday-morning.html`, `sunday-evening.html`, `absent.html`, `best-in-show.html`, `nov-2026.html` | The first version, hard-coded for the November 2026 show. Kept as a fallback. |
@@ -67,6 +68,7 @@ Shared scripts (in `js/`; styles in `css/`):
   - `bootstrap`, `show`, `addShow`, `updateShow` (by id, so renaming keeps entries and results)
   - `saveEntry`, `deleteEntry`, `setAbsent`
   - `addBreed`, `setBreedGroup`
+  - `dogs`, `saveDog` (by id; renaming a dog also renames its entries), `dogHistory` (entries plus `live_results` of those shows)
   - `importEntries`, `syncState`, `extract`
 
   It also maps database rows to the shapes the pages use, for example an entry is `{_row, Show, "Ring No", "Dog name", Class, Absent, Breed, Group, Sex, Owner}`. Helpers: `mncfEsc`, `mncfToast`, `mncfQuery`, `mncfCache`, `mncfSignOut`.
@@ -186,6 +188,13 @@ Sam: *"i need a way to seperate the schedule over multiple days / time periods l
 - **Entries:** same day bar; in Whole show view breed cards sit under day headings, and AV Locally Bred gets one card per session.
 - **Catalogue:** a "Judging times" list on the cover, and each session starts a new page with its heading, then its special classes, moved breeds, groups (breeds, group judging, AVLB) and the finals.
 - A show with no schedule behaves exactly as before.
+
+## Club dog register (3 Nov 2026)
+
+Sam: *"under the manage tab add a way i can see all dog that are registered with the club and add more and see all details tied to all the dogs"*. The `dogs` table was already a club-wide register (one row per dog, unique by lower(name), not tied to a show), so no database change was needed. New page `dogs.html`, linked as "Club dogs" in the drawer's Manage section.
+- Entries link to dogs by name (`entries.dog_name`), so `saveDog` renames the dog's entries when the name changes (after a confirm).
+- Results history: `live_results` values are ring numbers (or the dog name when an entry has no ring number); group and show awards are `Breed::ring`, and AV Locally Bred uses the breed name `Any Variety Locally Bred <group>`. `winsFor()` in `dogs.html` matches these per entry. Withheld and `g|`/`auto-off|` keys are ignored, so a recorded winner shows even before Given is ticked.
+- Not done: removing a dog (the `dogs` table has no delete policy), and a breed must already exist on Breeds and groups.
 
 ## Next request
 

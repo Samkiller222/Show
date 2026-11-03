@@ -98,6 +98,36 @@
       if(!data||!data.length)fail({message:"That show was removed or you can't change it. Reload and try again."});
       return {ok:true,show:showOut(data[0])};
     },
+    // Club dog register (dogs.html): every dog the club knows, with its id, so one dog can be opened and edited.
+    async dogs(){return {ok:true,dogs:(await all("dogs","name")).map(d=>Object.assign(dogOut(d),{id:d.id,Added:d.created_at})),breeds:await breeds()}},
+    // Add a dog (no id) or change one (id). Renaming a dog also renames its show entries, which are linked by name.
+    async saveDog(d){
+      const g=d.dog||{},name=String(g["Dog name"]||"").trim(),breed=String(g.Breed||"").trim();
+      if(!name)fail({message:"Type the dog's name."});if(!breed)fail({message:"Pick the dog's breed."});
+      const row={name,breed,sex:["Dog","Bitch"].includes(g.Sex)?g.Sex:""};
+      [["dob","Date of birth"],["owner","Owner"],["phone","Phone"],["address","Address"],["breeder","Breeder"],["sire","Sire"],["dam","Dam"]].forEach(([c,k])=>row[c]=String(g[k]||"").trim());
+      let old=null;
+      if(d.id){const r=await sb.from("dogs").select("name").eq("id",d.id).maybeSingle();if(r.error)fail(r.error);if(!r.data)fail({message:"That dog was removed. Reload and try again."});old=r.data.name}
+      const q=d.id?sb.from("dogs").update(row).eq("id",d.id).select():sb.from("dogs").insert(row).select();
+      const {data,error}=await q;
+      if(error)fail(/duplicate|unique/i.test(error.message)?{message:"A dog called "+name+" is already registered."}:/breed/i.test(error.message)?{message:breed+" isn't in the breed list. Add it on Breeds and groups first."}:error);
+      if(!data||!data.length)fail({message:"That dog couldn't be saved. Reload and try again."});
+      if(old&&old!==name){const r=await sb.from("entries").update({dog_name:name}).ilike("dog_name",likeExact(old));if(r.error)fail({message:"The dog was renamed, but its show entries still use the old name: "+r.error.message})}
+      return {ok:true,dog:Object.assign(dogOut(data[0]),{id:data[0].id,Added:data[0].created_at})};
+    },
+    // Everything tied to one dog: its show entries and the results recorded for them.
+    async dogHistory(d){
+      const name=String(d.name||"").trim();if(!name)return {ok:true,entries:[],results:[],shows:[]};
+      const {data:ents,error}=await sb.from("entries_view").select("*").ilike("dog_name",likeExact(name)).not("class","in",'("Junior Handler","Childrens Class")');
+      if(error)fail(error);
+      const ids=[...new Set(ents.map(e=>e.show_id))];
+      let res=[],shw=[];
+      if(ids.length){
+        const [r,s]=await Promise.all([sb.from("live_results").select("show_id,key,value").in("show_id",ids).not("key","like","g|%").not("key","like","auto-off|%").limit(5000),sb.from("shows").select("*").in("id",ids)]);
+        if(r.error)fail(r.error);if(s.error)fail(s.error);res=r.data;shw=s.data.map(showOut);
+      }
+      return {ok:true,entries:ents.map(e=>Object.assign(entryOut(e),{show_id:e.show_id})),results:res,shows:shw};
+    },
     async saveEntry(d){
       const {error}=await sb.rpc("save_entry",{p_show:d.entry.Show,p_entry:d.entry,p_dog:d.dog||null});if(error)fail(error);
       const [e,g,b]=await Promise.all([entries(d.entry.Show),dogs(),breeds()]);return {ok:true,entries:e,dogs:g,breeds:b};
