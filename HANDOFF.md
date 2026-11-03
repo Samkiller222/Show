@@ -149,6 +149,8 @@ None yet.
 
 ## How to work on it
 
+- **Bump the version on every change.** Browsers keep old copies of pages and files for a while, which mixed old and new screens (unstyled lanes, the old entry form still showing). Each new-system page (`index`, `register`, `entry`, `awards`, `breeds`) has `<meta name="mncf-version">` and loads `style.css`, `api.js`, `shell.js`, `nav.js`, `focus.js` with `?v=<version>`. `shell.js` fetches `version.json` without cache and, if it differs from the page's meta, reloads once with `&_v=<version>`. When you change anything, replace the old version string everywhere: `grep -rl OLD --include=*.html --include=version.json . | xargs sed -i s/OLD/NEW/g`.
+
 - Clone the repo, edit the files and push to `main`. GitHub Pages redeploys in about a minute.
 - **Commit identity:** `Sam Micallef <sammicallef12@gmail.com>`.
 - **Testing:** use Playwright at phone size (390×844) and replace `api.js` with a fake that returns sample entries, so no sign-in is needed. Test SQL inside a transaction that is rolled back, using `set local role authenticated` and the JWT claims.

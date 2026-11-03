@@ -173,6 +173,18 @@ body.drawer-open{overflow:hidden}
       const de=dr.querySelector("#drawerEdit");if(de)de.onclick=openEdit;
       try{const f=sessionStorage.getItem("mncf-flash");if(f){sessionStorage.removeItem("mncf-flash");setTimeout(()=>window.mncfToast&&mncfToast(f),300)}}catch(e){}
     }
+    // ---- keep the page up to date ----
+    // Phones and browsers keep old copies of pages for a while after an update, which can mix old and new screens.
+    // Each page carries its version; if the site has a newer one, reload once from a fresh address.
+    (async()=>{
+      try{
+        const m=document.querySelector('meta[name="mncf-version"]'),have=m?m.content:"";
+        const r=await fetch("version.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)return;
+        const v=(await r.json()).v;if(!v||v===have)return;
+        const gk="mncf-refreshed-"+v;if(sessionStorage.getItem(gk))return;sessionStorage.setItem(gk,"1");
+        const u=new URL(location.href);u.searchParams.set("_v",v);location.replace(u.toString());
+      }catch(e){}
+    })();
     return {setTitle(t){const el=document.getElementById("crumbTitle");if(el)el.textContent=t}};
   };
 })();
