@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="mncf-version" content="2026-11-03e">
+<meta name="mncf-version" content="2026-11-03f">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>MNCF Entries</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<link rel="stylesheet" href="style.css?v=2026-11-03e">
+<link rel="stylesheet" href="style.css?v=2026-11-03f">
 </head>
 <body class="wide">
 <div class="wrap">
@@ -29,9 +29,9 @@
 </div>
 <div class="toast" id="toast"></div>
 <script src="supabase.min.js"></script>
-<script src="api.js?v=2026-11-03e"></script>
-<script src="shell.js?v=2026-11-03e"></script>
-<script src="nav.js?v=2026-11-03e"></script>
+<script src="api.js?v=2026-11-03f"></script>
+<script src="shell.js?v=2026-11-03f"></script>
+<script src="nav.js?v=2026-11-03f"></script>
 <script>
 mncfShell({page:"entries",title:mncfQuery("show")||"Register dogs",kicker:mncfQuery("show")?"Entries":"Register dogs"});
 const esc=mncfEsc, $=id=>document.getElementById(id);
@@ -104,23 +104,31 @@ function landed(row,fromRect){
   if(fromRect&&el.animate){const dx=fromRect.left-r.left,dy=fromRect.top-r.top;if(Math.abs(dx)+Math.abs(dy)>2)el.animate([{transform:`translate(${dx}px,${dy}px)`},{transform:"none"}],{duration:240,easing:"cubic-bezier(.2,.8,.2,1)"})}
   else if(r.bottom<0||r.top>innerHeight)el.scrollIntoView({block:"center",behavior:"smooth"});
 }
+// Redraw, letting class lanes grow and shrink smoothly to their new size instead of jumping.
+function smoothDraw(){
+  if(calm()||!Element.prototype.animate){drawEntries();return}
+  const before={};document.querySelectorAll(".lane[data-lane]").forEach(l=>before[l.dataset.lane]=l.getBoundingClientRect().height);
+  drawEntries();
+  document.querySelectorAll(".lane[data-lane]").forEach(l=>{const h0=before[l.dataset.lane];if(h0==null)return;const h1=l.getBoundingClientRect().height;
+    if(Math.abs(h1-h0)>1)l.animate([{height:h0+"px"},{height:h1+"px"}],{duration:260,easing:"cubic-bezier(.2,.8,.2,1)"})});
+}
 // Redraw only when the server's copy differs from what's already on screen, so animations aren't cut short.
 const sameAs=list=>JSON.stringify(list)===JSON.stringify(S.entries);
 // Move an entry to another class, keeping everything else. Shows the change at once, undoes it if saving fails.
 // After saving, the toast offers Undo, which moves the dog back.
 async function moveEntry(row,cls,fromRect,isUndo){
   const e=S.entries.find(x=>x._row==row);if(!e||e.Class===cls)return;
-  const from=e.Class;e.Class=cls;drawEntries();landed(row,fromRect);
+  const from=e.Class;e.Class=cls;smoothDraw();landed(row,fromRect);
   try{const j=await mncfApi("saveEntry",{entry:{Show:S.show,"Ring No":String(e["Ring No"]||"").trim(),"Dog name":e["Dog name"],Class:cls,Absent:e.Absent===true,_row:e._row},dog:null});
     if(!sameAs(j.entries)){S.entries=j.entries;drawEntries()}
     mncfToast(isUndo?`${e["Dog name"]} moved back to ${cls}`:`${e["Dog name"]} moved to ${cls}`,isUndo?{}:{action:"Undo",onAction:()=>moveEntry(row,from,null,true)})}
-  catch(er){e.Class=from;drawEntries();mncfToast(er.message)}
+  catch(er){e.Class=from;smoothDraw();mncfToast(er.message)}
 }
 // Removing waits a few seconds so it can be undone; it's sent straight away if you leave the page.
 const PENDING=new Map();
 function removeEntry(e){
-  const id=String(e._row);PENDING.set(id,setTimeout(()=>commitRemove(id),5000));drawEntries();
-  mncfToast(`${e["Dog name"]} removed from this show`,{action:"Undo",onAction(){if(!PENDING.has(id))return;clearTimeout(PENDING.get(id));PENDING.delete(id);drawEntries();landed(id)}});
+  const id=String(e._row);PENDING.set(id,setTimeout(()=>commitRemove(id),5000));smoothDraw();
+  mncfToast(`${e["Dog name"]} removed from this show`,{action:"Undo",onAction(){if(!PENDING.has(id))return;clearTimeout(PENDING.get(id));PENDING.delete(id);smoothDraw();landed(id)}});
 }
 async function commitRemove(id){
   if(!PENDING.has(id))return;clearTimeout(PENDING.get(id));PENDING.delete(id);
