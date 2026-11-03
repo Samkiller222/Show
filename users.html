@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="mncf-version" content="2026-11-03k">
+<meta name="mncf-version" content="2026-11-03l">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>MNCF Users and Roles</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<link rel="stylesheet" href="css/style.css?v=2026-11-03k">
+<link rel="stylesheet" href="css/style.css?v=2026-11-03l">
 <style>
 .urow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 12px;align-items:center;padding:10px 14px;border-top:1px solid var(--line)}
 .urow b{display:block;overflow-wrap:anywhere}
@@ -17,6 +17,7 @@
 .urow .you{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--accent)}
 .roles{margin:0;padding:0;list-style:none;display:grid;gap:6px;font-size:14px}
 .roles b{display:inline-block;min-width:6.5em}
+.roles .pv{min-height:34px;padding:4px 10px;font-size:13px;margin-left:4px}
 @media (max-width:520px){.urow{grid-template-columns:1fr}.urow .uacts{justify-content:flex-start;flex-wrap:nowrap}.urow .uacts select{flex:1;min-width:0}}
 </style>
 </head>
@@ -29,9 +30,9 @@
     <h2>Roles</h2>
     <ul class="roles">
       <li><b>Admin</b> Everything, plus this page: add people and change roles.</li>
-      <li><b>Organiser</b> Everything except users: shows, entries, dogs, breeds, judging days and awards.</li>
-      <li><b>Steward</b> Records awards. Can see everything else but not change it.</li>
-      <li><b>Viewer</b> Looks only. Can't change anything.</li>
+      <li><b>Organiser</b> Everything except users: shows, entries, dogs, breeds, judging days and awards. <button type="button" class="pv" data-preview="organiser">Preview</button></li>
+      <li><b>Steward</b> Records awards. Can see everything else but not change it. <button type="button" class="pv" data-preview="steward">Preview</button></li>
+      <li><b>Viewer</b> Looks only. Can't change anything. <button type="button" class="pv" data-preview="viewer">Preview</button></li>
     </ul>
   </section>
   <section class="panel" id="addPanel" hidden>
@@ -48,13 +49,14 @@
 </div>
 <div class="toast" id="toast"></div>
 <script src="vendor/supabase.min.js"></script>
-<script src="js/api.js?v=2026-11-03k"></script>
-<script src="js/shell.js?v=2026-11-03k"></script>
+<script src="js/api.js?v=2026-11-03l"></script>
+<script src="js/shell.js?v=2026-11-03l"></script>
 <script>
 mncfShell({page:"users",title:"Users and roles",kicker:"Manage"});
 const esc=mncfEsc,$=id=>document.getElementById(id);
 const ROLES=["admin","organiser","steward","viewer"];
 let MEMBERS=[],ME="";
+document.querySelectorAll(".roles [data-preview]").forEach(b=>b.onclick=()=>{mncfPreview.set(b.dataset.preview);location.href="index.html"});
 const roleOpts=cur=>ROLES.map(r=>`<option value="${r}"${r===cur?" selected":""}>${mncfRoleName(r)}</option>`).join("");
 $("nmRole").innerHTML=roleOpts("steward");
 const when=t=>t?"Last signed in "+new Date(t).toLocaleDateString([],{day:"numeric",month:"short",year:"numeric"}):"Hasn't signed in yet";
