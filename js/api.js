@@ -35,13 +35,33 @@
         ev.preventDefault();const b=g.querySelector("button");b.disabled=true;b.textContent="Signing in…";
         const {error}=await sb.auth.signInWithPassword({email:g.querySelector("#loginEmail").value.trim(),password:g.querySelector("#loginPw").value});
         if(error){g.querySelector("#loginErr").textContent=/invalid/i.test(error.message)?"That email and password don't match a team login.":error.message;b.disabled=false;b.textContent="Sign in";return}
-        g.remove();gateP=null;res();
+        g.remove();gateP=null;roleP=null;res();
       });
     });
     return gateP;
   }
   async function signedIn(){const {data}=await sb.auth.getSession();if(!data.session)await askLogin();}
-  window.mncfSignOut=async()=>{await sb.auth.signOut();location.reload()};
+  window.mncfSignOut=async()=>{try{localStorage.removeItem("mncf-role")}catch(e){}await sb.auth.signOut();location.reload()};
+  // ---- roles: admin, organiser, steward (awards only), viewer (read only) ----
+  // The database enforces these; pages only use the role to hide what this login can't do.
+  const ROLE_NAMES={admin:"Admin",organiser:"Organiser",steward:"Steward",viewer:"Viewer"};
+  let roleP=null;
+  window.mncfRoleName=r=>ROLE_NAMES[r]||"Not on the team";
+  window.mncfRole=(fresh)=>{
+    if(!roleP||fresh) roleP=(async()=>{await signedIn();const {data,error}=await sb.rpc("my_role");if(error)throw error;
+      try{localStorage.setItem("mncf-role",data||"")}catch(e){}return data||""})().catch(e=>{roleP=null;return null}); // null: unknown, the database still decides
+    return roleP;
+  };
+  // last known role on this phone, so the page can hide things before the database answers
+  window.mncfRoleCached=()=>{try{return localStorage.getItem("mncf-role")||""}catch(e){return ""}};
+  const EDIT_ACTIONS=["addShow","updateShow","setSchedule","saveEntry","deleteEntry","setAbsent","addBreed","setBreedGroup","saveDog","importEntries"];
+  const canEdit=r=>r==="admin"||r==="organiser", canAward=r=>canEdit(r)||r==="steward";
+  function roleBlock(action,data,r){
+    if(EDIT_ACTIONS.includes(action)&&!canEdit(r)) return `Your login is ${r?"a "+ROLE_NAMES[r]:"not on the team"}, so it can't change shows, entries, dogs or breeds. Ask an admin to change your role.`;
+    if(action==="syncState"&&(data.changes||[]).length&&!canAward(r)) return `Your login is ${r?"a "+ROLE_NAMES[r]:"not on the team"}, so it can't record awards. Ask an admin to change your role.`;
+    if(["team","setMember","removeMember"].includes(action)&&r!=="admin") return "Only admins can see and change users.";
+    return "";
+  }
   window.mncfWho=async()=>{const {data}=await sb.auth.getSession();return data.session?data.session.user.email:""};
 
   // ---- shapes the pages use ----
@@ -146,6 +166,10 @@
       if(!GROUPS.includes(d.group))fail({message:"Pick a group."});
       const {error}=await sb.from("breeds").update({grp:d.group}).eq("name",d.breed);if(error)fail(error);return {ok:true,breeds:await breeds()};
     },
+    // admin view (users.html)
+    async team(){const {data,error}=await sb.rpc("team_list");if(error)fail(error);return {ok:true,members:data||[]}},
+    async setMember(d){const {error}=await sb.rpc("set_team_member",{p_email:d.email,p_role:d.role,p_name:d.name==null?null:d.name});if(error)fail(error);return actions.team()},
+    async removeMember(d){const {error}=await sb.rpc("remove_team_member",{p_email:d.email});if(error)fail(error);return actions.team()},
     async importEntries(d){const {data,error}=await sb.rpc("import_entries",{p_show:d.show,p_entries:d.entries});if(error)fail(error);return Object.assign({ok:true},data)},
     async syncState(d){const {data,error}=await sb.rpc("sync_state",{p_show:d.show,p_changes:d.changes||[],p_since:d.since||0});if(error)fail(error);return Object.assign({ok:true},data)},
     async extract(d){
@@ -160,10 +184,17 @@
   async function api(action,data){
     await signedIn();
     if(!actions[action]) throw new Error("Unknown action "+action);
+    const myRole=await window.mncfRole();
+    const blocked=myRole===null?"":roleBlock(action,data||{},myRole);
+    if(blocked) throw new Error(blocked);
     try{return await actions[action](data||{})}
     catch(e){
       const m=e.message||"";
-      if(/JWT|not authenticated|permission denied|row-level security/i.test(m)){await sb.auth.signOut();await askLogin("Please sign in again.");return actions[action](data||{})}
+      if(/JWT|not authenticated|permission denied|row-level security/i.test(m)){
+        // Signed in but the role doesn't allow it: say so, don't sign out.
+        const {data:sd}=await sb.auth.getSession();
+        if(sd.session&&!/JWT|not authenticated/i.test(m)){const r=await window.mncfRole(true);if(r)throw new Error(roleBlock(action,Object.assign({changes:[1]},data||{}),r)||"Your login can't do that. Ask an admin to change your role.")}
+        await sb.auth.signOut();await askLogin("Please sign in again.");return actions[action](data||{})}
       if(/Failed to fetch|NetworkError|Load failed/i.test(m)) throw new Error("Can't reach the show database. Check the internet connection.");
       throw e;
     }

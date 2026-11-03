@@ -86,6 +86,14 @@ body.has-pager .top-btn{bottom:calc(146px + env(safe-area-inset-bottom,0px))}
 @media (min-width:900px) and (hover:hover){.keys{display:flex}}
 .keys kbd{font:600 12px/1 var(--body);border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:3px 6px;background:var(--bg);margin-right:6px}
 .keys p{margin:0;font-size:13px;color:var(--muted)}
+/* roles: stewards and viewers don't see the editing controls (the database refuses those changes anyway) */
+body.ro-edit #editShowBtn,body.ro-edit #drawerEdit,body.ro-edit .tabs a[data-tab="add"],body.ro-edit #newBtn,body.ro-edit #addLink,
+body.ro-edit #breedForm,body.ro-edit .erow .acts,body.ro-edit .erow .grip,body.ro-edit #addBtn,body.ro-edit #editBtn,body.ro-edit #saveBar,body.ro-edit .needs-edit{display:none!important}
+body.ro-edit .tabs{grid-template-columns:repeat(3,1fr)}
+body.ro-edit select[data-breed]{pointer-events:none;appearance:none;-webkit-appearance:none;border-color:transparent;background:transparent}
+body.ro-award [data-k],body.ro-award [data-g]{pointer-events:none;opacity:.75}
+.drawer .role{display:inline-block;margin-left:6px;padding:2px 8px;border-radius:999px;background:var(--accent-soft);color:var(--fg);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+.viewonly{margin:8px 0 0;padding:8px 12px;border-radius:8px;background:var(--accent-soft);font-size:14px;font-weight:600}
 @media (prefers-reduced-motion:reduce){.toast{transform:translate(-50%,0)}*,*::before,*::after{animation:none!important;transition:none!important}}
 `;
   const ico={
@@ -119,7 +127,7 @@ body.has-pager .top-btn{bottom:calc(146px + env(safe-area-inset-bottom,0px))}
       <div class="sec"><h3>Shows</h3><input type="text" id="drawerQ" placeholder="Find a show" autocomplete="off"><div class="shows" id="drawerShows"><span class="note">Loading…</span></div>
         <a class="item${opt.page==="shows"?" here":""}" href="index.html">All shows and new show <small>›</small></a></div>
       ${show?`<div class="sec"><h3>This show</h3><button class="item" type="button" id="drawerEdit">Edit show details <small>›</small></button><a class="item${opt.page==="schedule"?" here":""}" href="schedule.html${q}">Judging days and times <small>›</small></a><a class="item${opt.page==="catalogue"?" here":""}" href="catalogue.html${q}">Show catalogue to print <small>›</small></a></div>`:""}
-      <div class="sec"><h3>Manage</h3><a class="item${opt.page==="dogs"?" here":""}" href="dogs.html">Club dogs <small>›</small></a><a class="item${opt.page==="breeds"?" here":""}" href="breeds.html">Breeds and groups <small>›</small></a></div>
+      <div class="sec"><h3>Manage</h3><a class="item${opt.page==="dogs"?" here":""}" href="dogs.html">Club dogs <small>›</small></a><a class="item${opt.page==="breeds"?" here":""}" href="breeds.html">Breeds and groups <small>›</small></a><a class="item${opt.page==="users"?" here":""}" href="users.html" id="drawerUsers" hidden>Users and roles <small>›</small></a></div>
       <div class="sec"><h3>Awards view on this phone</h3><div class="seg" role="group" aria-label="Awards view"><button type="button" data-view="round" aria-pressed="${mode==="round"}">One round at a time</button><button type="button" data-view="list" aria-pressed="${mode==="list"}">Full list</button></div></div>
       <div class="sec keys"><h3>Keyboard shortcuts</h3><p><kbd>/</kbd>Search</p>${show?`<p><kbd>N</kbd>Add entry</p><p><kbd>←</kbd><kbd>→</kbd>Previous or next round</p>`:""}<p><kbd>Esc</kbd>Close menu</p></div>
       <div class="sec"><h3>Older pages</h3><a class="item" href="legacy/nov-2026.html">November 2026, first version <small>›</small></a></div>
@@ -131,7 +139,24 @@ body.has-pager .top-btn{bottom:calc(146px + env(safe-area-inset-bottom,0px))}
     burger.onclick=open;bg.onclick=close;dr.querySelector(".close").onclick=close;
     document.addEventListener("keydown",e=>{if(e.key==="Escape")close()});
     dr.querySelector("#drawerOut").onclick=()=>window.mncfSignOut&&window.mncfSignOut();
-    if(window.mncfWho)window.mncfWho().then(w=>{if(w)dr.querySelector("#drawerWho").textContent="Signed in as "+w});
+    if(window.mncfWho)window.mncfWho().then(w=>{if(w)dr.querySelector("#drawerWho").innerHTML="Signed in as "+esc(w)+'<span class="role" id="drawerRole" hidden></span>'}).then(()=>applyRole(window.mncfRoleCached&&mncfRoleCached(),false));
+    // ---- what this login may do ----
+    function applyRole(r,known){
+      if(r===null||r===undefined)return; // role unknown: leave everything as it was
+      const edit=r==="admin"||r==="organiser",award=edit||r==="steward";
+      document.body.dataset.role=r;
+      document.body.classList.toggle("ro-edit",!edit);document.body.classList.toggle("ro-award",!award);
+      const u=dr.querySelector("#drawerUsers");if(u)u.hidden=r!=="admin";
+      const rb=dr.querySelector("#drawerRole");if(rb){rb.hidden=false;rb.textContent=window.mncfRoleName?mncfRoleName(r):r}
+      if(known&&!edit&&!document.querySelector(".viewonly")&&header){const p=document.createElement("p");p.className="viewonly";
+        p.textContent=award?"Steward login: you can record awards but not change entries or shows.":r?"View only: your login can look but not change anything.":"Your login isn't on the team list yet. Ask an admin to add you.";
+        header.appendChild(p)}
+    }
+    if(window.mncfRole)mncfRole().then(r=>applyRole(r,true));
+    // Read-only logins: stop award picks and entry drags before the page acts on them.
+    window.addEventListener("change",e=>{const t=e.target;if(!document.body.classList.contains("ro-award")||!t||!(t.dataset&&(t.dataset.k||t.dataset.g)))return;
+      e.stopImmediatePropagation();if(window.mncfEngine)mncfEngine.render();if(window.mncfToast)mncfToast("View only: your login can't record awards.")},true);
+    window.addEventListener("pointerdown",e=>{if(document.body.classList.contains("ro-edit")&&e.target.closest&&e.target.closest(".erow.mv"))e.stopImmediatePropagation()},true);
     dr.querySelectorAll("[data-view]").forEach(b=>b.onclick=()=>{
       window.mncfAwardsView.set(b.dataset.view);
       dr.querySelectorAll("[data-view]").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));
@@ -156,7 +181,7 @@ body.has-pager .top-btn{bottom:calc(146px + env(safe-area-inset-bottom,0px))}
     if(show&&["entries","add","awards","results"].includes(opt.page)){
       const tabs=document.createElement("nav");tabs.className="tabs";tabs.setAttribute("aria-label","Show sections");
       tabs.innerHTML=[["entries","Entries","register.html"+q],["add","Add entry","entry.html"+q],["awards","Awards","awards.html"+q],["results","Results","awards.html"+q+"&view=results"]]
-        .map(([k,l,h])=>`<a href="${h}"${opt.page===k?' class="here" aria-current="page"':""}>${ico[k]}<span>${l}</span></a>`).join("");
+        .map(([k,l,h])=>`<a href="${h}" data-tab="${k}"${opt.page===k?' class="here" aria-current="page"':""}>${ico[k]}<span>${l}</span></a>`).join("");
       document.body.appendChild(tabs);document.body.classList.add("has-tabs");
     }
     // ---- keyboard shortcuts on a computer (ignored while typing) ----

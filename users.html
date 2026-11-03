@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="mncf-version" content="2026-11-03k">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MNCF Users and Roles</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<link rel="stylesheet" href="css/style.css?v=2026-11-03k">
+<style>
+.urow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 12px;align-items:center;padding:10px 14px;border-top:1px solid var(--line)}
+.urow b{display:block;overflow-wrap:anywhere}
+.urow small{display:block;color:var(--muted);font-size:12px;overflow-wrap:anywhere}
+.urow .uacts{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.urow select{min-width:9.5em}
+.urow .you{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--accent)}
+.roles{margin:0;padding:0;list-style:none;display:grid;gap:6px;font-size:14px}
+.roles b{display:inline-block;min-width:6.5em}
+@media (max-width:520px){.urow{grid-template-columns:1fr}.urow .uacts{justify-content:flex-start;flex-wrap:nowrap}.urow .uacts select{flex:1;min-width:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="sub">Who can sign in, and what each login may do. Only admins see this page.</div>
+  </header>
+  <section class="panel">
+    <h2>Roles</h2>
+    <ul class="roles">
+      <li><b>Admin</b> Everything, plus this page: add people and change roles.</li>
+      <li><b>Organiser</b> Everything except users: shows, entries, dogs, breeds, judging days and awards.</li>
+      <li><b>Steward</b> Records awards. Can see everything else but not change it.</li>
+      <li><b>Viewer</b> Looks only. Can't change anything.</li>
+    </ul>
+  </section>
+  <section class="panel" id="addPanel" hidden>
+    <h2>Add someone to the team</h2>
+    <p class="note">They also need a login: create it in Supabase under Authentication, Users, Add user (auto-confirm on), using the same email.</p>
+    <form id="addForm" class="form" autocomplete="off">
+      <div class="field"><label for="nmEmail">Email</label><input type="email" id="nmEmail" required placeholder="name@example.com"></div>
+      <div class="field"><label for="nmName">Name (optional)</label><input type="text" id="nmName"></div>
+      <div class="field"><label for="nmRole">Role</label><select id="nmRole"></select></div>
+      <div class="field wide"><div class="btns"><button class="pri" type="submit" id="nmBtn">Add to team</button></div><p class="err" id="nmErr"></p></div>
+    </form>
+  </section>
+  <div id="list" style="display:flex;flex-direction:column;gap:12px"><p class="loading">Loading users…</p></div>
+</div>
+<div class="toast" id="toast"></div>
+<script src="vendor/supabase.min.js"></script>
+<script src="js/api.js?v=2026-11-03k"></script>
+<script src="js/shell.js?v=2026-11-03k"></script>
+<script>
+mncfShell({page:"users",title:"Users and roles",kicker:"Manage"});
+const esc=mncfEsc,$=id=>document.getElementById(id);
+const ROLES=["admin","organiser","steward","viewer"];
+let MEMBERS=[],ME="";
+const roleOpts=cur=>ROLES.map(r=>`<option value="${r}"${r===cur?" selected":""}>${mncfRoleName(r)}</option>`).join("");
+$("nmRole").innerHTML=roleOpts("steward");
+const when=t=>t?"Last signed in "+new Date(t).toLocaleDateString([],{day:"numeric",month:"short",year:"numeric"}):"Hasn't signed in yet";
+function draw(list){
+  if(list)MEMBERS=list;
+  const team=MEMBERS.filter(m=>m.role),others=MEMBERS.filter(m=>!m.role);
+  const row=m=>{
+    const me=m.email===ME;
+    const sub=[m.name&&m.email,m.has_login?when(m.last_sign_in):"No login yet: create one in Supabase"].filter(Boolean);
+    return `<div class="urow"><div><b>${esc(m.name||m.email)}${me?' <span class="you">You</span>':""}</b>${sub.map(s=>`<small>${esc(s)}</small>`).join("")}</div>
+      <div class="uacts"><select data-role="${esc(m.email)}" aria-label="Role for ${esc(m.email)}"${me?" disabled title=\"You can't change your own role\"":""}>${roleOpts(m.role)}</select>${me?"":`<button class="danger" type="button" data-remove="${esc(m.email)}">Remove</button>`}</div></div>`};
+  const other=m=>`<div class="urow"><div><b>${esc(m.email)}</b><small>${esc(when(m.last_sign_in))} · can't see anything yet</small></div>
+      <div class="uacts"><select data-pick="${esc(m.email)}" aria-label="Role for ${esc(m.email)}">${roleOpts("viewer")}</select><button class="pri" type="button" data-add="${esc(m.email)}">Add</button></div></div>`;
+  $("list").innerHTML=`<article class="breed"><div class="bhead"><div><small>${team.length} ${team.length===1?"person":"people"}</small><h2>Team</h2></div></div>${team.map(row).join("")||'<div class="empty">Nobody yet.</div>'}</article>`+
+    (others.length?`<article class="breed"><div class="bhead"><div><small>Signed up but not on the team</small><h2>Waiting for a role</h2></div></div>${others.map(other).join("")}</article>`:"");
+}
+async function run(action,data,msg,ctl){
+  if(ctl)ctl.disabled=true;
+  try{const j=await mncfApi(action,data);draw(j.members);if(msg)mncfToast(msg);return true}
+  catch(e){mncfToast(e.message);draw();return false}
+  finally{if(ctl)ctl.disabled=false}
+}
+$("list").addEventListener("change",e=>{
+  const s=e.target;if(!s.dataset.role)return;
+  run("setMember",{email:s.dataset.role,role:s.value},`${s.dataset.role} is now ${/^[ao]/i.test(s.value)?"an":"a"} ${mncfRoleName(s.value)}`,s);
+});
+$("list").addEventListener("click",e=>{
+  const b=e.target.closest("button");if(!b)return;
+  if(b.dataset.remove){if(!confirm(`Take ${b.dataset.remove} off the team? Their login stays but they won't see anything.`))return;
+    run("removeMember",{email:b.dataset.remove},b.dataset.remove+" removed from the team",b)}
+  if(b.dataset.add){const s=b.parentNode.querySelector("[data-pick]");run("setMember",{email:b.dataset.add,role:s.value},`${b.dataset.add} added as ${mncfRoleName(s.value)}`,b)}
+});
+$("addForm").addEventListener("submit",async ev=>{
+  ev.preventDefault();$("nmErr").textContent="";
+  const email=$("nmEmail").value.trim().toLowerCase();
+  if(MEMBERS.some(m=>m.email===email&&m.role)){$("nmErr").textContent=email+" is already on the team. Change their role in the list.";return}
+  if(await run("setMember",{email,name:$("nmName").value.trim(),role:$("nmRole").value},`${email} added as ${mncfRoleName($("nmRole").value)}`,$("nmBtn")))ev.target.reset(),$("nmRole").value="steward";
+});
+(async()=>{
+  ME=(await mncfWho()).toLowerCase();
+  const r=await mncfRole();
+  if(r!=="admin"){$("list").innerHTML=`<div class="empty">Only admins can see users and change roles.${r?` Your login is ${/^[ao]/.test(r)?"an":"a"} ${esc(mncfRoleName(r))}.`:""}</div>`;return}
+  $("addPanel").hidden=false;
+  try{const j=await mncfApi("team");draw(j.members)}
+  catch(e){$("list").innerHTML=`<p class="err">${esc(e.message)}</p>`}
+})();
+</script>
+</body>
+</html>
