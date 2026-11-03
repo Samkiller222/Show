@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="mncf-version" content="2026-11-03d">
+<meta name="mncf-version" content="2026-11-03e">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>MNCF Show Awards</title>
@@ -160,10 +160,10 @@ pre{white-space:pre-wrap;font-size:13px;background:var(--bg);border:1px solid va
 
 <script src="xlsx.full.min.js"></script>
 <script src="supabase.min.js"></script>
-<script src="api.js?v=2026-11-03d"></script>
-<script src="shell.js?v=2026-11-03d"></script>
-<script src="focus.js?v=2026-11-03d"></script>
-<script src="nav.js?v=2026-11-03d"></script>
+<script src="api.js?v=2026-11-03e"></script>
+<script src="shell.js?v=2026-11-03e"></script>
+<script src="focus.js?v=2026-11-03e"></script>
+<script src="nav.js?v=2026-11-03e"></script>
 <script>mncfShell({page:new URLSearchParams(location.search).get("view")==="results"?"results":"awards"});</script>
 <script>
 function startEngine(){
@@ -418,12 +418,18 @@ function resultsText(breeds,gAw){
   gAw.forEach(a=>{const v=res[a.k];const x=a.pool.find(p=>p.k===v);out.push(`  ${a.sec} · ${a.t}: ${v===W?"withheld":x?x.l:"—"}`)});
   return out.join("\n");
 }
+// A little feedback after each change: the row flashes, a ticked Given pops, and a card that just finished glows.
+const doneNow=()=>new Set([...document.querySelectorAll("#breeds > .breed.done h2, #groups > .breed.done h2")].map(h=>h.textContent));
+function cheer(sel,cls,was){
+  const el=document.querySelector(sel),r=el&&el.closest(".row");if(r)r.classList.add(cls);
+  document.querySelectorAll("#breeds > .breed.done, #groups > .breed.done").forEach(c=>{const h=c.querySelector("h2");if(h&&!was.has(h.textContent))c.classList.add("justdone")});
+}
 document.addEventListener("change",ev=>{
   const t=ev.target;
-  if(t.dataset.k){const k=t.dataset.k;if(t.value){res[k]=t.value;delete res["auto-off|"+k]}else{delete res[k];res["auto-off|"+k]=1}save(KS,res);render()}
-  if(t.dataset.g){if(t.checked)res["g|"+t.dataset.g]=1;else delete res["g|"+t.dataset.g];save(KS,res);const r=t.closest(".row");if(r)r.classList.toggle("isgiven",t.checked);render()}
+  if(t.dataset.k){const k=t.dataset.k,was=doneNow();if(t.value){res[k]=t.value;delete res["auto-off|"+k]}else{delete res[k];res["auto-off|"+k]=1}save(KS,res);render();if(t.value)cheer(`[data-k="${CSS.escape(k)}"]`,"picked",was)}
+  if(t.dataset.g){const k=t.dataset.g,on=t.checked,was=doneNow();if(on)res["g|"+k]=1;else delete res["g|"+k];save(KS,res);const r=t.closest(".row");if(r)r.classList.toggle("isgiven",on);render();if(on)cheer(`[data-g="${CSS.escape(k)}"]`,"pop",was)}
 });
-function toast(t){const el=document.getElementById("toast");el.textContent=t;el.classList.add("show");setTimeout(()=>el.classList.remove("show"),1800)}
+function toast(t){mncfToast(t)}
 let rq=null,rlast="";
 function queueResults(){
   const rows=sheetRows().slice(1).map(r=>r.slice(1));

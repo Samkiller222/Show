@@ -64,6 +64,7 @@ body.results-view #resultsText{max-height:none}
         apply();
       },
       active(){return mode==="round"&&!document.body.classList.contains("results-view")},
+      step(d){const n=cards().length;const i=cur+d;if(i>=0&&i<n)go(i)},
       goCard(card){const i=cards().indexOf(card);if(i>=0)go(i)},
       refresh:apply
     };
