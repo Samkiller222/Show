@@ -110,25 +110,29 @@ a.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--card)}
 .gate h2{margin:0}
 .loading{color:var(--muted);font-size:14px;padding:18px 0}
 @media (max-width:520px){.show-card{flex-direction:column;align-items:stretch}}
-/* Entries: breed cards with Puppy / Junior / Open lanes; drag a dog by its handle to change class */
-.lanes{border-top:1px solid var(--line);padding:8px 10px 10px;display:grid;grid-template-columns:1fr;gap:8px}
-.lanes-h{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+/* Entries: breed cards with Puppy / Junior / Open lanes; drag a dog to change class */
+.lanes{border-top:1px solid var(--line);padding:10px 10px 12px;display:grid;grid-template-columns:1fr;gap:10px;border-left:6px solid var(--sexc)}
+.lanes.sex-dog{--sexc:var(--blue)}.lanes.sex-bitch{--sexc:var(--red)}
+.lanes-h{display:flex;align-items:center;gap:8px;font-family:var(--display);font-size:19px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--sexc)}
+.sexmark{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:var(--sexc);color:var(--card);font-size:17px;font-family:var(--body)}
 @media (min-width:760px){.lanes{grid-template-columns:repeat(3,minmax(0,1fr))}.lanes-h{grid-column:1/-1}.lane.fixed{grid-column:1/-1}}
-.lane{border:1px dashed var(--line);border-radius:8px;background:var(--bg);overflow:hidden;transition:background .15s,border-color .15s}
-.lane h4{margin:0;padding:6px 10px;font-size:13px;font-weight:600;display:flex;justify-content:space-between;gap:8px}
-.lane h4 span{color:var(--muted);font-variant-numeric:tabular-nums}
+.lane{--agec:var(--accent);border:2px solid color-mix(in srgb,var(--agec) 45%,var(--line));border-radius:10px;background:color-mix(in srgb,var(--agec) 6%,var(--card));overflow:hidden;transition:background .15s,border-color .15s,box-shadow .15s;min-height:92px}
+.lane.age-puppy{--agec:#a35f00}.lane.age-junior{--agec:#17706f}.lane.age-open{--agec:var(--accent)}.lane.age-veteran{--agec:var(--muted)}
+.lane h4{margin:0;padding:8px 12px;font-family:var(--display);font-size:17px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--agec);color:#fff}
+.lane h4 span{background:rgba(255,255,255,.25);border-radius:999px;padding:0 9px;font-variant-numeric:tabular-nums;font-size:15px}
 .lane .erow{background:var(--card);padding:4px 10px 8px 4px;grid-template-columns:auto 2.6em minmax(0,1fr);gap:2px 8px}
+.lane .erow.mv{cursor:grab}
 .lane .erow:not(.mv){grid-template-columns:2.6em minmax(0,1fr);padding-left:10px}
 .lane .erow .acts{grid-column:1/-1;justify-content:flex-start}
 .lane .erow.mv .acts{padding-left:42px}
-.lane-empty{margin:0;padding:10px;font-size:13px;color:var(--muted);text-align:center;border-top:1px solid var(--line)}
+.lane-empty{margin:0;padding:16px 10px;font-size:13px;color:var(--muted);text-align:center}
 .grip{display:flex;align-items:center;justify-content:center;min-width:34px;min-height:46px;font-size:22px;color:var(--muted);cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;border-radius:6px}
 .grip:hover{background:var(--accent-soft);color:var(--accent)}
 .mvsel{width:auto;padding:6px 8px;font-size:13px;min-height:36px}
 .dragmode,.dragmode *{cursor:grabbing!important;user-select:none;-webkit-user-select:none}
-.dragmode .lane:not(.can){opacity:.45}
-.lane.can{border-color:var(--accent)}
-.lane.over{background:var(--accent-soft);border-style:solid;border-width:2px}
+.dragmode .lane:not(.can){opacity:.4}
+.lane.can{border-style:dashed;border-color:var(--agec)}
+.lane.over{border-style:solid;box-shadow:0 0 0 3px color-mix(in srgb,var(--agec) 35%,transparent);background:color-mix(in srgb,var(--agec) 16%,var(--card))}
 .erow.dragging{opacity:.35}
-.erow.ghost{position:fixed;z-index:40;margin:0;pointer-events:none;background:var(--card);border:1px solid var(--accent);border-radius:8px;box-shadow:0 10px 26px rgba(0,0,0,.22);transform:rotate(-1.5deg)}
+.erow.ghost{position:fixed;z-index:40;margin:0;pointer-events:none;background:var(--card);border:2px solid var(--accent);border-radius:8px;box-shadow:0 10px 26px rgba(0,0,0,.22);transform:rotate(-1.5deg)}
 .lhead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}

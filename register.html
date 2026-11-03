@@ -20,7 +20,7 @@
   </section>
   <section class="panel">
     <div class="lhead"><h2>Entries <span class="note" id="countNote"></span></h2><a class="btn pri" id="addLink" href="entry.html">+ Add entry</a></div>
-    <p class="note">Drag a dog by ⠿, or use its class menu, to move it between Puppy, Junior and Open.</p>
+    <p class="note">To move a dog between Puppy, Junior and Open, drag its card into another class (on a phone, hold the ⠿ handle), or pick the class from its menu.</p>
     <div class="find"><input type="text" id="q" placeholder="Search ring number, dog or breed"></div>
     <p class="note" id="warnNote"></p>
   </section>
@@ -82,10 +82,10 @@ function drawEntries(){
     if(G.g===-1||G.g===99) body=items.map(entryRow).join("");
     else{
       body=SEXES.filter(sx=>items.some(e=>(laneOf(e.Class)||{}).sex===sx)).map(sx=>
-        `<div class="lanes" aria-label="${sx==="Dog"?"Dogs":"Bitches"}"><div class="lanes-h">${sx==="Dog"?"Dogs":"Bitches"}</div>`+
+        `<div class="lanes sex-${sx.toLowerCase()}" aria-label="${sx==="Dog"?"Dogs":"Bitches"}"><div class="lanes-h"><span class="sexmark">${sx==="Dog"?"♂":"♀"}</span>${sx==="Dog"?"Dogs":"Bitches"}</div>`+
         LANES.map(a=>{const c=`${a} ${sx}`, its=items.filter(e=>e.Class===c);
-          return `<section class="lane" data-lane="${esc(k)}|${c}"><h4>${a} ${sx} <span>${its.length}</span></h4>${its.map(entryRow).join("")||'<p class="lane-empty">Drop a dog here</p>'}</section>`}).join("")+
-        (items.some(e=>e.Class==="Veteran "+sx)?`<section class="lane fixed"><h4>Veteran ${sx} <span>${items.filter(e=>e.Class==="Veteran "+sx).length}</span></h4>${items.filter(e=>e.Class==="Veteran "+sx).map(entryRow).join("")}</section>`:"")+
+          return `<section class="lane age-${a.toLowerCase()}" data-lane="${esc(k)}|${c}"><h4>${a} ${sx} <span>${its.length}</span></h4>${its.map(entryRow).join("")||'<p class="lane-empty">Drop a dog here</p>'}</section>`}).join("")+
+        (items.some(e=>e.Class==="Veteran "+sx)?`<section class="lane fixed age-veteran"><h4>Veteran ${sx} <span>${items.filter(e=>e.Class==="Veteran "+sx).length}</span></h4>${items.filter(e=>e.Class==="Veteran "+sx).map(entryRow).join("")}</section>`:"")+
         `</div>`).join("");
       const other=items.filter(e=>!laneOf(e.Class));if(other.length)body+=other.map(entryRow).join("");
     }
@@ -99,33 +99,46 @@ async function moveEntry(row,cls){
     S.entries=j.entries;drawEntries();mncfToast(`${e["Dog name"]} moved to ${cls}`)}
   catch(er){e.Class=from;drawEntries();mncfToast(er.message)}
 }
-// Drag by the ⠿ handle with pointer events, so it works by touch on phones as well as with a mouse.
+// Drag and drop with pointer events. With a mouse, grab a dog's card anywhere (not on its buttons);
+// by touch, grab the ⠿ handle so the page still scrolls normally. A drag starts after a small move, so taps still work.
 (function(){
-  let d=null;
-  const laneAt=(x,y)=>{const el=document.elementFromPoint(x,y);const l=el&&el.closest(".lane[data-lane]");return l&&l.dataset.lane.startsWith(d.breed+"|")&&laneOf(l.dataset.lane.slice(d.breed.length+1)).sex===d.sex?l:null};
+  let d=null, pend=null;
+  const sec2=e=>e.Breed||"Breed not set";
+  const ok=l=>l&&d&&l.dataset.lane.startsWith(d.breed+"|")&&(laneOf(l.dataset.lane.slice(d.breed.length+1))||{}).sex===d.sex;
+  const laneAt=(x,y)=>{const el=document.elementFromPoint(x,y);const l=el&&el.closest(".lane[data-lane]");return ok(l)?l:null};
   function scroll(){if(!d)return;const h=innerHeight,y=d.y,edge=90;const v=y<edge?-(edge-y)/4:y>h-edge?(y-(h-edge))/4:0;if(v)scrollBy(0,v);d.raf=requestAnimationFrame(scroll)}
-  document.addEventListener("pointerdown",ev=>{
-    const g=ev.target.closest("[data-grip]");if(!g||ev.button>0)return;
-    const e=S.entries.find(x=>x._row==g.dataset.grip);if(!e)return;ev.preventDefault();
-    const row=g.closest(".erow"),r=row.getBoundingClientRect(),ghost=row.cloneNode(true);
+  function start(p){
+    const e=S.entries.find(x=>x._row==p.rowId);if(!e||!movable(e))return;
+    const row=p.row,r=row.getBoundingClientRect(),ghost=row.cloneNode(true);
     ghost.classList.add("ghost");Object.assign(ghost.style,{width:r.width+"px",left:r.left+"px",top:r.top+"px"});document.body.appendChild(ghost);
     row.classList.add("dragging");
-    d={row:e._row,breed:sec2(e),sex:laneOf(e.Class).sex,from:e.Class,ghost,src:row,dx:ev.clientX-r.left,dy:ev.clientY-r.top,x:ev.clientX,y:ev.clientY,over:null,id:ev.pointerId};
-    document.querySelectorAll(".lane[data-lane]").forEach(l=>{if(l.dataset.lane.startsWith(d.breed+"|")&&laneOf(l.dataset.lane.slice(d.breed.length+1)).sex===d.sex)l.classList.add("can")});
+    d={row:e._row,breed:sec2(e),sex:laneOf(e.Class).sex,from:e.Class,ghost,src:row,dx:p.x-r.left,dy:p.y-r.top,x:p.x,y:p.y,over:null,id:p.id};
+    document.querySelectorAll(".lane[data-lane]").forEach(l=>{if(ok(l))l.classList.add("can")});
     document.body.classList.add("dragmode");d.raf=requestAnimationFrame(scroll);
+    try{window.getSelection().removeAllRanges()}catch(er){}
+  }
+  document.addEventListener("pointerdown",ev=>{
+    if(ev.button>0||d)return;
+    const grip=ev.target.closest("[data-grip]"), row=ev.target.closest(".erow.mv");if(!row)return;
+    if(!grip&&(ev.pointerType!=="mouse"||ev.target.closest("button,input,select,label,a")))return;
+    pend={rowId:row.dataset.row,row,x:ev.clientX,y:ev.clientY,id:ev.pointerId};
+    if(grip){ev.preventDefault();start(pend);pend=null}
   });
   document.addEventListener("pointermove",ev=>{
+    if(pend&&ev.pointerId===pend.id){if(Math.hypot(ev.clientX-pend.x,ev.clientY-pend.y)>6){const p=pend;pend=null;start(p)}else return}
     if(!d||ev.pointerId!==d.id)return;ev.preventDefault();d.x=ev.clientX;d.y=ev.clientY;
     d.ghost.style.left=(ev.clientX-d.dx)+"px";d.ghost.style.top=(ev.clientY-d.dy)+"px";
     const l=laneAt(ev.clientX,ev.clientY);if(l!==d.over){if(d.over)d.over.classList.remove("over");d.over=l;if(l)l.classList.add("over")}
   },{passive:false});
   function end(ev){
+    pend=null;
     if(!d||ev.pointerId!==d.id)return;const t=d;d=null;cancelAnimationFrame(t.raf);t.ghost.remove();t.src.classList.remove("dragging");
     document.body.classList.remove("dragmode");document.querySelectorAll(".lane.can,.lane.over").forEach(l=>l.classList.remove("can","over"));
     if(ev.type==="pointerup"&&t.over){const cls=t.over.dataset.lane.slice(t.breed.length+1);if(cls!==t.from)moveEntry(t.row,cls)}
   }
   document.addEventListener("pointerup",end);document.addEventListener("pointercancel",end);
-  const sec2=e=>e.Breed||"Breed not set";
+  // Stop the browser's own text/image drag from taking over a mouse drag.
+  document.addEventListener("dragstart",ev=>{if(ev.target.closest&&ev.target.closest(".erow.mv"))ev.preventDefault()});
 })();
 $("showSel").onchange=()=>{S.show=$("showSel").value;location.href="register.html"+(S.show?"?show="+encodeURIComponent(S.show):"")};
 $("q").addEventListener("input",drawEntries);
