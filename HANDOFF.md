@@ -124,7 +124,8 @@ On the Entries form, the dog-name suggestions are now filtered by the chosen bre
 
 Sam asked: *"have the breeds grouped up and the names of the dogs be dragable between the junior, puppy and open classes"*. Done in `register.html`:
 - Each breed card (still ordered by group, group named in the card header) shows a **Dogs** block and a **Bitches** block, each with Puppy, Junior and Open lanes. Empty lanes say "Drop a dog here". Veteran entries sit in a fixed lane below and can't be dragged. AV Locally Bred and the handler classes stay as plain lists.
-- Drag a dog by its ⠿ handle (pointer events with `touch-action:none` on the handle only, so the page still scrolls by touch). Only lanes of the same breed and sex accept the drop; the page auto-scrolls near the screen edges.
+- Drag a dog with the mouse by grabbing its card anywhere except its buttons (drag starts after a 6px move, so clicks still work); by touch, hold the ⠿ handle (`touch-action:none` on the handle only, so the page still scrolls).
+- Class lanes are colour-coded (Puppy amber, Junior teal, Open purple, Veteran grey) with solid header bars, and the Dogs / Bitches blocks have ♂ / ♀ marks and blue / red side bars. Only lanes of the same breed and sex accept the drop; the page auto-scrolls near the screen edges.
 - Tap fallback: a class menu on each movable card.
 - `moveEntry(row, cls)` updates the list at once, then saves with `mncfApi("saveEntry",{entry:{...,Class,_row},dog:null})`. If saving fails the dog jumps back and a toast shows the error. `save_entry` with a null dog leaves the dog record alone.
 - Styles are at the end of `style.css` (`.lanes`, `.lane`, `.grip`, `.mvsel`, `.ghost`).
