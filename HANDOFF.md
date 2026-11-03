@@ -1,6 +1,6 @@
 # Handoff: MNCF dog show awards organiser
 
-Notes for picking this project up in a new chat. Last updated 3 November 2026 (user roles and admin view).
+Notes for picking this project up in a new chat. Last updated 3 November 2026 (handler role).
 
 ## What it is
 
@@ -211,6 +211,16 @@ Sam: *"add an admin view where an admin can see and change the roles of certain 
 - **Database** (`supabase/migrations/20261103_team_roles.sql`): `team_members.role` (check constraint, default `organiser`), Sam set to admin. `private.my_role()`, `can_edit()`, `can_award()`, `is_admin()`, `need_edit()`. Write policies on shows, entries, dogs and breeds use `can_edit()`; on `live_results` `can_award()`; reads still use `is_team()`. `save_entry` and `import_entries` start with `perform private.need_edit()` and `sync_state` refuses changes from viewers, so the errors read clearly. `team_members` has no write policies: it only changes through `set_team_member(p_email,p_role,p_name)` and `remove_team_member(p_email)` (security definer, admins only). An admin can't change their own role or remove themselves, and the club must always keep one admin. `team_list()` (admins only) returns team members joined to `auth.users` plus logins not on the team. `my_role()` is callable by any signed-in user.
 - **Site:** `api.js` has `mncfRole()` (cached per page, last value in localStorage `mncf-role`), `mncfRoleName()`, actions `team`, `setMember`, `removeMember`, and refuses writes the role can't make with a plain message (no more sign-out on a permission error while signed in). `shell.js` sets `body[data-role]` and the classes `ro-edit` (steward, viewer, not on team) and `ro-award` (viewer), which hide Edit show, the Add entry tab, + New show, + Add dog, Edit details, entry buttons and drag, the breed form, the save bar on judging days, and lock award pickers; a note under the header says what the login can do. The drawer shows the role badge and, for admins, "Users and roles". If `my_role` is missing (migration not applied) the site behaves exactly as before.
 - Creating the login itself still happens in Supabase (Authentication → Users). Adding the email on `users.html` gives it a role.
+
+## Handler role (3 Nov 2026)
+
+Sam: *"add another user type called handler where those users can see dogs registered to them and write them up for shows"*. Sam chose to link dogs to handlers by email, set on each dog.
+
+- **Database** (`supabase/migrations/20261103_handler_role.sql`, needs the team roles migration first): role `handler`; `dogs.handler_emails text[]` (GIN index). `private.sees_all()` (every role but handler), `is_handler()`, `my_email()`, `my_dog(name)`, `show_open(show_id)`, `handler_dog_check(name)`.
+  - Handlers read shows and breeds, only their own dogs (`my_email() = any(handler_emails)`) and those dogs' entries; no results (`live_results`) and no team list.
+  - They add dogs (linked to them by the `handler_dog_rules` trigger), edit their own dogs but can't rename them or change `handler_emails`, and enter, change or withdraw their own dogs while the show's status is Open. They can't set ring numbers, enter Junior Handler or Childrens Class, add breeds, or mark absent. `handler_entry_rules` gives the plain error messages.
+  - `upsert_dog_` starts with `perform private.handler_dog_check(p_name)` so entering a dog registered to someone else says so. `need_edit()` lets handlers through; RLS and the triggers decide. `team_list()` gains a `dogs` count.
+- **Site:** Club dogs has a "Handler logins" field (organisers and admins) and shows the logins on the dog page. `body.ro-handler` hides show setup, awards and results, judging days, catalogue, breeds, Absent, the ring number field, handler classes and "Add a new breed". Users and roles lists Handler, shows each handler's dog count and has a Preview button per handler (`mncf-preview-role` = `handler:<email>`). In a handler preview `api.js` (`previewFilter`) narrows dogs and entries to that email's dogs, since the database still answers as the admin. Saved lists (`mncf-cache-*`) are cleared on sign-in, sign-out and preview changes so one login never sees another's.
 
 ## Next request
 

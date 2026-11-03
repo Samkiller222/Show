@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="mncf-version" content="2026-11-03l">
+<meta name="mncf-version" content="2026-11-03m">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>MNCF Add Entry</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<link rel="stylesheet" href="css/style.css?v=2026-11-03l">
+<link rel="stylesheet" href="css/style.css?v=2026-11-03m">
 </head>
 <body>
 <div class="wrap">
@@ -55,8 +55,8 @@
 </div>
 <div class="toast" id="toast"></div>
 <script src="vendor/supabase.min.js"></script>
-<script src="js/api.js?v=2026-11-03l"></script>
-<script src="js/shell.js?v=2026-11-03l"></script>
+<script src="js/api.js?v=2026-11-03m"></script>
+<script src="js/shell.js?v=2026-11-03m"></script>
 <script>
 mncfShell({page:"add",title:mncfQuery("show")||"Add an entry",kicker:mncfQuery("show")?(mncfQuery("edit")?"Edit entry":"Add entry"):"Add an entry"});
 const esc=mncfEsc, $=id=>document.getElementById(id);
@@ -74,10 +74,15 @@ function fillShows(){
   $("formPanel").hidden=!S.show;
   $("pickPanel").hidden=!!S.show&&!!s;
 }
+// Handlers enter their own dogs only: no ring numbers, handler classes or new breeds (the database checks this too).
+let HANDLER=mncfRoleCached()==="handler";
+mncfRole().then(r=>{if((r==="handler")!==HANDLER){HANDLER=r==="handler";if(S.breeds.length)fillLists()}});
 function fillLists(){
-  $("fClass").innerHTML=AGE.flatMap(a=>[`${a} Dog`,`${a} Bitch`]).concat(SPECIAL).map(c=>`<option>${c}</option>`).join("");
+  const cur=$("fClass").value;
+  $("fClass").innerHTML=AGE.flatMap(a=>[`${a} Dog`,`${a} Bitch`]).concat(HANDLER?SPECIAL.filter(c=>!PERSON.includes(c)):SPECIAL).map(c=>`<option>${c}</option>`).join("");
+  if(cur&&[...$("fClass").options].some(o=>o.value===cur))$("fClass").value=cur;
   const byG={};S.breeds.forEach(b=>{(byG[b.Group]=byG[b.Group]||[]).push(b.Breed)});
-  $("fBreed").innerHTML='<option value="">Pick a breed…</option>'+Object.keys(byG).sort((a,b)=>GROUP_ORDER.indexOf(a)-GROUP_ORDER.indexOf(b)).map(g=>`<optgroup label="${esc(g)}">${byG[g].sort().map(b=>`<option>${esc(b)}</option>`).join("")}</optgroup>`).join("")+'<option value="__new">Add a new breed…</option>';
+  $("fBreed").innerHTML='<option value="">Pick a breed…</option>'+Object.keys(byG).sort((a,b)=>GROUP_ORDER.indexOf(a)-GROUP_ORDER.indexOf(b)).map(g=>`<optgroup label="${esc(g)}">${byG[g].sort().map(b=>`<option>${esc(b)}</option>`).join("")}</optgroup>`).join("")+(HANDLER?"":'<option value="__new">Add a new breed…</option>');
   $("fGroup").innerHTML='<option value="">Pick a group…</option>'+S.groups.map(g=>`<option>${esc(g)}</option>`).join("");
   fillDogList();
 }

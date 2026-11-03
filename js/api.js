@@ -35,24 +35,29 @@
         ev.preventDefault();const b=g.querySelector("button");b.disabled=true;b.textContent="Signing in…";
         const {error}=await sb.auth.signInWithPassword({email:g.querySelector("#loginEmail").value.trim(),password:g.querySelector("#loginPw").value});
         if(error){g.querySelector("#loginErr").textContent=/invalid/i.test(error.message)?"That email and password don't match a team login.":error.message;b.disabled=false;b.textContent="Sign in";return}
-        g.remove();gateP=null;roleP=null;res();
+        clearCache();g.remove();gateP=null;roleP=null;res();
       });
     });
     return gateP;
   }
+  // Saved copies of lists belong to whoever was signed in: drop them when the login changes (handlers only see their own dogs).
+  function clearCache(){try{for(let i=localStorage.length-1;i>=0;i--){const k=localStorage.key(i);if(k&&k.startsWith("mncf-cache-"))localStorage.removeItem(k)}}catch(e){}}
   async function signedIn(){const {data}=await sb.auth.getSession();if(!data.session)await askLogin();}
-  window.mncfSignOut=async()=>{try{localStorage.removeItem("mncf-role");sessionStorage.removeItem("mncf-preview-role")}catch(e){}await sb.auth.signOut();location.reload()};
+  window.mncfSignOut=async()=>{try{localStorage.removeItem("mncf-role");sessionStorage.removeItem("mncf-preview-role");clearCache()}catch(e){}await sb.auth.signOut();location.reload()};
   // ---- roles: admin, organiser, steward (awards only), viewer (read only) ----
   // The database enforces these; pages only use the role to hide what this login can't do.
-  const ROLE_NAMES={admin:"Admin",organiser:"Organiser",steward:"Steward",viewer:"Viewer"};
+  const ROLE_NAMES={admin:"Admin",organiser:"Organiser",steward:"Steward",viewer:"Viewer",handler:"Handler"};
   let roleP=null;
   window.mncfRoleName=r=>ROLE_NAMES[r]||"Not on the team";
   // Admins can preview the site as another role (kept for this browser tab only).
   // The preview only changes what this page shows and allows; the database still sees an admin.
   const PREVIEW_KEY="mncf-preview-role";
+  // A handler preview can name the handler ("handler:email") so the page shows that person's dogs.
   window.mncfPreview={
-    get(){try{const r=sessionStorage.getItem(PREVIEW_KEY)||"";return ["organiser","steward","viewer"].includes(r)?r:""}catch(e){return ""}},
-    set(r){try{if(r&&r!=="admin")sessionStorage.setItem(PREVIEW_KEY,r);else sessionStorage.removeItem(PREVIEW_KEY)}catch(e){}}
+    raw(){try{return sessionStorage.getItem(PREVIEW_KEY)||""}catch(e){return ""}},
+    get(){const r=this.raw().split(":")[0];return ["organiser","steward","viewer","handler"].includes(r)?r:""},
+    email(){const r=this.raw();return r.startsWith("handler:")?r.slice(8).toLowerCase():""},
+    set(r){try{if(r&&r!=="admin")sessionStorage.setItem(PREVIEW_KEY,r);else sessionStorage.removeItem(PREVIEW_KEY)}catch(e){}clearCache()} // saved lists differ per role
   };
   const asPreview=r=>r==="admin"&&mncfPreview.get()?mncfPreview.get():r;
   // the login's real role
@@ -66,8 +71,11 @@
   // last known role on this phone, so the page can hide things before the database answers
   window.mncfRoleCached=()=>{try{return asPreview(localStorage.getItem("mncf-role")||"")}catch(e){return ""}};
   const EDIT_ACTIONS=["addShow","updateShow","setSchedule","saveEntry","deleteEntry","setAbsent","addBreed","setBreedGroup","saveDog","importEntries"];
+  // Handlers enter, change and withdraw their own dogs, and edit their own dogs' details. The database checks which dogs are theirs.
+  const HANDLER_ACTIONS=["saveEntry","deleteEntry","saveDog"];
   const canEdit=r=>r==="admin"||r==="organiser", canAward=r=>canEdit(r)||r==="steward";
   function roleBlock(action,data,r){
+    if(r==="handler"&&HANDLER_ACTIONS.includes(action)) return "";
     if(EDIT_ACTIONS.includes(action)&&!canEdit(r)) return `Your login is ${r?"a "+ROLE_NAMES[r]:"not on the team"}, so it can't change shows, entries, dogs or breeds. Ask an admin to change your role.`;
     if(action==="syncState"&&(data.changes||[]).length&&!canAward(r)) return `Your login is ${r?"a "+ROLE_NAMES[r]:"not on the team"}, so it can't record awards. Ask an admin to change your role.`;
     if(["team","setMember","removeMember"].includes(action)&&r!=="admin") return "Only admins can see and change users.";
@@ -77,7 +85,7 @@
 
   // ---- shapes the pages use ----
   const showOut=s=>({id:s.id,Show:s.name,Date:s.show_date,Venue:s.venue,Judge:s.judge,Status:s.status,Notes:s.notes,Schedule:Array.isArray(s.schedule)?s.schedule:[]});
-  const dogOut=d=>({"Dog name":d.name,Breed:d.breed,Sex:d.sex,"Date of birth":d.dob,Owner:d.owner,Phone:d.phone,Address:d.address,Breeder:d.breeder,Sire:d.sire,Dam:d.dam});
+  const dogOut=d=>({"Dog name":d.name,Breed:d.breed,Sex:d.sex,"Date of birth":d.dob,Owner:d.owner,Phone:d.phone,Address:d.address,Breeder:d.breeder,Sire:d.sire,Dam:d.dam,Handlers:Array.isArray(d.handler_emails)?d.handler_emails:null});
   const breedOut=b=>({Breed:b.name,Group:b.grp});
   const entryOut=e=>({_row:e.id,Show:e.show_name,"Ring No":e.ring_no,"Dog name":e.dog_name,Class:e.class,Absent:e.absent,Breed:e.breed,Group:e.grp,Sex:e.sex,Owner:e.owner});
   const fail=e=>{throw new Error(e.message||String(e))};
@@ -137,6 +145,11 @@
       if(!name)fail({message:"Type the dog's name."});if(!breed)fail({message:"Pick the dog's breed."});
       const row={name,breed,sex:["Dog","Bitch"].includes(g.Sex)?g.Sex:""};
       [["dob","Date of birth"],["owner","Owner"],["phone","Phone"],["address","Address"],["breeder","Breeder"],["sire","Sire"],["dam","Dam"]].forEach(([c,k])=>row[c]=String(g[k]||"").trim());
+      // handler logins (organisers set these; a handler's own new dog is linked to them by the database)
+      if(Array.isArray(g.Handlers)){
+        const bad=g.Handlers.find(e=>!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e));if(bad)fail({message:bad+" isn't a valid email."});
+        row.handler_emails=[...new Set(g.Handlers.map(e=>String(e).trim().toLowerCase()).filter(Boolean))];
+      }
       let old=null;
       if(d.id){const r=await sb.from("dogs").select("name").eq("id",d.id).maybeSingle();if(r.error)fail(r.error);if(!r.data)fail({message:"That dog was removed. Reload and try again."});old=r.data.name}
       const q=d.id?sb.from("dogs").update(row).eq("id",d.id).select():sb.from("dogs").insert(row).select();
@@ -198,7 +211,7 @@
     const myRole=await window.mncfRole();
     const blocked=myRole===null?"":roleBlock(action,data||{},myRole);
     if(blocked) throw new Error(blocked);
-    try{return await actions[action](data||{})}
+    try{return previewFilter(action,await actions[action](data||{}))}
     catch(e){
       const m=e.message||"";
       if(/JWT|not authenticated|permission denied|row-level security/i.test(m)){
@@ -209,6 +222,21 @@
       if(/Failed to fetch|NetworkError|Load failed/i.test(m)) throw new Error("Can't reach the show database. Check the internet connection.");
       throw e;
     }
+  }
+  // Previewing as a handler: the database still answers as the admin, so narrow the lists here
+  // to the dogs of the handler being previewed (or none), the way the database would for them.
+  function previewFilter(action,j){
+    if(mncfPreview.get()!=="handler"||!j||typeof j!=="object")return j;
+    const me=mncfPreview.email(),mine=d=>me&&Array.isArray(d.Handlers)&&d.Handlers.includes(me);
+    const out=Object.assign({},j);
+    if(Array.isArray(j.dogs))out.dogs=j.dogs.filter(mine);
+    const names=new Set((out.dogs||[]).map(d=>String(d["Dog name"]).toLowerCase()));
+    if(Array.isArray(j.entries)){
+      if(!out.dogs){const all=(mncfCache.get("club-dogs")||{}).dogs||[];all.filter(mine).forEach(d=>names.add(String(d["Dog name"]).toLowerCase()))}
+      out.entries=j.entries.filter(e=>names.has(String(e["Dog name"]).toLowerCase()))}
+    if(Array.isArray(j.results))out.results=[];
+    if(Array.isArray(j.rows))out.rows=[];
+    return out;
   }
   window.mncfApi=api;
   window.mncfCache={get:k=>{try{return JSON.parse(localStorage.getItem("mncf-cache-"+k))}catch(e){return null}},set:(k,v)=>{try{localStorage.setItem("mncf-cache-"+k,JSON.stringify(v))}catch(e){}}};
