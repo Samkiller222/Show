@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MNCF Add Entry</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <nav class="nav" aria-label="Pages"><a href="index.html">All shows</a><a href="register.html" >Register dogs</a><a id="awardsLink" href="awards.html">Awards</a></nav>
+    <h1>Add an entry</h1>
+    <div class="sub" id="showSub">Pick a show, then enter dogs one by one.</div>
+  </header>
+  <section class="panel" id="pickPanel">
+    <div class="field"><label for="showSel">Show</label><select id="showSel"><option value="">Loading shows…</option></select></div>
+  </section>
+  <section class="panel" id="formPanel">
+    <h2 id="formTitle">Add an entry</h2>
+    <form id="entryForm" class="form" autocomplete="off">
+      <div class="field"><label for="fClass">Class</label><select id="fClass" required></select></div>
+      <div class="field"><label for="fRing">Ring number</label><input type="text" id="fRing" inputmode="numeric" placeholder="e.g. 42"></div>
+      <div class="field dogonly"><label for="fBreed">Breed</label><select id="fBreed"></select></div>
+      <div class="field wide"><label for="fName" id="fNameLab">Dog name</label><input type="text" id="fName" list="dogList" required placeholder="Start typing to find a registered dog"><datalist id="dogList"></datalist><span class="note" id="dogHint"></span><span id="known"></span></div>
+      <div class="field dogonly" id="newBreedBox" hidden><label for="fNewBreed">New breed</label><input type="text" id="fNewBreed" placeholder="Breed name"></div>
+      <div class="field dogonly" id="newGroupBox" hidden><label for="fGroup">Group</label><select id="fGroup"></select></div>
+      <div class="field dogonly"><label for="fSex">Sex</label><select id="fSex"><option value="">—</option><option>Dog</option><option>Bitch</option></select></div>
+      <details class="field wide dogonly"><summary style="cursor:pointer;font-weight:600;font-size:14px">Owner details</summary>
+        <div class="form" style="margin-top:10px">
+          <div class="field"><label for="fOwner">Owner</label><input type="text" id="fOwner"></div>
+          <div class="field"><label for="fPhone">Phone</label><input type="tel" id="fPhone"></div>
+          <div class="field wide"><label for="fAddress">Address</label><input type="text" id="fAddress"></div>
+        </div>
+      </details>
+      <div class="field wide"><div class="btns"><button class="pri" type="submit" id="saveBtn">Save entry</button><button type="button" id="cancelBtn" hidden>Cancel edit</button></div><p class="err" id="formErr"></p></div>
+    </form>
+  </section>
+  <section class="panel" id="recentPanel" hidden>
+    <h2>Just added <span class="note" id="recentNote"></span></h2>
+    <div id="recent"></div>
+    <div class="btns"><a class="btn" id="listLink" href="register.html">See all entries by breed and class</a></div>
+  </section>
+</div>
+<div class="toast" id="toast"></div>
+<script src="supabase.min.js"></script>
+<script src="api.js"></script>
+<script src="shell.js"></script>
+<script>
+mncfShell({page:"add",title:mncfQuery("show")||"Add an entry",kicker:mncfQuery("show")?(mncfQuery("edit")?"Edit entry":"Add entry"):"Add an entry"});
+const esc=mncfEsc, $=id=>document.getElementById(id);
+const AGE=["Puppy","Junior","Open","Veteran"], SPECIAL=["AV Locally Bred","Junior Handler","Childrens Class"], PERSON=["Junior Handler","Childrens Class"];
+const GROUP_ORDER=["Utility","Hound","Gundog","Toy","Working","Terrier","Pastoral"];
+let S={shows:[],breeds:[],dogs:[],groups:GROUP_ORDER,entries:[],show:mncfQuery("show"),editing:null};
+const norm=s=>String(s||"").trim().toLowerCase();
+const groupOf=breed=>(S.breeds.find(b=>norm(b.Breed)===norm(breed))||{}).Group||"";
+function fillShows(){
+  $("showSel").innerHTML='<option value="">Pick a show…</option>'+S.shows.map(s=>`<option${s.Show===S.show?" selected":""}>${esc(s.Show)}</option>`).join("");
+  const s=S.shows.find(x=>x.Show===S.show);
+  $("showSub").textContent=s?[s.Date,s.Judge?"Judge: "+s.Judge:"",s.Status].filter(Boolean).join(" · "):"Pick a show, then enter dogs one by one.";
+  $("awardsLink").href="awards.html"+(S.show?"?show="+encodeURIComponent(S.show):"");
+  $("listLink").href="register.html"+(S.show?"?show="+encodeURIComponent(S.show):"");
+  $("formPanel").hidden=!S.show;
+  $("pickPanel").hidden=!!S.show&&!!s;
+}
+function fillLists(){
+  $("fClass").innerHTML=AGE.flatMap(a=>[`${a} Dog`,`${a} Bitch`]).concat(SPECIAL).map(c=>`<option>${c}</option>`).join("");
+  const byG={};S.breeds.forEach(b=>{(byG[b.Group]=byG[b.Group]||[]).push(b.Breed)});
+  $("fBreed").innerHTML='<option value="">Pick a breed…</option>'+Object.keys(byG).sort((a,b)=>GROUP_ORDER.indexOf(a)-GROUP_ORDER.indexOf(b)).map(g=>`<optgroup label="${esc(g)}">${byG[g].sort().map(b=>`<option>${esc(b)}</option>`).join("")}</optgroup>`).join("")+'<option value="__new">Add a new breed…</option>';
+  $("fGroup").innerHTML='<option value="">Pick a group…</option>'+S.groups.map(g=>`<option>${esc(g)}</option>`).join("");
+  fillDogList();
+}
+// Dog name suggestions only show registered dogs of the chosen breed
+function fillDogList(){
+  const br=$("fBreed").value, person=PERSON.includes($("fClass").value);
+  const list=person||br==="__new"?[]:S.dogs.filter(d=>!br||norm(d.Breed)===norm(br)).sort((a,b)=>a["Dog name"].localeCompare(b["Dog name"]));
+  $("dogList").innerHTML=list.map(d=>`<option value="${esc(d["Dog name"])}">${esc(d.Breed)}</option>`).join("");
+  $("dogHint").textContent=person?"":br==="__new"?"New breed: type the dog's name.":br?`${list.length} registered ${br} dog${list.length===1?"":"s"}. Type to pick one, or a new name to register it.`:"Pick a breed to narrow the list.";
+  $("fName").placeholder=person?"Child's or handler's name":br&&br!=="__new"?`Start typing a ${br} name`:"Start typing to find a registered dog";
+}
+function syncForm(){
+  const person=PERSON.includes($("fClass").value);
+  document.querySelectorAll(".dogonly").forEach(el=>el.hidden=person);
+  $("fNameLab").textContent=person?"Handler's name":"Dog name";
+  $("fName").placeholder=person?"Child's or handler's name":"Start typing to find a registered dog";
+  const nb=$("fBreed").value==="__new"&&!person;$("newBreedBox").hidden=!nb;$("newGroupBox").hidden=!nb;
+}
+const FIELDS={fBreed:"Breed",fSex:"Sex",fOwner:"Owner",fPhone:"Phone",fAddress:"Address"};
+function lookupDog(){
+  const d=S.dogs.find(x=>norm(x["Dog name"])===norm($("fName").value));
+  $("known").innerHTML=d&&!PERSON.includes($("fClass").value)?`<span class="tag">Registered dog · ${esc(d.Breed)}</span>`:($("fName").value.trim()&&!PERSON.includes($("fClass").value)?'<span class="tag warn">New dog · will be registered</span>':"");
+  if(!d) return;
+  Object.entries(FIELDS).forEach(([id,k])=>{if(d[k]!==undefined&&d[k]!==null&&d[k]!=="")$(id).value=d[k]});
+  syncForm();
+}
+function resetForm(keep){
+  keep=keep||{};const keepClass=keep.cls||$("fClass").value,keepBreed=keep.breed!=null?keep.breed:($("fBreed").value==="__new"?"":$("fBreed").value);
+  $("entryForm").reset();$("fClass").value=keepClass;S.editing=null;
+  if(keepBreed&&[...$("fBreed").options].some(o=>o.value===keepBreed))$("fBreed").value=keepBreed;
+  $("formTitle").textContent="Add an entry";$("saveBtn").textContent="Save entry";$("cancelBtn").hidden=true;$("known").innerHTML="";$("formErr").textContent="";syncForm();fillDogList();
+}
+const EDIT=mncfQuery("edit");
+async function loadShow(){
+  if(!S.show)return;
+  try{const j=await mncfApi("show",{show:S.show});S.entries=j.entries;S.dogs=j.dogs;S.breeds=j.breeds;fillLists();
+    if(EDIT&&!S.editing){const e=S.entries.find(x=>String(x._row)===EDIT);if(e)startEdit(e);else $("formErr").textContent="That entry was removed or changed. You can add a new one instead."}}
+  catch(e){$("formErr").textContent=e.message}
+}
+function startEdit(e){
+  S.editing=e;$("fClass").value=e.Class;$("fRing").value=String(e["Ring No"]).trim();$("fName").value=e["Dog name"];syncForm();lookupDog();
+  $("formTitle").textContent="Edit entry";$("saveBtn").textContent="Save changes";$("cancelBtn").hidden=false;
+}
+const backToList=()=>{location.href="register.html?show="+encodeURIComponent(S.show)};
+// Entries added on this screen since it was opened, newest first, so the steward can check what went in.
+const RECENT=[];
+function drawRecent(){
+  $("recentPanel").hidden=!RECENT.length;$("recentNote").textContent=`· ${RECENT.length} this session`;
+  $("recent").innerHTML=RECENT.slice(0,8).map(e=>`<div class="erow"><span class="no${e["Ring No"]?"":" missing"}">${esc(e["Ring No"]||"No no.")}</span><span><span class="nm">${esc(e["Dog name"])}</span><small>${esc([e.Class,e.Breed].filter(Boolean).join(" · "))}</small></span><span></span></div>`).join("");
+}
+$("showSel").onchange=()=>{S.show=$("showSel").value;location.href="entry.html"+(S.show?"?show="+encodeURIComponent(S.show):"")};
+$("fClass").onchange=()=>{syncForm();fillDogList();lookupDog()};
+$("fBreed").onchange=()=>{syncForm();fillDogList()};$("fSex").onchange=syncForm;
+$("fName").addEventListener("input",lookupDog);
+$("cancelBtn").onclick=()=>EDIT?backToList():resetForm();
+$("entryForm").addEventListener("submit",async ev=>{
+  ev.preventDefault();const err=$("formErr");err.textContent="";
+  const cls=$("fClass").value, person=PERSON.includes(cls);
+  let breed=$("fBreed").value, group="";
+  if(!person){
+    if(breed==="__new"){breed=$("fNewBreed").value.trim();group=$("fGroup").value;if(!breed){err.textContent="Type the new breed's name.";return}if(!group){err.textContent="Pick the group for "+breed+".";return}}
+    if(!breed){err.textContent="Pick the dog's breed.";return}
+  }
+  const dog={Breed:breed,Group:group};
+  Object.entries(FIELDS).forEach(([id,k])=>{if(id!=="fBreed")dog[k]=$(id).value.trim()});
+  const entry={Show:S.show,"Ring No":$("fRing").value.trim(),"Dog name":$("fName").value.trim(),Class:cls,Absent:S.editing?S.editing.Absent===true:false};
+  if(S.editing) entry._row=S.editing._row;
+  const b=$("saveBtn");b.disabled=true;b.textContent="Saving…";
+  try{const j=await mncfApi("saveEntry",{entry,dog:person?null:dog});S.entries=j.entries;S.dogs=j.dogs;S.breeds=j.breeds;
+    if(S.editing){mncfToast(`${entry["Dog name"]} updated`);backToList();return}
+    fillLists();RECENT.unshift({...entry,Breed:person?"":breed});drawRecent();
+    mncfToast(`${entry["Dog name"]} entered in ${cls}`);resetForm({cls,breed:person?"":breed});$("fName").focus()}
+  catch(e){err.textContent=e.message}
+  b.disabled=false;b.textContent=S.editing?"Save changes":"Save entry";
+});
+(async()=>{
+  const c=mncfCache.get("bootstrap");
+  if(c){Object.assign(S,{shows:c.shows,breeds:c.breeds,dogs:c.dogs,groups:c.groups||GROUP_ORDER});fillShows();fillLists();syncForm()}
+  try{const j=await mncfApi("bootstrap");mncfCache.set("bootstrap",j);Object.assign(S,{shows:j.shows,breeds:j.breeds,dogs:j.dogs,groups:j.groups});fillShows();fillLists();syncForm()}
+  catch(e){$("formErr").textContent=e.message}
+  loadShow();
+})();
+</script>
+</body>
+</html>

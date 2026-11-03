@@ -81,6 +81,15 @@
       const {error}=cur?await sb.from("shows").update(row).eq("id",cur.id):await sb.from("shows").insert(row);
       if(error)fail(error);return {ok:true,shows:await shows()};
     },
+    // Change the details of an existing show, including its name. Entries and results follow, since they're linked by id.
+    async updateShow(d){
+      const s=d.show||{},name=String(s.Show||"").trim();if(!name)fail({message:"Give the show a name."});if(!d.id)fail({message:"That show wasn't found. Reload and try again."});
+      const other=await findShow(name);if(other&&other.id!==d.id)fail({message:"Another show is already called "+name+"."});
+      const row={name,show_date:s.Date||"",venue:s.Venue||"",judge:s.Judge||"",status:s.Status||"Open",notes:s.Notes||""};
+      const {data,error}=await sb.from("shows").update(row).eq("id",d.id).select();if(error)fail(error);
+      if(!data||!data.length)fail({message:"That show was removed or you can't change it. Reload and try again."});
+      return {ok:true,show:showOut(data[0]),shows:await shows()};
+    },
     async saveEntry(d){
       const {error}=await sb.rpc("save_entry",{p_show:d.entry.Show,p_entry:d.entry,p_dog:d.dog||null});if(error)fail(error);
       const [e,g,b]=await Promise.all([entries(d.entry.Show),dogs(),breeds()]);return {ok:true,entries:e,dogs:g,breeds:b};

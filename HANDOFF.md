@@ -1,6 +1,6 @@
 # Handoff: MNCF dog show awards organiser
 
-Notes for picking this project up in a new chat. Last updated 3 November 2026.
+Notes for picking this project up in a new chat. Last updated 3 November 2026 (drag lanes).
 
 ## What it is
 
@@ -26,7 +26,9 @@ The site helps the MNCF (Malta) team at dog shows:
 - **Dog registration:** dog name, breed, sex, owner, phone and address only. There is **no pedigree and no date of birth**.
 - **Classes and breed groups are set by hand:** classes on the Entries form, groups on the Breeds page. There is no hard-coded group list on the awards page.
 - **Claude API import (`import.html`, edge function `extract`):** dropped. The code stays in the repo in case it's wanted again, but the page is hidden from menus. The function would need the `ANTHROPIC_API_KEY` secret, which has not been added.
-- **Navigation:** burger menu (drawer) on every page, plus bottom tabs inside a show: Entries, Awards, Results. The design should scale to many future shows.
+- **Navigation:** burger menu (drawer) on every page, plus bottom tabs inside a show: Entries, Add entry, Awards, Results. The design should scale to many future shows.
+- **Add entry is its own screen** (`entry.html`), separate from the Entries list (Sam, 3 Nov 2026).
+- **The open show can be edited at any time:** "Edit show" button in the top bar (and "Edit show details" in the drawer) on every show screen.
 - **Awards view:** each user can switch, from the drawer, between one round at a time (the default) and the full list. The choice is saved per phone.
 - **Old Google Sheet, `apps-script.gs`, `sync.js` and `data.js`:** no longer used by the new pages. They are kept for reference.
 
@@ -35,7 +37,8 @@ The site helps the MNCF (Malta) team at dog shows:
 | File | What it does |
 |---|---|
 | `index.html` | Shows home: search, status filter, "+ New show" form, and a card per show with Entries and Awards buttons |
-| `register.html` | **Entries** tab for one show (`?show=<name>`). Has the entry form and the entries list (Absent, Edit, Remove). |
+| `register.html` | **Entries** tab for one show (`?show=<name>`). The entries list by breed with Puppy/Junior/Open lanes (drag to change class, Absent, Edit, Remove) and a "+ Add entry" button. |
+| `entry.html` | **Add entry** tab (`?show=`). The entry form, with a "Just added" list. `&edit=<entry id>` opens an entry for editing and returns to the list after saving. |
 | `awards.html` | **Awards** tab (`?show=`) and **Results** tab (`?show=&view=results`). This is the awards engine. |
 | `breeds.html` | Add breeds (a group is required) and change a breed's group |
 | `import.html` | Hidden. Claude API file import. |
@@ -43,13 +46,13 @@ The site helps the MNCF (Malta) team at dog shows:
 
 Shared scripts:
 - `api.js`: Supabase client, sign-in overlay and `mncfApi(action, data)`. Actions:
-  - `bootstrap`, `show`, `addShow`
+  - `bootstrap`, `show`, `addShow`, `updateShow` (by id, so renaming keeps entries and results)
   - `saveEntry`, `deleteEntry`, `setAbsent`
   - `addBreed`, `setBreedGroup`
   - `importEntries`, `syncState`, `extract`
 
   It also maps database rows to the shapes the pages use, for example an entry is `{_row, Show, "Ring No", "Dog name", Class, Absent, Breed, Group, Sex, Owner}`. Helpers: `mncfEsc`, `mncfToast`, `mncfQuery`, `mncfCache`, `mncfSignOut`.
-- `shell.js`: `mncfShell({page,title,kicker})` builds the top bar, the burger drawer and the bottom tabs. The drawer holds:
+- `shell.js`: `mncfShell({page,title,kicker})` builds the top bar (with the "Edit show" dialog when a show is open), the burger drawer and the bottom tabs. Renaming a show moves this phone's `…::<show>` localStorage keys to the new name and reloads with the new `?show=`. The drawer holds:
   - show search
   - all shows, new show, breeds and groups
   - the awards-view toggle (`mncfAwardsView`, localStorage key `mncf-awards-view`)
@@ -117,16 +120,22 @@ On the Entries form, the dog-name suggestions are now filtered by the chosen bre
 - After saving, the class and breed stay selected, so several dogs of one breed go in quickly.
 - Junior Handler and Childrens Class show no dog list.
 
-## Next request (not started)
+## Entries lanes and drag between classes (3 Nov 2026, PR #1, branch `entries-drag-lanes`)
 
-Sam asked: *"in that screen [Entries / show setup] have the breeds grouped up and the names of the dogs be dragable between the junior, puppy and open classes"*.
+Sam asked: *"have the breeds grouped up and the names of the dogs be dragable between the junior, puppy and open classes"*. Done in `register.html`:
+- Each breed card (still ordered by group, group named in the card header) shows a **Dogs** block and a **Bitches** block, each with Puppy, Junior and Open lanes. Empty lanes say "Drop a dog here". Veteran entries sit in a fixed lane below and can't be dragged. AV Locally Bred and the handler classes stay as plain lists.
+- Drag a dog by its ⠿ handle (pointer events with `touch-action:none` on the handle only, so the page still scrolls by touch). Only lanes of the same breed and sex accept the drop; the page auto-scrolls near the screen edges.
+- Tap fallback: a class menu on each movable card.
+- `moveEntry(row, cls)` updates the list at once, then saves with `mncfApi("saveEntry",{entry:{...,Class,_row},dog:null})`. If saving fails the dog jumps back and a toast shows the error. `save_entry` with a null dog leaves the dog record alone.
+- Styles are at the end of `style.css` (`.lanes`, `.lane`, `.grip`, `.mvsel`, `.ghost`).
 
-Suggested approach:
-- In `register.html` `drawEntries()`, group the entries list by breed, under breed-group headings.
-- Inside each breed, show columns or lanes for Puppy, Junior and Open (keep Dog and Bitch apart, since the sex comes from the class).
-- Make each dog a card that can be dragged to another lane. On drop, change the class with `mncfApi("saveEntry", {entry:{...entry, Class:newClass, _row}, dog:null})`.
-- Use pointer events, not the HTML5 drag API, so it works on phones by touch. Also offer a tap fallback, such as a small class menu on each card, for accessibility.
-- Don't allow moves into Veteran or the special classes unless Sam asks for that.
+## Separate Add entry screen and Edit show (3 Nov 2026, same PR)
+
+Sam: *"the add entry screen and the awards tracker screen should be seperate and i need to be able to edit the show I'm on at any given moment"*. Read as: the add-entry form moves off the Entries list into its own tab, and every show screen gets an "Edit show" button. Other phones still keep unsynced local copies under the old name after a rename; the server data is fine because everything is linked by show id.
+
+## Next request
+
+None yet.
 
 ## Things Sam still has to do in Supabase
 
