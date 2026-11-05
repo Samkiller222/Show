@@ -141,7 +141,7 @@ body.ro-handler select[data-breed]{pointer-events:none;appearance:none;-webkit-a
         <a class="item${opt.page==="shows"?" here":""}" href="index.html">All shows and new show <small>›</small></a></div>
       ${show?`<div class="sec"><h3>This show</h3><button class="item" type="button" id="drawerEdit">Edit show details <small>›</small></button><a class="item${opt.page==="schedule"?" here":""}" href="schedule.html${q}">Judging days and times <small>›</small></a><a class="item${opt.page==="catalogue"?" here":""}" href="catalogue.html${q}">Show catalogue to print <small>›</small></a><a class="item${opt.page==="payments"?" here":""}" href="payments.html${q}">Entry fees and payments <small>›</small></a></div>`:""}
       <div class="sec"><h3>Manage</h3><a class="item${opt.page==="mydogs"?" here":""}" href="mydogs.html" id="drawerMyDogs" hidden><span>My dogs</span> <small>›</small></a><a class="item${opt.page==="dogs"?" here":""}" href="dogs.html">Club dogs <small>›</small></a><a class="item${opt.page==="breeds"?" here":""}" href="breeds.html">Breeds and groups <small>›</small></a><a class="item${opt.page==="users"?" here":""}" href="users.html" id="drawerUsers" hidden>Users and roles <small>›</small></a></div>
-      <div class="sec" id="drawerPreview" hidden><h3>Preview the site as</h3><div class="seg four" role="group" aria-label="Preview as">${["admin","organiser","steward","viewer","handler"].map(r=>`<button type="button" data-preview="${r}" aria-pressed="false">${r==="admin"?"Me":r[0].toUpperCase()+r.slice(1)}</button>`).join("")}</div><p class="note" style="margin:0;font-size:12px">See the screens as that role would. Only this tab changes.</p></div>
+      <div class="sec" id="drawerPreview" hidden><h3>Preview the site as</h3><div class="seg four" role="group" aria-label="Preview as">${["admin","organiser","steward","viewer","handler","owner"].map(r=>`<button type="button" data-preview="${r}" aria-pressed="false">${r==="admin"?"Me":r[0].toUpperCase()+r.slice(1)}</button>`).join("")}</div><p class="note" style="margin:0;font-size:12px">See the screens as that role would. Only this tab changes.</p></div>
       <div class="sec"><h3>Awards view on this phone</h3><div class="seg" role="group" aria-label="Awards view"><button type="button" data-view="round" aria-pressed="${mode==="round"}">One round at a time</button><button type="button" data-view="list" aria-pressed="${mode==="list"}">Full list</button></div></div>
       <div class="sec keys"><h3>Keyboard shortcuts</h3><p><kbd>/</kbd>Search</p>${show?`<p><kbd>N</kbd>Add entry</p><p><kbd>←</kbd><kbd>→</kbd>Previous or next round</p>`:""}<p><kbd>Esc</kbd>Close menu</p></div>
       <div class="sec"><h3>Older pages</h3><a class="item" href="legacy/nov-2026.html">November 2026, first version <small>›</small></a></div>
@@ -157,14 +157,14 @@ body.ro-handler select[data-breed]{pointer-events:none;appearance:none;-webkit-a
     // ---- what this login may do ----
     function applyRole(r,known){
       if(r===null||r===undefined)return; // role unknown: leave everything as it was
-      const edit=r==="admin"||r==="organiser",award=edit||r==="steward",handler=r==="handler";
+      const edit=r==="admin"||r==="organiser",award=edit||r==="steward",handler=r==="handler"||r==="owner";
       document.body.dataset.role=r;
       document.body.classList.toggle("ro-edit",!edit&&!handler);document.body.classList.toggle("ro-award",!award);document.body.classList.toggle("ro-handler",handler);
       const u=dr.querySelector("#drawerUsers");if(u)u.hidden=r!=="admin";
-      const md=dr.querySelector("#drawerMyDogs");if(md){md.hidden=!(handler||r==="admin");md.querySelector("span").textContent=handler?"My dogs":"Handlers' home page"}
+      const md=dr.querySelector("#drawerMyDogs");if(md){md.hidden=!(handler||r==="admin");md.querySelector("span").textContent=handler?"My dogs":"Owners' and handlers' page"}
       const rb=dr.querySelector("#drawerRole");if(rb){rb.hidden=false;rb.textContent=window.mncfRoleName?mncfRoleName(r):r}
       if(known&&!edit&&!document.querySelector(".viewonly")&&header){const p=document.createElement("p");p.className="viewonly";
-        p.textContent=handler?"Handler login: you see your own dogs and can enter them while a show is Open. Organisers give out ring numbers.":award?"Steward login: you can record awards but not change entries or shows.":r?"View only: your login can look but not change anything.":"Your login isn't on the team list yet. Ask an admin to add you.";
+        p.textContent=handler?(r==="owner"?"Owner login: you see your own dogs, their entries and fees, and can enter them while a show is Open.":"Handler login: you see your own dogs and can enter them while a show is Open.")+" Organisers give out ring numbers.":award?"Steward login: you can record awards but not change entries or shows.":r?"View only: your login can look but not change anything.":"Your login isn't on the team list yet. Ask an admin to add you.";
         header.appendChild(p)}
     }
     if(window.mncfRole)mncfRole().then(r=>applyRole(r,true));
@@ -177,7 +177,7 @@ body.ro-handler select[data-breed]{pointer-events:none;appearance:none;-webkit-a
         b.onclick=()=>{mncfPreview.set(b.dataset.preview);location.reload()}});
       if(pv){
         const bar=document.createElement("div");bar.className="previewbar";bar.setAttribute("role","status");
-        const who=pv==="handler"?(mncfPreview.email()?" "+mncfPreview.email():" (no handler picked: preview a handler from Users and roles to see their dogs)"):"";
+        const who=pv==="handler"||pv==="owner"?(mncfPreview.email()?" "+mncfPreview.email():` (nobody picked: preview a ${pv} from Users and roles to see their dogs)`):"";
         bar.innerHTML=`<span>Previewing as ${esc(mncfRoleName(pv))}${esc(who)}. This is what they see.</span><button type="button">Exit preview</button>`;
         bar.querySelector("button").onclick=()=>{mncfPreview.set("");location.reload()};
         if(header)header.insertBefore(bar,header.firstChild);else document.body.insertBefore(bar,document.body.firstChild);
