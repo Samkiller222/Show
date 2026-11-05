@@ -181,7 +181,7 @@
     async team(){const {data,error}=await sb.rpc("team_list");if(error)fail(error);return {ok:true,members:data||[]}},
     async setMember(d){const {error}=await sb.rpc("set_team_member",{p_email:d.email,p_role:d.role,p_name:d.name==null?null:d.name});if(error)fail(error);return actions.team()},
     async removeMember(d){const {error}=await sb.rpc("remove_team_member",{p_email:d.email});if(error)fail(error);return actions.team()},
-    // ---- entry fees and Revolut checkout (payments.html, edge function "payments") ----
+    // ---- entry fees and card payments (Stripe Checkout) (payments.html, edge function "payments") ----
     async setFee(d){
       const c=d.cents==null||d.cents===""?null:Math.round(Number(d.cents));if(c!==null&&!(c>=0))fail({message:"Type the fee in euro, like 15 or 12.50."});
       const {error}=await sb.from("shows").update({entry_fee_cents:c}).eq("id",d.id);

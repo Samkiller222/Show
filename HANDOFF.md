@@ -1,6 +1,6 @@
 # Handoff: MNCF dog show awards organiser
 
-Notes for picking this project up in a new chat. Last updated 5 November 2026 (entry fee payments through Revolut).
+Notes for picking this project up in a new chat. Last updated 5 November 2026 (entry fee payments by card through Stripe, paid out to Revolut).
 
 ## What it is
 
@@ -59,7 +59,7 @@ Sam asked to organise the repo instead of one long list of files. The live pages
 | `catalogue.html` | **Show catalogue** (`?show=`): a print-ready booklet for visitors. Opened from the "Catalogue" button on Entries or "Show catalogue to print" in the drawer. Print or save as PDF. |
 | `schedule.html` | **Judging days and times** (`?show=`): split a show into sessions, each with a date, start time, optional name, the groups judged, single breeds moved in, Junior Handler / Childrens Class, and which session has the Best in Show finals. Opened from the drawer ("Judging days and times"), the "Edit days" chip, or "days" on a show card. |
 | `dogs.html` | **Club dogs** (Manage section of the drawer): every dog in the `dogs` table, A to Z, with search and a breed filter, and "+ Add dog". `?dog=<id>` opens one dog: breed, sex, date of birth, breeder, sire, dam, owner, phone, address, then every show it was entered in with its classes and the results recorded for it. "Edit details" changes any field. `&add=1` on the list opens the add form. |
-| `payments.html` | **Entry fees and payments** (`?show=`, drawer "Entry fees and payments", or "Payments" on Entries): fee per entry, totals, entries grouped by owner with Pay by card (Revolut checkout), Paid in cash, and the list of card payments. |
+| `payments.html` | **Entry fees and payments** (`?show=`, drawer "Entry fees and payments", or "Payments" on Entries): fee per entry, totals, entries grouped by owner with Pay by card (Stripe Checkout), Paid in cash, and the list of card payments. |
 | `users.html` | **Users and roles** (Manage section of the drawer, admins only): the team with a role picker per person, Remove, an "Add someone to the team" form, and logins that signed up but aren't on the team yet. |
 | `breeds.html` | Add breeds (a group is required) and change a breed's group |
 | `import.html` | Hidden. Claude API file import. |
@@ -213,13 +213,13 @@ Sam: *"add an admin view where an admin can see and change the roles of certain 
 - **Site:** `api.js` has `mncfRole()` (cached per page, last value in localStorage `mncf-role`), `mncfRoleName()`, actions `team`, `setMember`, `removeMember`, and refuses writes the role can't make with a plain message (no more sign-out on a permission error while signed in). `shell.js` sets `body[data-role]` and the classes `ro-edit` (steward, viewer, not on team) and `ro-award` (viewer), which hide Edit show, the Add entry tab, + New show, + Add dog, Edit details, entry buttons and drag, the breed form, the save bar on judging days, and lock award pickers; a note under the header says what the login can do. The drawer shows the role badge and, for admins, "Users and roles". If `my_role` is missing (migration not applied) the site behaves exactly as before.
 - Creating the login itself still happens in Supabase (Authentication → Users). Adding the email on `users.html` gives it a role.
 
-## Entry fee payments through Revolut (5 Nov 2026)
+## Entry fee payments by card (5 Nov 2026)
 
-Sam: *"see how i can make a payment system in the website i need it to send the money to my revolute account"*. Sam chose Revolut's own checkout (Merchant API) over Revolut Payment Links, so the money goes straight to the club's Revolut Business account and entries are ticked off as paid automatically. Assumed: one fixed fee per entry, set per show.
-- **Database** (`supabase/migrations/20261105_payments.sql`): `shows.entry_fee_cents`, `entries.paid_at / paid_via ('revolut'|'cash') / payment_id`, table `payments` (one row per Revolut order; the team can read it, only the edge function writes), and `entries_view` gains the paid columns.
-- **Edge function `payments`** (`supabase/functions/payments/`, deploy with JWT verification off): `checkout` (organisers and admins) creates a Revolut order for the picked unpaid entries and returns Revolut's `checkout_url`; `refresh` asks Revolut for the order state and marks the entries paid when it is `completed`. Revolut's webhook (`ORDER_COMPLETED`) posts to the same function; the body is only a hint, the order is always fetched back from Revolut with the secret key before anything is marked paid. Secrets: `REVOLUT_SECRET_KEY`, `REVOLUT_MODE` (`sandbox` default, or `live`), optional `SITE_URL`. The secret key is never in the repo.
-- **Site:** `payments.html`; `api.js` actions `setFee`, `payments`, `checkout`, `refreshPayment`, `markPaid` (cash, by hand). Revolut sends the payer back to `payments.html?show=…&payment=<id>`, which checks the payment straight away. Test-mode payments are tagged "Test".
-- Not done: refunds (do them in the Revolut Business app, then "Undo" isn't available for card payments), a Paid tag on the Entries list, exhibitors paying from their own login.
+Sam: *"see how i can make a payment system in the website i need it to send the money to my revolute account"*. First built on Revolut's Merchant API (PR #16), then switched to **Stripe Checkout** because opening a Revolut Business account was too hard (Revolut Pro has no merchant API). Stripe pays out to Sam's Revolut IBAN. Assumed: one fixed fee per entry, set per show.
+- **Database** (`supabase/migrations/20261105_payments.sql`): `shows.entry_fee_cents`, `entries.paid_at / paid_via ('card'|'cash') / payment_id`, table `payments` (one row per Stripe Checkout Session in `order_ref`; the team can read it, only the edge function writes), and `entries_view` gains the paid columns.
+- **Edge function `payments`** (`supabase/functions/payments/`, deploy with JWT verification off): `checkout` (organisers and admins) creates a Stripe Checkout Session for the picked unpaid entries and returns its URL; `refresh` asks Stripe for the session and marks the entries paid when `payment_status` is `paid`. Stripe's webhook posts to the same function; the body is only a hint, the session is always fetched back from Stripe with the secret key before anything is marked paid. Secrets: `STRIPE_SECRET_KEY` (test or live is read from the key), optional `SITE_URL` (default `https://register.maltacaninefederation.com/`). The key is never in the repo.
+- **Site:** `payments.html`; `api.js` actions `setFee`, `payments`, `checkout`, `refreshPayment`, `markPaid` (cash, by hand). Stripe sends the payer back to `payments.html?show=…&payment=<id>`, which checks the payment straight away. Test-mode payments are tagged "Test".
+- Not done: refunds (do them in the Stripe dashboard), a Paid tag on the Entries list, exhibitors paying from their own login.
 
 ## Next request
 
@@ -229,7 +229,7 @@ None yet.
 
 1. In Authentication → Users → Add user, create a login for each team member with auto-confirm on, then give them a role on the Users and roles page (or let them appear under "Waiting for a role").
 2. Optionally, turn off new sign-ups in Authentication settings.
-3. Payments: apply `20261105_payments.sql`, deploy the `payments` function, add the Revolut secrets and register the webhook (steps in `supabase/README.md`).
+3. Payments: Stripe account with the Revolut IBAN for payouts, apply `20261105_payments.sql`, deploy the `payments` function, add `STRIPE_SECRET_KEY` and the webhook (steps in `supabase/README.md`).
 
 ## How to work on it
 
