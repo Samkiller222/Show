@@ -11,7 +11,7 @@ The site helps the MNCF (Malta) team at dog shows:
 - record winners live on several phones at once
 - export the results to Excel
 
-- **Live site:** https://samkiller222.github.io/Show/ (GitHub Pages, branch `main`, repo `Samkiller222/Show`). Moving to Sam's own domain on Cloudflare Pages (Nov 2026): Pages is connected to the repo, has no build step and serves the repo root, and redeploys on every push to `main`. See `docs/cloudflare.md`.
+- **Live site:** https://samkiller222.github.io/Show/ (GitHub Pages, branch `main`, repo `Samkiller222/Show`). Moving to Sam's own domain on Cloudflare (Nov 2026): a Worker named `show` connected to the repo serves the repo root as static files (`wrangler.jsonc`, `.assetsignore`) and redeploys on every push to `main`. See `docs/cloudflare.md`.
 - **Owner:** Sam Micallef (sammicallef12@gmail.com)
 - **Stack:** plain HTML, CSS and JavaScript with no build step, plus a Supabase database. Vendored libraries in `vendor/`: `supabase.min.js` (supabase-js 2.49.4 UMD) with its chunk `591.supabase.js` (keep the two side by side), and `xlsx.full.min.js` (SheetJS).
 
