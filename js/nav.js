@@ -57,9 +57,9 @@ header.compact .jump{margin-top:6px;padding-top:6px}
       cards.forEach((x,i)=>{x.card.id=x.card.id||("round-"+(i+1));x.card.style.scrollMarginTop=(headerH()+12)+"px"});
       const cats=[];cards.forEach(x=>{let c=cats.find(c=>c.name===x.cat);if(!c){c={name:x.cat,items:[]};cats.push(c)}c.items.push(x)});
       chips.innerHTML=cats.map(c=>{const d=c.items.filter(x=>x.done).length,all=d===c.items.length;
-        return `<button type="button" data-cat="${c.name}" class="${opt.rounds&&all?"done":""}">${c.name}${opt.rounds?` <span class="n">${d}/${c.items.length}</span>`:opt.counts===false?"":` <span class="n">${c.items.length}</span>`}</button>`}).join("");
+        return `<button type="button" data-cat="${(window.mncfEsc||String)(c.name)}" class="${opt.rounds&&all?"done":""}">${(window.mncfEsc||String)(c.name)}${opt.rounds?` <span class="n">${d}/${c.items.length}</span>`:opt.counts===false?"":` <span class="n">${c.items.length}</span>`}</button>`}).join("");
       const keep=sel.value;
-      sel.innerHTML=`<option value="">${opt.rounds?"Go to round…":"Go to breed…"}</option>`+cats.map(c=>`<optgroup label="${c.name}">`+c.items.map(x=>`<option value="${x.card.id}">${opt.rounds?(cards.indexOf(x)+1)+". ":""}${x.title}${opt.rounds&&x.done?" ✓":""}</option>`).join("")+`</optgroup>`).join("");
+      sel.innerHTML=`<option value="">${opt.rounds?"Go to round…":"Go to breed…"}</option>`+cats.map(c=>`<optgroup label="${(window.mncfEsc||String)(c.name)}">`+c.items.map(x=>`<option value="${x.card.id}">${opt.rounds?(cards.indexOf(x)+1)+". ":""}${(window.mncfEsc||String)(x.title)}${opt.rounds&&x.done?" ✓":""}</option>`).join("")+`</optgroup>`).join("");
       sel.value=keep&&document.getElementById(keep)?"":"";
       box.hidden=!cards.length;
       spy();

@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="mncf-version" content="2026-11-05e">
+<meta name="mncf-version" content="2026-11-05f">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>MNCF My Dogs</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<link rel="stylesheet" href="css/style.css?v=2026-11-05e">
+<link rel="stylesheet" href="css/style.css?v=2026-11-05f">
 <style>
 .mcard{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
 .mcard .bhead{display:flex;justify-content:space-between;align-items:center;gap:10px}
@@ -18,6 +18,7 @@
 .mrow .no.missing{font-family:var(--body);font-size:12px;color:var(--muted);font-weight:600;line-height:1.2}
 .mrow small{display:block;color:var(--muted);font-size:12px}
 .mrow a.btn{min-height:40px;padding:6px 12px}
+.mfee{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}.mfee button{min-height:46px}
 .mempty{padding:12px 14px;border-top:1px solid var(--line);color:var(--muted);font-size:14px}
 .dgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
 .dcard{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;text-decoration:none;color:var(--fg);min-height:56px}
@@ -49,25 +50,29 @@
 </div>
 <div class="toast" id="toast"></div>
 <script src="vendor/supabase.min.js"></script>
-<script src="js/api.js?v=2026-11-05e"></script>
-<script src="js/shell.js?v=2026-11-05e"></script>
+<script src="js/api.js?v=2026-11-05f"></script>
+<script src="js/shell.js?v=2026-11-05f"></script>
 <script>
 mncfShell({page:"mydogs",title:"My dogs",kicker:"Owners and handlers"});
 const esc=mncfEsc,$=id=>document.getElementById(id);
 const sx=s=>s==="Dog"?"♂ ":s==="Bitch"?"♀ ":"";
-let OWNER=false;
+let OWN=false,DATA=null;
 const eur=c=>"€"+(c/100).toFixed(2);
-// Owners see what their entries cost: the show's fee per entry, and which are paid.
+// Owners and handlers see what their entries cost (the show's fee per entry), which are paid,
+// and can pay what's due by card (Stripe Checkout). Stripe sends them back here with ?payment=<id>.
+const PEOPLE=["Junior Handler","Childrens Class"];
+const dueOf=es=>es.filter(e=>!e.PaidAt&&!PEOPLE.includes(e.Class));
 function feeLine(s,es){
-  if(!OWNER||s.Fee==null||!es.length)return "";
-  const paid=es.filter(e=>e.PaidAt).length,due=es.length-paid;
-  return `<div class="mempty"><b>Entry fees:</b> ${eur(s.Fee)} each · ${due?`<b>${eur(due*s.Fee)} to pay</b>`:"all paid"}${paid?` · ${eur(paid*s.Fee)} paid`:""}${due&&s.Status==="Open"?"<br><small>Pay at the show desk or ask an organiser for a card payment link.</small>":""}</div>`;
+  if(!OWN||!s.Fee||!es.length)return "";
+  const paid=es.filter(e=>e.PaidAt).length,due=dueOf(es).length;
+  return `<div class="mempty mfee"><span><b>Entry fees:</b> ${eur(s.Fee)} each · ${due?`<b>${eur(due*s.Fee)} to pay</b>`:"all paid"}${paid?` · ${eur(paid*s.Fee)} paid`:""}</span>${due?`<button class="pri" type="button" data-pay="${esc(s.id)}">Pay ${eur(due*s.Fee)} by card</button>`:""}</div>`;
 }
 function draw(j){
+  DATA=j;
   const names=new Set(j.dogs.map(d=>d["Dog name"].toLowerCase()));
   const ents=j.entries.filter(e=>names.has(String(e["Dog name"]).toLowerCase()));
   const byShow={};ents.forEach(e=>(byShow[e.show_id]=byShow[e.show_id]||[]).push(e));
-  const row=(e,open)=>`<div class="mrow"><span class="no${e["Ring No"]?"":" missing"}">${e["Ring No"]?esc(e["Ring No"]):"No.<br>to come"}</span><span><b>${esc(e["Dog name"])}</b><small>${esc([e.Class,e.Breed,e.Absent?"Absent":"",OWNER?(e.PaidAt?"Paid"+(e.PaidVia?" ("+e.PaidVia+")":""):"Not paid"):""].filter(Boolean).join(" · "))}</small></span>${open?`<a class="btn" href="entry.html?show=${encodeURIComponent(e.Show)}&edit=${encodeURIComponent(e._row)}">Change</a>`:"<span></span>"}</div>`;
+  const row=(e,open)=>`<div class="mrow"><span class="no${e["Ring No"]?"":" missing"}">${e["Ring No"]?esc(e["Ring No"]):"No.<br>to come"}</span><span><b>${esc(e["Dog name"])}</b><small>${esc([e.Class,e.Breed,e.Absent?"Absent":"",OWN?(e.PaidAt?"Paid"+(e.PaidVia?" ("+e.PaidVia+")":""):"Not paid"):""].filter(Boolean).join(" · "))}</small></span>${open?`<a class="btn" href="entry.html?show=${encodeURIComponent(e.Show)}&edit=${encodeURIComponent(e._row)}">Change</a>`:"<span></span>"}</div>`;
   const open=j.shows.filter(s=>s.Status==="Open");
   $("open").innerHTML=open.map(s=>{const es=byShow[s.id]||[];
     return `<article class="mcard"><div class="bhead"><div><small>${esc([s.Date,s.Venue].filter(Boolean).join(" · ")||"Open for entries")}</small><b>${esc(s.Show)}</b></div><a class="btn pri" href="entry.html?show=${encodeURIComponent(s.Show)}">Enter a dog</a></div>
@@ -81,7 +86,7 @@ function draw(j){
 }
 (async()=>{
   const role=await mncfRole(),real=await mncfRealRole();
-  const own=role==="handler"||role==="owner";OWNER=role==="owner";
+  const own=role==="handler"||role==="owner";OWN=own;
   // an admin (not previewing): choose which owner or handler to see the page as
   if(real==="admin"&&!own){
     $("adminPanel").hidden=false;$("sub").textContent="The home page for owners and handlers.";
@@ -95,7 +100,25 @@ function draw(j){
   if(!own){$("main").hidden=false;$("main").innerHTML='<div class="empty">This page is for owner and handler logins. <a href="index.html">Go to all shows</a>.</div>';return}
   $("main").hidden=false;
   try{draw(await mncfApi("myDogs"))}catch(e){$("open").innerHTML=`<p class="err">${esc(e.message)}</p>`}
+  // back from Stripe's payment page: check the payment straight away
+  const pid=mncfQuery("payment");
+  if(pid){const u=new URL(location.href);u.searchParams.delete("payment");history.replaceState(null,"",u.toString());
+    try{const p=(await mncfApi("refreshPayment",{payment_id:pid})).payment;
+      mncfToast(p.state==="completed"?`Payment received: ${eur(p.amount_cents)}. Thank you!`:p.state==="expired"?"That payment was cancelled. Nothing was charged.":"The payment isn't finished yet. If you paid, it will show here in a minute.",{ms:6000});
+      if(p.state==="completed")draw(await mncfApi("myDogs"));
+    }catch(e){mncfToast(e.message,{ms:6000})}}
 })();
+// Pay by card: start a Stripe checkout for this show's unpaid entries and go to Stripe's page.
+document.addEventListener("click",async ev=>{
+  const b=ev.target.closest("[data-pay]");if(!b||!DATA)return;
+  const s=DATA.shows.find(x=>x.id===b.dataset.pay);if(!s)return;
+  const names=new Set(DATA.dogs.map(d=>d["Dog name"].toLowerCase()));
+  const ids=dueOf(DATA.entries.filter(e=>e.show_id===s.id&&names.has(String(e["Dog name"]).toLowerCase()))).map(e=>e._row);
+  if(!ids.length)return;
+  b.disabled=true;const was=b.textContent;b.textContent="Opening the payment page…";
+  try{const j=await mncfApi("checkout",{show_id:s.id,entry_ids:ids,back:"mydogs"});location.href=j.payment.checkout_url}
+  catch(e){mncfToast(e.message,{ms:7000});b.disabled=false;b.textContent=was}
+});
 </script>
 </body>
 </html>

@@ -9,7 +9,9 @@
 // the caller's team role itself:  supabase functions deploy payments --no-verify-jwt
 //
 // Calls from the site (signed in):
-//   {action:"checkout", show_id, entry_ids:[...], payer}  organisers and admins: creates a Stripe Checkout Session, returns {payment}
+//   {action:"checkout", show_id, entry_ids:[...], payer, back}  creates a Stripe Checkout Session, returns {payment}.
+//        Organisers and admins pay for any entries; owners and handlers only for their own dogs' entries.
+//        back: "mydogs" sends the payer back to the My dogs page instead of Payments.
 //   {action:"refresh", payment_id}                        asks Stripe for the session's state, marks entries paid
 // Calls from Stripe (webhook, checkout.session.completed etc.): {type, data:{object:{id}}}
 //   The body is only a hint: the session is fetched back from Stripe with the secret key before anything is marked paid.
@@ -80,6 +82,33 @@ async function caller(req: Request) {
   const { data: m } = await db.from("team_members").select("role").eq("email", email).maybeSingle();
   return m ? { email, role: String(m.role) } : null;
 }
+const STAFF = ["admin", "organiser"];
+const OWN = ["owner", "handler"];
+
+// Owners and handlers: the lower-cased names of the dogs linked to their email (entries link to dogs by name).
+async function myDogNames(email: string) {
+  const [a, b] = await Promise.all([
+    db.from("dogs").select("name").contains("owner_emails", [email]),
+    db.from("dogs").select("name").contains("handler_emails", [email]),
+  ]);
+  if (a.error) throw a.error;
+  if (b.error) throw b.error;
+  return new Set([...(a.data || []), ...(b.data || [])].map((d) => String(d.name).toLowerCase()));
+}
+
+// Before a new checkout: an older checkout that is still open for any of the same entries is
+// checked with Stripe, and closed if it isn't paid, so nobody can pay twice for one entry.
+async function closeOverlapping(showId: string, entryIds: string[]) {
+  const { data, error } = await db.from("payments").select("*").eq("show_id", showId).eq("state", "pending").overlaps("entry_ids", entryIds);
+  if (error) throw error;
+  for (const old of (data || []) as Payment[]) {
+    const p = await refresh(old);
+    if (p.state === "pending" && old.order_ref) {
+      try { await stripe(`/checkout/sessions/${encodeURIComponent(old.order_ref)}/expire`, "POST", {}); } catch (e) { console.error("expire", e); }
+      await refresh(old);
+    }
+  }
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -107,34 +136,54 @@ Deno.serve(async (req) => {
       const { data: p, error } = await db.from("payments").select("*").eq("id", String(d.payment_id || "")).maybeSingle();
       if (error) throw error;
       if (!p) return reply({ ok: false, error: "That payment wasn't found." });
+      // owners and handlers only check payments they started, or that cover their own dogs
+      if (OWN.includes(who.role) && p.created_by !== who.email) {
+        const mine = await myDogNames(who.email);
+        const { data: es } = await db.from("entries").select("dog_name").in("id", (p as Payment).entry_ids.length ? (p as Payment).entry_ids : ["00000000-0000-0000-0000-000000000000"]);
+        if (!(es || []).some((e) => mine.has(String(e.dog_name).toLowerCase()))) return reply({ ok: false, error: "That payment wasn't found." });
+      }
       return reply({ ok: true, payment: await refresh(p as Payment), mode: MODE });
     }
 
     if (d.action === "checkout") {
-      if (!["admin", "organiser"].includes(who.role)) return reply({ ok: false, error: "Only organisers and admins can take payments." }, 403);
+      if (!STAFF.includes(who.role) && !OWN.includes(who.role)) return reply({ ok: false, error: "Only organisers, admins and the dogs' owners or handlers can pay entry fees." }, 403);
       const { data: show, error: se } = await db.from("shows").select("id,name,entry_fee_cents").eq("id", String(d.show_id || "")).maybeSingle();
       if (se) throw se;
       if (!show) return reply({ ok: false, error: "That show wasn't found." });
       const fee = Number(show.entry_fee_cents || 0);
       if (!(fee > 0)) return reply({ ok: false, error: "Set the entry fee for this show first." });
       const ids = Array.isArray(d.entry_ids) ? (d.entry_ids as unknown[]).map(String).slice(0, 200) : [];
-      const { data: ents, error: ee } = await db.from("entries").select("id").eq("show_id", show.id).in("id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]).is("paid_at", null);
+      const { data: found, error: ee } = await db.from("entries").select("id,dog_name,class").eq("show_id", show.id).in("id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]).is("paid_at", null);
       if (ee) throw ee;
-      if (!ents?.length) return reply({ ok: false, error: "Those entries are already paid." });
-      const entryIds = ents.map((e) => e.id as string);
-      const payer = String(d.payer || "").slice(0, 120);
+      let ents = found || [];
+      if (!STAFF.includes(who.role)) {
+        const mine = await myDogNames(who.email);
+        ents = ents.filter((e) => !["Junior Handler", "Childrens Class"].includes(String(e.class)) && mine.has(String(e.dog_name).toLowerCase()));
+        if (found?.length && !ents.length) return reply({ ok: false, error: "You can only pay for your own dogs' entries." }, 403);
+      }
+      if (!ents.length) return reply({ ok: false, error: "Those entries are already paid." });
+      // close older unpaid checkouts for these entries, then leave out any that one of them has just paid
+      await closeOverlapping(show.id, ents.map((e) => e.id as string));
+      const { data: still, error: se2 } = await db.from("entries").select("id").in("id", ents.map((e) => e.id as string)).is("paid_at", null);
+      if (se2) throw se2;
+      if (!still?.length) return reply({ ok: false, error: "Those entries are already paid." });
+      const entryIds = still.map((e) => e.id as string);
+      const payer = String(d.payer || (STAFF.includes(who.role) ? "" : who.email)).slice(0, 120);
       const { data: p, error: pe } = await db.from("payments").insert({
         show_id: show.id, entry_ids: entryIds, payer, amount_cents: fee * entryIds.length, currency: "EUR",
         provider: "stripe", mode: MODE, created_by: who.email,
       }).select().single();
       if (pe) throw pe;
       try {
-        const back = `${SITE}payments.html?show=${encodeURIComponent(show.name)}&payment=${p.id}`;
+        const back = d.back === "mydogs" || !STAFF.includes(who.role)
+          ? `${SITE}mydogs.html?payment=${p.id}`
+          : `${SITE}payments.html?show=${encodeURIComponent(show.name)}&payment=${p.id}`;
         const s = await stripe("/checkout/sessions", "POST", {
           mode: "payment",
           line_items: { 0: { quantity: entryIds.length, price_data: { currency: "eur", unit_amount: fee,
             product_data: { name: `${show.name}: entry fee`.slice(0, 250), description: payer ? `Entries for ${payer}`.slice(0, 250) : undefined } } } },
           client_reference_id: p.id,
+          customer_email: STAFF.includes(who.role) ? undefined : who.email,
           metadata: { payment_id: p.id, show: show.name.slice(0, 450) },
           payment_intent_data: { description: `${show.name}: ${entryIds.length} ${entryIds.length === 1 ? "entry" : "entries"}${payer ? " for " + payer : ""}`.slice(0, 1000) },
           success_url: back,

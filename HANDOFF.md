@@ -217,7 +217,7 @@ Sam: *"add an admin view where an admin can see and change the roles of certain 
 
 Sam: *"add another user type called handler where those users can see dogs registered to them and write them up for shows"*. Sam chose to link dogs to handlers by email, set on each dog.
 
-- **Owner role** (5 Nov, Sam: *"add an owner preview for admins"*, then chose owner logins): works like a handler but linked through `dogs.owner_emails`, and on My dogs owners also see each show's fee per entry, what they owe and what is paid (`PaidAt`/`PaidVia` on entries). In the database `private.is_handler()` means handler **or** owner, and `my_dog()` checks both email lists; a new dog added by an owner is linked through `owner_emails`. Paying from an owner's own login is not built yet (the `payments` function's `checkout` is organisers and admins only).
+- **Owner role** (5 Nov, Sam: *"add an owner preview for admins"*, then chose owner logins): works like a handler but linked through `dogs.owner_emails`, and on My dogs owners also see each show's fee per entry, what they owe and what is paid (`PaidAt`/`PaidVia` on entries). In the database `private.is_handler()` means handler **or** owner, and `my_dog()` checks both email lists; a new dog added by an owner is linked through `owner_emails`. Owners and handlers pay their own entry fees by card from My dogs (see the audit section below).
 - **Database** (`supabase/migrations/20261105_handler_owner_roles.sql`, after the team roles and payments migrations): role `handler`; `dogs.handler_emails text[]` (GIN index). `private.sees_all()` (every role but handler), `is_handler()`, `my_email()`, `my_dog(name)`, `show_open(show_id)`, `handler_dog_check(name)`.
   - Handlers read shows and breeds, only their own dogs (`my_email() = any(handler_emails)`) and those dogs' entries; no results (`live_results`) and no team list.
   - They add dogs (linked to them by the `handler_dog_rules` trigger), edit their own dogs but can't rename them or change `handler_emails`, and enter, change or withdraw their own dogs while the show's status is Open. They can't set ring numbers, enter Junior Handler or Childrens Class, add breeds, or mark absent. `handler_entry_rules` gives the plain error messages and stops them changing the payment columns. They read only payments that include their own dogs' entries.
@@ -231,7 +231,15 @@ Sam: *"see how i can make a payment system in the website i need it to send the 
 - **Database** (`supabase/migrations/20261105_payments.sql`): `shows.entry_fee_cents`, `entries.paid_at / paid_via ('card'|'cash') / payment_id`, table `payments` (one row per Stripe Checkout Session in `order_ref`; the team can read it, only the edge function writes), and `entries_view` gains the paid columns.
 - **Edge function `payments`** (`supabase/functions/payments/`, deploy with JWT verification off): `checkout` (organisers and admins) creates a Stripe Checkout Session for the picked unpaid entries and returns its URL; `refresh` asks Stripe for the session and marks the entries paid when `payment_status` is `paid`. Stripe's webhook posts to the same function; the body is only a hint, the session is always fetched back from Stripe with the secret key before anything is marked paid. Secrets: `STRIPE_SECRET_KEY` (test or live is read from the key), optional `SITE_URL` (default `https://register.maltacaninefederation.com/`). The key is never in the repo.
 - **Site:** `payments.html`; `api.js` actions `setFee`, `payments`, `checkout`, `refreshPayment`, `markPaid` (cash, by hand). Stripe sends the payer back to `payments.html?show=…&payment=<id>`, which checks the payment straight away. Test-mode payments are tagged "Test".
-- Not done: refunds (do them in the Stripe dashboard), a Paid tag on the Entries list, exhibitors paying from their own login.
+- Not done: refunds (do them in the Stripe dashboard), a Paid tag on the Entries list.
+
+## Audit and owner payments (5 Nov 2026)
+
+Sam: *"when in handler/owner mode i cant pay for registrations and while your checking look for other bugs"*.
+- **Owners and handlers pay from My dogs** (`mydogs.html`): each show with a fee shows what's due and a "Pay €X by card" button for that login's unpaid entries (not Junior Handler or Childrens Class). It starts a Stripe Checkout and Stripe sends them back to `mydogs.html?payment=<id>`, which checks it at once. In an admin's owner/handler preview the button works too (the function sees an admin).
+- **Edge function `payments`**: `checkout` now takes owners and handlers, but only for entries of dogs linked to their email (checked server-side with the service key); their checkout email is pre-filled and `back:"mydogs"` picks the return page. `refresh` by an owner or handler only works on their own payments. Before a new checkout, older still-open checkouts covering the same entries are checked with Stripe and expired, so one entry can't be paid twice.
+- **Migration `20261105_audit_fixes.sql`**: owners and handlers can't withdraw a paid entry or move it to another dog.
+- **Site fixes**: Add entry treated owners like organisers (offered Junior Handler, Childrens Class and "Add a new breed", which the database then refused); now owners get the handler form, and saving an edit sends owners and handlers back to My dogs. `nav.js` escapes group and breed names in the jump bar.
 
 ## Next request
 
@@ -241,7 +249,8 @@ None yet.
 
 1. In Authentication → Users → Add user, create a login for each team member with auto-confirm on, then give them a role on the Users and roles page (or let them appear under "Waiting for a role").
 2. Optionally, turn off new sign-ups in Authentication settings.
-3. Payments: Stripe account with the Revolut IBAN for payouts, apply `20261105_payments.sql`, deploy the `payments` function, add `STRIPE_SECRET_KEY` and the webhook (steps in `supabase/README.md`).
+3. Payments: redeploy the `payments` function after the audit PR, and run `20261105_audit_fixes.sql`.
+4. Payments: Stripe account with the Revolut IBAN for payouts, apply `20261105_payments.sql`, deploy the `payments` function, add `STRIPE_SECRET_KEY` and the webhook (steps in `supabase/README.md`).
 
 ## How to work on it
 
