@@ -17,3 +17,4 @@ The edge function `payments` creates Revolut checkouts and marks entries paid. T
 4. Register the webhook once per mode so payments are ticked off even if the payer closes the page:
    `curl -X POST https://sandbox-merchant.revolut.com/api/webhooks -H "Authorization: Bearer $REVOLUT_SECRET_KEY" -H "Revolut-Api-Version: 2024-09-01" -H "Content-Type: application/json" -d '{"url":"https://cyikakfookjygycziqfg.supabase.co/functions/v1/payments","events":["ORDER_COMPLETED","ORDER_AUTHORISED","ORDER_CANCELLED","ORDER_FAILED"]}'`
    (use `https://merchant.revolut.com` for live).
+5. Payers are sent back to `https://register.maltacaninefederation.com/payments.html?...` (Cloudflare drops `.html` and keeps the query). Set the optional `SITE_URL` secret only if the site moves again.

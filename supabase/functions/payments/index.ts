@@ -3,7 +3,7 @@
 // Secrets (Supabase dashboard > Edge Functions > Secrets), never in the code:
 //   REVOLUT_SECRET_KEY  Merchant API secret key (Sandbox key while testing, Production key for real money)
 //   REVOLUT_MODE        "sandbox" (default, test money) or "live"
-//   SITE_URL            optional, defaults to https://samkiller222.github.io/Show/
+//   SITE_URL            optional, defaults to https://register.maltacaninefederation.com/
 //
 // Deploy with JWT verification off (Revolut's webhook has no Supabase login); the function checks
 // the caller's team role itself:  supabase functions deploy payments --no-verify-jwt
@@ -26,7 +26,7 @@ const reply = (o: unknown, status = 200) => new Response(JSON.stringify(o), { st
 const KEY = Deno.env.get("REVOLUT_SECRET_KEY") || "";
 const MODE = Deno.env.get("REVOLUT_MODE") === "live" ? "live" : "sandbox";
 const BASE = MODE === "live" ? "https://merchant.revolut.com" : "https://sandbox-merchant.revolut.com";
-const SITE = (Deno.env.get("SITE_URL") || "https://samkiller222.github.io/Show/").replace(/\/?$/, "/");
+const SITE = (Deno.env.get("SITE_URL") || "https://register.maltacaninefederation.com/").replace(/\/?$/, "/");
 const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
 
 async function revolut(path: string, method = "GET", body?: unknown) {
