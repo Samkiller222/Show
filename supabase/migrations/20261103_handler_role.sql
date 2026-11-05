@@ -46,6 +46,14 @@ alter policy "Team reads entries" on public.entries
 -- Results and the team list: not for handlers.
 alter policy "Team reads results" on public.live_results using (private.sees_all());
 alter policy "Team can see the team list" on public.team_members using (private.sees_all());
+-- Card payments (20261105_payments.sql): a handler sees only payments that include one of their dogs' entries.
+do $$ begin
+  if to_regclass('public.payments') is not null then
+    alter policy "Team reads payments" on public.payments
+      using (private.sees_all() or (private.is_handler() and exists (
+        select 1 from public.entries e where e.id = any(entry_ids) and private.my_dog(e.dog_name))));
+  end if;
+end $$;
 
 -- ---- writing ----
 -- Dogs: handlers add dogs (linked to themselves) and change their own dogs' details.
@@ -97,6 +105,11 @@ begin
     raise exception '% isn''t one of your dogs. Ask an organiser to link it to your login.', new.dog_name; end if;
   if new.ring_no <> coalesce(case when tg_op = 'UPDATE' then old.ring_no end, '') then
     raise exception 'Ring numbers are given by the organisers.'; end if;
+  -- payment columns (20261105_payments.sql) are set by the payments function and organisers only
+  if (to_jsonb(new)->>'paid_at') is distinct from (case when tg_op = 'UPDATE' then to_jsonb(old)->>'paid_at' end)
+     or (to_jsonb(new)->>'paid_via') is distinct from (case when tg_op = 'UPDATE' then to_jsonb(old)->>'paid_via' end)
+     or (to_jsonb(new)->>'payment_id') is distinct from (case when tg_op = 'UPDATE' then to_jsonb(old)->>'payment_id' end) then
+    raise exception 'Payments are recorded by the organisers.'; end if;
   return new;
 end $$;
 drop trigger if exists handler_entry_rules on public.entries;

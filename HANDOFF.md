@@ -1,6 +1,6 @@
 # Handoff: MNCF dog show awards organiser
 
-Notes for picking this project up in a new chat. Last updated 3 November 2026 (handler role).
+Notes for picking this project up in a new chat. Last updated 5 November 2026 (handler role; entry fee payments by card through Stripe, paid out to Revolut).
 
 ## What it is
 
@@ -11,7 +11,7 @@ The site helps the MNCF (Malta) team at dog shows:
 - record winners live on several phones at once
 - export the results to Excel
 
-- **Live site:** https://samkiller222.github.io/Show/ (GitHub Pages, branch `main`, repo `Samkiller222/Show`)
+- **Live site:** https://samkiller222.github.io/Show/ (GitHub Pages, branch `main`, repo `Samkiller222/Show`). Moving to Sam's own domain on Cloudflare (Nov 2026): a Worker named `show` connected to the repo serves the repo root as static files (`wrangler.jsonc`, `.assetsignore`) and redeploys on every push to `main`. See `docs/cloudflare.md`.
 - **Owner:** Sam Micallef (sammicallef12@gmail.com)
 - **Stack:** plain HTML, CSS and JavaScript with no build step, plus a Supabase database. Vendored libraries in `vendor/`: `supabase.min.js` (supabase-js 2.49.4 UMD) with its chunk `591.supabase.js` (keep the two side by side), and `xlsx.full.min.js` (SheetJS).
 
@@ -59,6 +59,7 @@ Sam asked to organise the repo instead of one long list of files. The live pages
 | `catalogue.html` | **Show catalogue** (`?show=`): a print-ready booklet for visitors. Opened from the "Catalogue" button on Entries or "Show catalogue to print" in the drawer. Print or save as PDF. |
 | `schedule.html` | **Judging days and times** (`?show=`): split a show into sessions, each with a date, start time, optional name, the groups judged, single breeds moved in, Junior Handler / Childrens Class, and which session has the Best in Show finals. Opened from the drawer ("Judging days and times"), the "Edit days" chip, or "days" on a show card. |
 | `dogs.html` | **Club dogs** (Manage section of the drawer): every dog in the `dogs` table, A to Z, with search and a breed filter, and "+ Add dog". `?dog=<id>` opens one dog: breed, sex, date of birth, breeder, sire, dam, owner, phone, address, then every show it was entered in with its classes and the results recorded for it. "Edit details" changes any field. `&add=1` on the list opens the add form. |
+| `payments.html` | **Entry fees and payments** (`?show=`, drawer "Entry fees and payments", or "Payments" on Entries): fee per entry, totals, entries grouped by owner with Pay by card (Stripe Checkout), Paid in cash, and the list of card payments. |
 | `users.html` | **Users and roles** (Manage section of the drawer, admins only): the team with a role picker per person, Remove, an "Add someone to the team" form, and logins that signed up but aren't on the team yet. |
 | `breeds.html` | Add breeds (a group is required) and change a breed's group |
 | `import.html` | Hidden. Claude API file import. |
@@ -223,6 +224,14 @@ Sam: *"add another user type called handler where those users can see dogs regis
 - **Handlers' home page** `mydogs.html` (Sam: *"make it a previewable page for admins"*): open shows with an "Enter a dog" button and the handler's entries in each (Change links back to the entry form), their dogs (+ Add a dog), and earlier/closed shows. Handlers are sent there from `index.html` and have "My dogs" in the drawer. An admin opening it (drawer: "Handlers' home page") gets a list of handlers and picks one to preview the page as them; Preview on Users and roles also lands here. Data comes from `mncfApi("myDogs")` (dogs, shows, entries; RLS limits a handler to their own).
 - **Site:** Club dogs has a "Handler logins" field (organisers and admins) and shows the logins on the dog page. `body.ro-handler` hides show setup, awards and results, judging days, catalogue, breeds, Absent, the ring number field, handler classes and "Add a new breed". Users and roles lists Handler, shows each handler's dog count and has a Preview button per handler (`mncf-preview-role` = `handler:<email>`). In a handler preview `api.js` (`previewFilter`) narrows dogs and entries to that email's dogs, since the database still answers as the admin. Saved lists (`mncf-cache-*`) are cleared on sign-in, sign-out and preview changes so one login never sees another's.
 
+## Entry fee payments by card (5 Nov 2026)
+
+Sam: *"see how i can make a payment system in the website i need it to send the money to my revolute account"*. First built on Revolut's Merchant API (PR #16), then switched to **Stripe Checkout** because opening a Revolut Business account was too hard (Revolut Pro has no merchant API). Stripe pays out to Sam's Revolut IBAN. Assumed: one fixed fee per entry, set per show.
+- **Database** (`supabase/migrations/20261105_payments.sql`): `shows.entry_fee_cents`, `entries.paid_at / paid_via ('card'|'cash') / payment_id`, table `payments` (one row per Stripe Checkout Session in `order_ref`; the team can read it, only the edge function writes), and `entries_view` gains the paid columns.
+- **Edge function `payments`** (`supabase/functions/payments/`, deploy with JWT verification off): `checkout` (organisers and admins) creates a Stripe Checkout Session for the picked unpaid entries and returns its URL; `refresh` asks Stripe for the session and marks the entries paid when `payment_status` is `paid`. Stripe's webhook posts to the same function; the body is only a hint, the session is always fetched back from Stripe with the secret key before anything is marked paid. Secrets: `STRIPE_SECRET_KEY` (test or live is read from the key), optional `SITE_URL` (default `https://register.maltacaninefederation.com/`). The key is never in the repo.
+- **Site:** `payments.html`; `api.js` actions `setFee`, `payments`, `checkout`, `refreshPayment`, `markPaid` (cash, by hand). Stripe sends the payer back to `payments.html?show=…&payment=<id>`, which checks the payment straight away. Test-mode payments are tagged "Test".
+- Not done: refunds (do them in the Stripe dashboard), a Paid tag on the Entries list, exhibitors paying from their own login.
+
 ## Next request
 
 None yet.
@@ -231,12 +240,13 @@ None yet.
 
 1. In Authentication → Users → Add user, create a login for each team member with auto-confirm on, then give them a role on the Users and roles page (or let them appear under "Waiting for a role").
 2. Optionally, turn off new sign-ups in Authentication settings.
+3. Payments: Stripe account with the Revolut IBAN for payouts, apply `20261105_payments.sql`, deploy the `payments` function, add `STRIPE_SECRET_KEY` and the webhook (steps in `supabase/README.md`).
 
 ## How to work on it
 
 - **Bump the version on every change.** Browsers keep old copies of pages and files for a while, which mixed old and new screens (unstyled lanes, the old entry form still showing). Each new-system page (`index`, `register`, `entry`, `awards`, `breeds`) has `<meta name="mncf-version">` and loads `css/style.css` and `js/api.js`, `js/shell.js`, `js/nav.js`, `js/focus.js`, `js/schedule.js` with `?v=<version>`. `shell.js` fetches `version.json` without cache and, if it differs from the page's meta, reloads once with `&_v=<version>`. When you change anything, replace the old version string everywhere: `grep -rl OLD --include=*.html --include=version.json . | xargs sed -i s/OLD/NEW/g`.
 
-- Clone the repo, edit the files and push to `main`. GitHub Pages redeploys in about a minute.
+- Clone the repo, edit the files and push to `main`. GitHub Pages and Cloudflare Pages both redeploy in about a minute. Keep links relative (no leading `/`), because GitHub Pages serves the site under `/Show/` and Cloudflare at the root. Cloudflare also drops `.html` from URLs (`awards.html` → `/awards`), which relative links and query strings survive.
 - **Commit identity:** `Sam Micallef <sammicallef12@gmail.com>`.
 - **Testing:** use Playwright at phone size (390×844) and replace `api.js` with a fake that returns sample entries, so no sign-in is needed. Test SQL inside a transaction that is rolled back, using `set local role authenticated` and the JWT claims.
 - **Styling:** keep the existing look. Touch targets are at least 46px, and `style.css` uses CSS variables.

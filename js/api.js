@@ -70,7 +70,7 @@
   window.mncfRole=async(fresh)=>{const r=await mncfRealRole(fresh);return r===null?null:asPreview(r)};
   // last known role on this phone, so the page can hide things before the database answers
   window.mncfRoleCached=()=>{try{return asPreview(localStorage.getItem("mncf-role")||"")}catch(e){return ""}};
-  const EDIT_ACTIONS=["addShow","updateShow","setSchedule","saveEntry","deleteEntry","setAbsent","addBreed","setBreedGroup","saveDog","importEntries"];
+  const EDIT_ACTIONS=["setFee","checkout","markPaid","addShow","updateShow","setSchedule","saveEntry","deleteEntry","setAbsent","addBreed","setBreedGroup","saveDog","importEntries"];
   // Handlers enter, change and withdraw their own dogs, and edit their own dogs' details. The database checks which dogs are theirs.
   const HANDLER_ACTIONS=["saveEntry","deleteEntry","saveDog"];
   const canEdit=r=>r==="admin"||r==="organiser", canAward=r=>canEdit(r)||r==="steward";
@@ -84,10 +84,10 @@
   window.mncfWho=async()=>{const {data}=await sb.auth.getSession();return data.session?data.session.user.email:""};
 
   // ---- shapes the pages use ----
-  const showOut=s=>({id:s.id,Show:s.name,Date:s.show_date,Venue:s.venue,Judge:s.judge,Status:s.status,Notes:s.notes,Schedule:Array.isArray(s.schedule)?s.schedule:[]});
+  const showOut=s=>({id:s.id,Show:s.name,Date:s.show_date,Venue:s.venue,Judge:s.judge,Status:s.status,Notes:s.notes,Schedule:Array.isArray(s.schedule)?s.schedule:[],Fee:s.entry_fee_cents==null?null:s.entry_fee_cents});
   const dogOut=d=>({"Dog name":d.name,Breed:d.breed,Sex:d.sex,"Date of birth":d.dob,Owner:d.owner,Phone:d.phone,Address:d.address,Breeder:d.breeder,Sire:d.sire,Dam:d.dam,Handlers:Array.isArray(d.handler_emails)?d.handler_emails:null});
   const breedOut=b=>({Breed:b.name,Group:b.grp});
-  const entryOut=e=>({_row:e.id,Show:e.show_name,"Ring No":e.ring_no,"Dog name":e.dog_name,Class:e.class,Absent:e.absent,Breed:e.breed,Group:e.grp,Sex:e.sex,Owner:e.owner});
+  const entryOut=e=>({_row:e.id,Show:e.show_name,"Ring No":e.ring_no,"Dog name":e.dog_name,Class:e.class,Absent:e.absent,Breed:e.breed,Group:e.grp,Sex:e.sex,Owner:e.owner,PaidAt:e.paid_at||null,PaidVia:e.paid_via||"",PaymentId:e.payment_id||null});
   const fail=e=>{throw new Error(e.message||String(e))};
   async function all(table,order,filter){
     const out=[];for(let from=0;;from+=1000){
@@ -200,6 +200,19 @@
     async team(){const {data,error}=await sb.rpc("team_list");if(error)fail(error);return {ok:true,members:data||[]}},
     async setMember(d){const {error}=await sb.rpc("set_team_member",{p_email:d.email,p_role:d.role,p_name:d.name==null?null:d.name});if(error)fail(error);return actions.team()},
     async removeMember(d){const {error}=await sb.rpc("remove_team_member",{p_email:d.email});if(error)fail(error);return actions.team()},
+    // ---- entry fees and card payments (Stripe Checkout) (payments.html, edge function "payments") ----
+    async setFee(d){
+      const c=d.cents==null||d.cents===""?null:Math.round(Number(d.cents));if(c!==null&&!(c>=0))fail({message:"Type the fee in euro, like 15 or 12.50."});
+      const {error}=await sb.from("shows").update({entry_fee_cents:c}).eq("id",d.id);
+      if(error)fail(/entry_fee/i.test(error.message)?{message:"The show database isn't ready for payments yet (the payments update hasn't been applied)."}:error);return {ok:true}},
+    async payments(d){const {data,error}=await sb.from("payments").select("*").eq("show_id",d.show_id).order("created_at",{ascending:false});
+      if(error)fail(/payments/i.test(error.message)?{message:"The show database isn't ready for payments yet (the payments update hasn't been applied)."}:error);return {ok:true,payments:data||[]}},
+    async markPaid(d){const ids=d.ids||[];if(!ids.length)return {ok:true};
+      const row=d.paid?{paid_at:new Date().toISOString(),paid_via:"cash",payment_id:null}:{paid_at:null,paid_via:null,payment_id:null};
+      let q=sb.from("entries").update(row).in("id",ids);q=d.paid?q.is("paid_at",null):q.eq("paid_via","cash");
+      const {error}=await q;if(error)fail(error);return {ok:true}},
+    async checkout(d){return payFn({action:"checkout",show_id:d.show_id,entry_ids:d.entry_ids,payer:d.payer||""})},
+    async refreshPayment(d){return payFn({action:"refresh",payment_id:d.payment_id})},
     async importEntries(d){const {data,error}=await sb.rpc("import_entries",{p_show:d.show,p_entries:d.entries});if(error)fail(error);return Object.assign({ok:true},data)},
     async syncState(d){const {data,error}=await sb.rpc("sync_state",{p_show:d.show,p_changes:d.changes||[],p_since:d.since||0});if(error)fail(error);return Object.assign({ok:true},data)},
     async extract(d){
@@ -210,6 +223,14 @@
       return data;
     }
   };
+
+  async function payFn(body){
+    const {data,error}=await sb.functions.invoke("payments",{body});
+    if(error){let msg=error.message;try{const j=await error.context.json();msg=j.error||j.msg||msg}catch(e){}
+      if(/Failed to send|not found|404/i.test(msg))msg="Card payments aren't set up yet (the payments function isn't deployed in Supabase).";fail({message:msg})}
+    if(!data||!data.ok)fail({message:(data&&data.error)||"The payment couldn't be started."});
+    return data;
+  }
 
   async function api(action,data){
     await signedIn();
