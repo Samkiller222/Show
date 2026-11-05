@@ -1,0 +1,10 @@
+// Cloudflare Workers settings. The site is plain static files with no build:
+// Cloudflare serves the repo folder as it is and redeploys on every push to main.
+{
+  "name": "show",
+  "compatibility_date": "2026-11-01",
+  "assets": {
+    "directory": ".",
+    "not_found_handling": "404-page"
+  }
+}

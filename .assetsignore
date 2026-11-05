@@ -1,0 +1,12 @@
+# Files in the repo that are not part of the website.
+.git
+.github
+.claude
+wrangler.jsonc
+.assetsignore
+HANDOFF.md
+README.md
+supabase
+docs
+node_modules
+.wrangler
