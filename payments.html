@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="mncf-version" content="2026-11-05a">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MNCF Payments</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<link rel="stylesheet" href="css/style.css?v=2026-11-05a">
+<style>
+#feeErr:empty{display:none}
+.feerow{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
+.feerow .field{flex:0 1 160px}
+.money{position:relative}
+.money span{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-weight:600;pointer-events:none}
+.money input{padding-left:28px;width:100%;box-sizing:border-box}
+.sums{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.sum{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.sum small{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+.sum b{font-family:var(--display);font-size:24px;line-height:1.1;font-variant-numeric:tabular-nums}
+.sum.ok b{color:var(--ok)}
+.seg3{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--line);border-radius:10px;overflow:hidden;flex:1 1 240px}
+.seg3 button{border:0;border-radius:0;background:var(--card);min-height:44px;font-size:14px;padding:8px 4px}
+.seg3 button[aria-pressed="true"]{background:var(--accent);color:var(--card)}
+.owner.paid{border-color:var(--ok)}
+.owner.paid .bhead{background:var(--ok-soft)}
+.prow{display:flex;align-items:center;gap:10px;padding:10px 14px;border-top:1px solid var(--line);min-height:46px}
+.prow label{display:flex;align-items:center;gap:10px;flex:1;min-width:0;cursor:pointer}
+.prow input[type=checkbox]{width:22px;height:22px;accent-color:var(--accent);flex:none;margin:0}
+.prow .no{flex:none;min-width:34px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--muted)}
+.prow .nm{min-width:0;display:flex;flex-direction:column}
+.prow .nm b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.prow .nm small{color:var(--muted);font-size:13px}
+.tag{flex:none;display:inline-block;padding:3px 9px;border-radius:999px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;background:var(--bg);border:1px solid var(--line);color:var(--muted)}
+.tag.ok{background:var(--ok-soft);border-color:var(--ok);color:var(--ok)}
+.tag.test{background:#fdf0d5;border-color:#b45309;color:#8a4b0a}
+.ofoot{display:flex;gap:8px;flex-wrap:wrap;padding:10px 14px;border-top:1px solid var(--line);background:var(--bg)}
+.ofoot button{flex:1 1 140px;min-height:46px}
+.testbar{padding:8px 12px;border-radius:8px;background:#fdf0d5;color:#8a4b0a;font-size:14px;font-weight:600;border:1px solid #e8c27a}
+.payrow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;border-top:1px solid var(--line)}
+.payrow div{min-width:0;display:flex;flex-direction:column}
+.payrow small{color:var(--muted);font-size:13px}
+.paydlg{border:1px solid var(--line);border-radius:14px;padding:0;background:var(--card);color:var(--fg);width:min(92vw,440px);box-shadow:0 18px 40px rgba(0,0,0,.25)}
+.paydlg::backdrop{background:rgba(10,12,20,.45)}
+.paydlg .in{padding:18px;display:flex;flex-direction:column;gap:12px}
+.paydlg h2{margin:0}
+.paydlg .big{font-family:var(--display);font-size:40px;line-height:1;font-variant-numeric:tabular-nums}
+.paydlg .btns{flex-direction:column}
+.paydlg .btns > *{width:100%;box-sizing:border-box;text-align:center;min-height:48px}
+.paydlg a.btn{font-size:16px;padding:13px 14px}
+.paydlg .link{font-size:13px;color:var(--muted);word-break:break-all;margin:0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="sub" id="showSub">Loading the show…</div>
+  </header>
+  <section class="panel">
+    <h2>Entry fees</h2>
+    <p class="note">Each owner pays the fee for every dog they entered. Tap <b>Pay by card</b> to open Revolut's payment page on this phone, or share the link so they can pay on their own phone. The money goes to the club's Revolut Business account, and the entries are ticked off as paid by themselves. Cash at the desk can be ticked off by hand.</p>
+    <form class="feerow needs-edit" id="feeForm" autocomplete="off">
+      <div class="field"><label for="fee">Fee per entry</label><div class="money"><span>€</span><input type="text" id="fee" inputmode="decimal" placeholder="0.00"></div></div>
+      <button class="pri" type="submit" id="feeBtn" style="min-height:var(--tap,46px)">Save fee</button>
+    </form>
+    <p class="err" id="feeErr"></p>
+    <p class="testbar" id="testBar" hidden>Test mode: card payments use Revolut's sandbox, so no real money moves. Use Revolut's test card numbers.</p>
+  </section>
+  <div class="sums" id="sums" hidden></div>
+  <div class="find"><input type="text" id="q" placeholder="Find an owner or dog" autocomplete="off"><div class="seg3" role="group" aria-label="Show"><button type="button" data-f="unpaid" aria-pressed="true">Unpaid</button><button type="button" data-f="paid" aria-pressed="false">Paid</button><button type="button" data-f="all" aria-pressed="false">All</button></div></div>
+  <div id="list" style="display:flex;flex-direction:column;gap:12px"><p class="loading">Loading…</p></div>
+  <article class="breed" id="payPanel" hidden><div class="bhead"><div><small>Revolut</small><h2>Card payments</h2></div></div><div id="payList"></div></article>
+</div>
+<dialog class="paydlg" id="payDlg" aria-labelledby="pdTitle"><div class="in">
+  <h2 id="pdTitle">Ready to pay</h2>
+  <div><div class="big" id="pdAmount"></div><p class="note" id="pdWhat" style="margin:4px 0 0"></p></div>
+  <div class="btns">
+    <a class="btn pri" id="pdOpen" href="#">Pay now on this phone</a>
+    <button type="button" id="pdShare">Send the link to the owner</button>
+    <button type="button" id="pdCheck">Check if it's paid</button>
+    <button type="button" id="pdClose">Close</button>
+  </div>
+  <p class="link" id="pdLink"></p>
+</div></dialog>
+<div class="toast" id="toast"></div>
+<script src="vendor/supabase.min.js"></script>
+<script src="js/api.js?v=2026-11-05a"></script>
+<script src="js/shell.js?v=2026-11-05a"></script>
+<script>
+mncfShell({page:"payments",kicker:"Payments"});
+const esc=mncfEsc,$=id=>document.getElementById(id);
+const S={show:mncfQuery("show"),showRow:null,entries:[],payments:[],filter:"unpaid",mode:"",sel:{}};
+const eur=c=>"€"+(Number(c||0)/100).toFixed(2).replace(/\.00$/,"");
+const day=t=>t?new Date(t).toLocaleDateString([],{day:"numeric",month:"short"}):"";
+const PEOPLE=["Junior Handler","Childrens Class"];
+const ownerOf=e=>PEOPLE.includes(e.Class)?(e["Dog name"]||"")+" ("+e.Class+")":(e.Owner||"No owner on record");
+const STATE={creating:"Starting",pending:"Waiting",processing:"Processing",authorised:"Processing",completed:"Paid",cancelled:"Cancelled",failed:"Failed"};
+
+function groups(){
+  const m=new Map();
+  for(const e of S.entries){const k=ownerOf(e);if(!m.has(k))m.set(k,[]);m.get(k).push(e)}
+  return [...m.entries()].sort((a,b)=>a[0].localeCompare(b[0]));
+}
+function draw(){
+  const fee=S.showRow&&S.showRow.Fee;
+  if(!fee){$("sums").hidden=true;$("list").innerHTML=`<div class="empty">Set the fee per entry above to start taking payments for this show.</div>`;drawPayments();return}
+  const paid=S.entries.filter(e=>e.PaidAt),un=S.entries.length-paid.length;
+  $("sums").hidden=false;
+  $("sums").innerHTML=`<div class="sum ok"><small>Collected</small><b>${eur(paid.length*fee)}</b></div><div class="sum"><small>Still due</small><b>${eur(un*fee)}</b></div><div class="sum"><small>Entries paid</small><b>${paid.length}/${S.entries.length}</b></div>`;
+  const t=$("q").value.trim().toLowerCase();
+  const html=groups().map(([owner,list])=>{
+    const unp=list.filter(e=>!e.PaidAt),all=!unp.length;
+    if(S.filter==="unpaid"&&all||S.filter==="paid"&&!list.some(e=>e.PaidAt))return "";
+    if(t&&!(owner+" "+list.map(e=>e["Dog name"]+" "+(e["Ring No"]||"")).join(" ")).toLowerCase().includes(t))return "";
+    const sel=unp.filter(e=>S.sel[e._row]!==false);
+    const cash=list.filter(e=>e.PaidVia==="cash");
+    const rows=list.map(e=>{
+      const tag=e.PaidAt?`<span class="tag ok">${e.PaidVia==="cash"?"Cash":"Card"} · ${esc(day(e.PaidAt))}</span>`:`<span class="tag">${eur(fee)}</span>`;
+      const box=e.PaidAt?`<span style="width:22px;flex:none;text-align:center;color:var(--ok);font-weight:700">✓</span>`:`<input type="checkbox" data-sel="${esc(e._row)}"${S.sel[e._row]!==false?" checked":""} aria-label="Include ${esc(e["Dog name"])}">`;
+      return `<div class="prow"><label>${box}<span class="no">${esc(e["Ring No"]||"–")}</span><span class="nm"><b>${esc(e["Dog name"])}</b><small>${esc([e.Breed,e.Class].filter(Boolean).join(" · "))}${e.Absent?" · absent":""}</small></span></label>${tag}</div>`}).join("");
+    const foot=(unp.length?`<button class="pri" type="button" data-pay="${esc(owner)}"${sel.length?"":" disabled"}>${sel.length?`Pay ${eur(sel.length*fee)} by card`:"Tick a dog to pay"}</button><button type="button" data-cash="${esc(owner)}"${sel.length?"":" disabled"}>Paid in cash</button>`:"")+
+      (cash.length?`<button type="button" data-uncash="${esc(owner)}">Undo cash</button>`:"");
+    return `<article class="breed owner${all?" paid":""}"><div class="bhead"><div><small>${list.length} ${list.length===1?"entry":"entries"}</small><h2>${esc(owner)}</h2></div><span class="count">${all?"Paid":eur(unp.length*fee)+" due"}</span></div>${rows}${foot?`<div class="ofoot needs-edit">${foot}</div>`:""}</article>`;
+  }).join("");
+  $("list").innerHTML=html||`<div class="empty">${S.entries.length?(S.filter==="unpaid"&&!t?"Everyone has paid. 🎉":"Nobody matches."):"No entries in this show yet."}</div>`;
+  drawPayments();
+}
+function drawPayments(){
+  const list=S.payments.filter(p=>p.revolut_order_id);
+  $("payPanel").hidden=!list.length;
+  $("payList").innerHTML=list.slice(0,30).map(p=>{const st=STATE[p.state]||p.state;
+    return `<div class="payrow"><div><b>${esc(p.payer||"Payment")} · ${eur(p.amount_cents)}</b><small>${esc(new Date(p.created_at).toLocaleString([],{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}))} · ${p.entry_ids.length} ${p.entry_ids.length===1?"entry":"entries"}</small></div>
+      <span style="display:flex;gap:6px;align-items:center;flex:none">${p.mode==="sandbox"?'<span class="tag test">Test</span>':""}<span class="tag${p.state==="completed"?" ok":""}">${esc(st)}</span>${p.state!=="completed"&&p.state!=="failed"&&p.state!=="cancelled"?`<button type="button" data-check="${esc(p.id)}">Check</button>`:""}</span></div>`}).join("");
+  const test=S.mode?S.mode==="sandbox":list.length&&list[0].mode==="sandbox";$("testBar").hidden=!test;
+}
+async function load(){
+  if(!S.show){$("list").innerHTML='<div class="empty">Open a show first, from <a href="index.html">All shows</a>.</div>';return}
+  try{
+    const j=await mncfApi("show",{show:S.show});
+    if(!j.show){$("list").innerHTML='<div class="empty">This show wasn\'t found.</div>';return}
+    S.showRow=j.show;S.entries=j.entries;
+    $("showSub").textContent=[j.show.Date,j.show.Venue].filter(Boolean).join(" · ")||"Entry fees and payments";
+    if(document.activeElement!==$("fee"))$("fee").value=j.show.Fee?(j.show.Fee/100).toFixed(2):"";
+    try{S.payments=(await mncfApi("payments",{show_id:j.show.id})).payments}catch(e){S.payments=[];$("feeErr").textContent=e.message}
+    draw();
+  }catch(e){$("list").innerHTML=`<p class="err">${esc(e.message)}</p>`}
+}
+$("feeForm").addEventListener("submit",async ev=>{
+  ev.preventDefault();$("feeErr").textContent="";
+  const v=$("fee").value.trim().replace(",",".");
+  if(v&&!/^\d+(\.\d{1,2})?$/.test(v)){$("feeErr").textContent="Type the fee in euro, like 15 or 12.50.";return}
+  const b=$("feeBtn");b.disabled=true;
+  try{await mncfApi("setFee",{id:S.showRow.id,cents:v?Math.round(parseFloat(v)*100):null});mncfToast(v?"Entry fee set to "+eur(Math.round(parseFloat(v)*100)):"Entry fee cleared");await load()}
+  catch(e){$("feeErr").textContent=e.message}finally{b.disabled=false}
+});
+$("q").addEventListener("input",draw);
+document.querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>{S.filter=b.dataset.f;document.querySelectorAll("[data-f]").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));draw()});
+const pick=owner=>(groups().find(([o])=>o===owner)||[,[]])[1];
+$("list").addEventListener("change",e=>{const c=e.target;if(c.dataset.sel){S.sel[c.dataset.sel]=c.checked;draw()}});
+$("list").addEventListener("click",async e=>{
+  const b=e.target.closest("button");if(!b)return;
+  if(b.dataset.pay!=null){
+    const owner=b.dataset.pay,ids=pick(owner).filter(x=>!x.PaidAt&&S.sel[x._row]!==false).map(x=>x._row);if(!ids.length)return;
+    b.disabled=true;const was=b.textContent;b.textContent="Starting…";
+    try{const j=await mncfApi("checkout",{show_id:S.showRow.id,entry_ids:ids,payer:owner});S.mode=j.mode;openPay(j.payment);S.payments.unshift(j.payment);drawPayments()}
+    catch(err){mncfToast(err.message,{ms:6000})}finally{b.disabled=false;b.textContent=was}
+  }
+  if(b.dataset.cash!=null){
+    const owner=b.dataset.cash,ids=pick(owner).filter(x=>!x.PaidAt&&S.sel[x._row]!==false).map(x=>x._row);if(!ids.length)return;
+    b.disabled=true;
+    try{await mncfApi("markPaid",{ids,paid:true});mncfToast(`${owner}: ${eur(ids.length*S.showRow.Fee)} paid in cash`,{action:"Undo",onAction:async()=>{await mncfApi("markPaid",{ids,paid:false});load()}});await load()}
+    catch(err){mncfToast(err.message);b.disabled=false}
+  }
+  if(b.dataset.uncash!=null){
+    const ids=pick(b.dataset.uncash).filter(x=>x.PaidVia==="cash").map(x=>x._row);
+    if(!confirm(`Mark ${ids.length} cash ${ids.length===1?"entry":"entries"} for ${b.dataset.uncash} as unpaid again?`))return;
+    try{await mncfApi("markPaid",{ids,paid:false});await load()}catch(err){mncfToast(err.message)}
+  }
+});
+$("payList").addEventListener("click",e=>{const b=e.target.closest("[data-check]");if(b)check(b.dataset.check,b)});
+async function check(id,btn){
+  if(btn)btn.disabled=true;
+  try{const j=await mncfApi("refreshPayment",{payment_id:id});S.mode=j.mode;const p=j.payment;
+    mncfToast(p.state==="completed"?`Payment received: ${eur(p.amount_cents)}${p.payer?" from "+p.payer:""}`:`Not paid yet (${(STATE[p.state]||p.state).toLowerCase()})`,{ms:4000});
+    if(p.state==="completed"&&$("payDlg").open)$("payDlg").close();
+    await load();return p}
+  catch(e){mncfToast(e.message,{ms:6000})}finally{if(btn)btn.disabled=false}
+}
+// ---- the "ready to pay" sheet ----
+let CUR=null;
+function openPay(p){
+  CUR=p;$("pdAmount").textContent=eur(p.amount_cents);
+  $("pdWhat").textContent=`${p.entry_ids.length} ${p.entry_ids.length===1?"entry":"entries"}${p.payer?" for "+p.payer:""}${p.mode==="sandbox"?" · test mode, no real money":""}`;
+  $("pdOpen").href=p.checkout_url;$("pdLink").textContent=p.checkout_url;
+  const d=$("payDlg");if(d.showModal)d.showModal();else d.setAttribute("open","");
+}
+$("pdClose").onclick=()=>$("payDlg").close();
+$("pdCheck").onclick=()=>CUR&&check(CUR.id,$("pdCheck"));
+$("pdShare").onclick=async()=>{
+  if(!CUR)return;const text=`${S.show}: entry fee ${eur(CUR.amount_cents)}. Pay here:`;
+  try{if(navigator.share){await navigator.share({title:"Entry fee",text,url:CUR.checkout_url});return}}catch(e){if(e&&e.name==="AbortError")return}
+  try{await navigator.clipboard.writeText(text+" "+CUR.checkout_url);mncfToast("Payment link copied. Paste it in WhatsApp or an email.")}catch(e){mncfToast("Copy the link below the buttons.")}
+};
+// Back from Revolut's payment page: check the payment straight away.
+(async()=>{
+  await load();
+  const pid=mncfQuery("payment");
+  if(pid){const u=new URL(location.href);u.searchParams.delete("payment");history.replaceState(null,"",u.toString());check(pid)}
+})();
+</script>
+</body>
+</html>
