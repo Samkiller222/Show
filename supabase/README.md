@@ -7,14 +7,13 @@
 
 To add a team member: create their user in Authentication > Users, then give them a role on the site's Users and roles page (admins only).
 
-## Entry fee payments (Revolut)
+## Entry fee payments (Stripe, paid out to Revolut)
 
-The edge function `payments` creates Revolut checkouts and marks entries paid. To switch it on:
+The edge function `payments` creates Stripe Checkout pages for entry fees and marks entries paid once Stripe confirms them. Stripe pays the money out to the club's Revolut account. To switch it on:
 
-1. Apply `migrations/20261105_payments.sql` in the SQL editor.
-2. Deploy the function with JWT verification **off** (Revolut's webhook has no Supabase login; the function checks the caller's team role itself): `supabase functions deploy payments --no-verify-jwt`.
-3. In Edge Functions > Secrets add `REVOLUT_SECRET_KEY` (Merchant API secret key) and `REVOLUT_MODE` (`sandbox` while testing with a key from sandbox-business.revolut.com, `live` with the Production key from Revolut Business > Merchant > Merchant API).
-4. Register the webhook once per mode so payments are ticked off even if the payer closes the page:
-   `curl -X POST https://sandbox-merchant.revolut.com/api/webhooks -H "Authorization: Bearer $REVOLUT_SECRET_KEY" -H "Revolut-Api-Version: 2024-09-01" -H "Content-Type: application/json" -d '{"url":"https://cyikakfookjygycziqfg.supabase.co/functions/v1/payments","events":["ORDER_COMPLETED","ORDER_AUTHORISED","ORDER_CANCELLED","ORDER_FAILED"]}'`
-   (use `https://merchant.revolut.com` for live).
-5. Payers are sent back to `https://register.maltacaninefederation.com/payments.html?...` (Cloudflare drops `.html` and keeps the query). Set the optional `SITE_URL` secret only if the site moves again.
+1. Sign up at stripe.com (an individual or sole trader account is fine). In Settings > Payouts, add the Revolut account's IBAN as the payout bank account.
+2. Apply `migrations/20261105_payments.sql` in the SQL editor.
+3. Deploy the function with JWT verification **off** (Stripe's webhook has no Supabase login; the function checks the caller's team role itself): `supabase functions deploy payments --no-verify-jwt`.
+4. In Edge Functions > Secrets add `STRIPE_SECRET_KEY`: the test key (`sk_test_...`, from Stripe > Developers > API keys with "Test mode" on) while trying it out, then the live key (`sk_live_...`). Test or live is worked out from the key.
+5. In Stripe > Developers > Webhooks, add an endpoint `https://cyikakfookjygycziqfg.supabase.co/functions/v1/payments` with the events `checkout.session.completed`, `checkout.session.async_payment_succeeded` and `checkout.session.expired` (once in test mode and once in live mode). Then payments are ticked off even if the payer closes the page before coming back.
+6. Payers come back to `https://register.maltacaninefederation.com/payments.html?...` (Cloudflare drops `.html` and keeps the query). Set the optional `SITE_URL` secret only if the site moves again.

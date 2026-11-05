@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="mncf-version" content="2026-11-05a">
+<meta name="mncf-version" content="2026-11-05c">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>MNCF Payments</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<link rel="stylesheet" href="css/style.css?v=2026-11-05a">
+<link rel="stylesheet" href="css/style.css?v=2026-11-05c">
 <style>
 #feeErr:empty{display:none}
 .feerow{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
@@ -59,18 +59,18 @@
   </header>
   <section class="panel">
     <h2>Entry fees</h2>
-    <p class="note">Each owner pays the fee for every dog they entered. Tap <b>Pay by card</b> to open Revolut's payment page on this phone, or share the link so they can pay on their own phone. The money goes to the club's Revolut Business account, and the entries are ticked off as paid by themselves. Cash at the desk can be ticked off by hand.</p>
+    <p class="note">Each owner pays the fee for every dog they entered. Tap <b>Pay by card</b> to open the card payment page (Stripe) on this phone, or share the link so they can pay on their own phone. Stripe pays the money out to the club's Revolut account, and the entries are ticked off as paid by themselves. Cash at the desk can be ticked off by hand.</p>
     <form class="feerow needs-edit" id="feeForm" autocomplete="off">
       <div class="field"><label for="fee">Fee per entry</label><div class="money"><span>€</span><input type="text" id="fee" inputmode="decimal" placeholder="0.00"></div></div>
       <button class="pri" type="submit" id="feeBtn" style="min-height:var(--tap,46px)">Save fee</button>
     </form>
     <p class="err" id="feeErr"></p>
-    <p class="testbar" id="testBar" hidden>Test mode: card payments use Revolut's sandbox, so no real money moves. Use Revolut's test card numbers.</p>
+    <p class="testbar" id="testBar" hidden>Test mode: no real money moves. Pay with Stripe's test card 4242 4242 4242 4242, any future date and any CVC.</p>
   </section>
   <div class="sums" id="sums" hidden></div>
   <div class="find"><input type="text" id="q" placeholder="Find an owner or dog" autocomplete="off"><div class="seg3" role="group" aria-label="Show"><button type="button" data-f="unpaid" aria-pressed="true">Unpaid</button><button type="button" data-f="paid" aria-pressed="false">Paid</button><button type="button" data-f="all" aria-pressed="false">All</button></div></div>
   <div id="list" style="display:flex;flex-direction:column;gap:12px"><p class="loading">Loading…</p></div>
-  <article class="breed" id="payPanel" hidden><div class="bhead"><div><small>Revolut</small><h2>Card payments</h2></div></div><div id="payList"></div></article>
+  <article class="breed" id="payPanel" hidden><div class="bhead"><div><small>Stripe</small><h2>Card payments</h2></div></div><div id="payList"></div></article>
 </div>
 <dialog class="paydlg" id="payDlg" aria-labelledby="pdTitle"><div class="in">
   <h2 id="pdTitle">Ready to pay</h2>
@@ -85,8 +85,8 @@
 </div></dialog>
 <div class="toast" id="toast"></div>
 <script src="vendor/supabase.min.js"></script>
-<script src="js/api.js?v=2026-11-05a"></script>
-<script src="js/shell.js?v=2026-11-05a"></script>
+<script src="js/api.js?v=2026-11-05c"></script>
+<script src="js/shell.js?v=2026-11-05c"></script>
 <script>
 mncfShell({page:"payments",kicker:"Payments"});
 const esc=mncfEsc,$=id=>document.getElementById(id);
@@ -95,7 +95,7 @@ const eur=c=>"€"+(Number(c||0)/100).toFixed(2).replace(/\.00$/,"");
 const day=t=>t?new Date(t).toLocaleDateString([],{day:"numeric",month:"short"}):"";
 const PEOPLE=["Junior Handler","Childrens Class"];
 const ownerOf=e=>PEOPLE.includes(e.Class)?(e["Dog name"]||"")+" ("+e.Class+")":(e.Owner||"No owner on record");
-const STATE={creating:"Starting",pending:"Waiting",processing:"Processing",authorised:"Processing",completed:"Paid",cancelled:"Cancelled",failed:"Failed"};
+const STATE={creating:"Starting",pending:"Waiting",completed:"Paid",expired:"Expired",failed:"Failed"};
 
 function groups(){
   const m=new Map();
@@ -127,12 +127,12 @@ function draw(){
   drawPayments();
 }
 function drawPayments(){
-  const list=S.payments.filter(p=>p.revolut_order_id);
+  const list=S.payments.filter(p=>p.order_ref);
   $("payPanel").hidden=!list.length;
   $("payList").innerHTML=list.slice(0,30).map(p=>{const st=STATE[p.state]||p.state;
     return `<div class="payrow"><div><b>${esc(p.payer||"Payment")} · ${eur(p.amount_cents)}</b><small>${esc(new Date(p.created_at).toLocaleString([],{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}))} · ${p.entry_ids.length} ${p.entry_ids.length===1?"entry":"entries"}</small></div>
-      <span style="display:flex;gap:6px;align-items:center;flex:none">${p.mode==="sandbox"?'<span class="tag test">Test</span>':""}<span class="tag${p.state==="completed"?" ok":""}">${esc(st)}</span>${p.state!=="completed"&&p.state!=="failed"&&p.state!=="cancelled"?`<button type="button" data-check="${esc(p.id)}">Check</button>`:""}</span></div>`}).join("");
-  const test=S.mode?S.mode==="sandbox":list.length&&list[0].mode==="sandbox";$("testBar").hidden=!test;
+      <span style="display:flex;gap:6px;align-items:center;flex:none">${p.mode==="test"?'<span class="tag test">Test</span>':""}<span class="tag${p.state==="completed"?" ok":""}">${esc(st)}</span>${p.state!=="completed"&&p.state!=="failed"&&p.state!=="expired"?`<button type="button" data-check="${esc(p.id)}">Check</button>`:""}</span></div>`}).join("");
+  const test=S.mode?S.mode==="test":list.length&&list[0].mode==="test";$("testBar").hidden=!test;
 }
 async function load(){
   if(!S.show){$("list").innerHTML='<div class="empty">Open a show first, from <a href="index.html">All shows</a>.</div>';return}
@@ -191,7 +191,7 @@ async function check(id,btn){
 let CUR=null;
 function openPay(p){
   CUR=p;$("pdAmount").textContent=eur(p.amount_cents);
-  $("pdWhat").textContent=`${p.entry_ids.length} ${p.entry_ids.length===1?"entry":"entries"}${p.payer?" for "+p.payer:""}${p.mode==="sandbox"?" · test mode, no real money":""}`;
+  $("pdWhat").textContent=`${p.entry_ids.length} ${p.entry_ids.length===1?"entry":"entries"}${p.payer?" for "+p.payer:""}${p.mode==="test"?" · test mode, no real money":""}`;
   $("pdOpen").href=p.checkout_url;$("pdLink").textContent=p.checkout_url;
   const d=$("payDlg");if(d.showModal)d.showModal();else d.setAttribute("open","");
 }
@@ -202,7 +202,7 @@ $("pdShare").onclick=async()=>{
   try{if(navigator.share){await navigator.share({title:"Entry fee",text,url:CUR.checkout_url});return}}catch(e){if(e&&e.name==="AbortError")return}
   try{await navigator.clipboard.writeText(text+" "+CUR.checkout_url);mncfToast("Payment link copied. Paste it in WhatsApp or an email.")}catch(e){mncfToast("Copy the link below the buttons.")}
 };
-// Back from Revolut's payment page: check the payment straight away.
+// Back from Stripe's payment page: check the payment straight away.
 (async()=>{
   await load();
   const pid=mncfQuery("payment");

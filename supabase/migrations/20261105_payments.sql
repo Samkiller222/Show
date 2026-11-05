@@ -1,7 +1,8 @@
--- Entry fee payments through Revolut checkout (payments.html, edge function "payments").
+-- Entry fee payments by card through Stripe Checkout (payments.html, edge function "payments").
+-- Stripe pays the money out to the club's Revolut account (set as the payout bank account in Stripe).
 --   shows.entry_fee_cents : fee per entry in euro cents (null = this show doesn't take payments)
---   entries.paid_at / paid_via / payment_id : when and how an entry was paid ('revolut' or 'cash')
---   payments : one row per Revolut checkout. Only the edge function writes here (service role);
+--   entries.paid_at / paid_via / payment_id : when and how an entry was paid ('card' or 'cash')
+--   payments : one row per Stripe checkout. Only the edge function writes here (service role);
 --              the team can read it.
 
 alter table public.shows add column if not exists entry_fee_cents integer;
@@ -15,9 +16,10 @@ create table if not exists public.payments (
   payer text not null default '',
   amount_cents integer not null check (amount_cents > 0),
   currency text not null default 'EUR',
-  state text not null default 'creating',   -- creating, pending, processing, authorised, completed, cancelled, failed
-  mode text not null default 'sandbox',      -- sandbox (test money) or live
-  revolut_order_id text unique,
+  state text not null default 'creating',   -- creating, pending, completed, expired, failed
+  provider text not null default 'stripe',
+  mode text not null default 'test',         -- test (test money) or live
+  order_ref text unique,                     -- Stripe Checkout Session id (cs_...)
   checkout_url text,
   created_by text,
   created_at timestamptz not null default now(),
@@ -33,7 +35,7 @@ alter table public.entries add column if not exists paid_at timestamptz;
 alter table public.entries add column if not exists paid_via text;
 alter table public.entries add column if not exists payment_id uuid references public.payments(id) on delete set null;
 alter table public.entries drop constraint if exists entries_paid_via_check;
-alter table public.entries add constraint entries_paid_via_check check (paid_via is null or paid_via in ('revolut','cash'));
+alter table public.entries add constraint entries_paid_via_check check (paid_via is null or paid_via in ('card','cash'));
 
 -- Same view as before, with the payment columns added at the end.
 create or replace view public.entries_view with (security_invoker = true) as
