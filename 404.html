@@ -8,7 +8,8 @@
 // The first-version pages moved into legacy/ (Nov 2026). Send old bookmarks there.
 (function(){
   var old=["nov-2026","saturday","sunday-morning","sunday-evening","absent","best-in-show"];
-  var p=location.pathname, m=p.match(/^(.*\/)([a-z0-9-]+)\.html$/);
+  // Cloudflare Pages drops ".html" from URLs, so match with or without it.
+  var p=location.pathname, m=p.match(/^(.*\/)([a-z0-9-]+)(\.html)?$/);
   if(m&&old.indexOf(m[2])>=0&&!/\/legacy\/$/.test(m[1])){
     location.replace(m[1]+"legacy/"+m[2]+".html"+location.search+location.hash);
   }
@@ -22,6 +23,10 @@ a{display:inline-block;margin-top:16px;padding:12px 20px;border-radius:10px;back
 <body>
 <h1>Page not found</h1>
 <p>This page doesn't exist any more.</p>
-<a href="/Show/">Go to all shows</a>
+<a id="home" href="/">Go to all shows</a>
+<script>
+// GitHub Pages serves the site under /Show/, the Cloudflare domain at the root.
+if(/github\.io$/.test(location.hostname))document.getElementById("home").href="/Show/";
+</script>
 </body>
 </html>
