@@ -11,7 +11,7 @@ The site helps the MNCF (Malta) team at dog shows:
 - record winners live on several phones at once
 - export the results to Excel
 
-- **Live site:** https://samkiller222.github.io/Show/ (GitHub Pages, branch `main`, repo `Samkiller222/Show`)
+- **Live site:** https://samkiller222.github.io/Show/ (GitHub Pages, branch `main`, repo `Samkiller222/Show`). Moving to Sam's own domain on Cloudflare Pages (Nov 2026): Pages is connected to the repo, has no build step and serves the repo root, and redeploys on every push to `main`. See `docs/cloudflare.md`.
 - **Owner:** Sam Micallef (sammicallef12@gmail.com)
 - **Stack:** plain HTML, CSS and JavaScript with no build step, plus a Supabase database. Vendored libraries in `vendor/`: `supabase.min.js` (supabase-js 2.49.4 UMD) with its chunk `591.supabase.js` (keep the two side by side), and `xlsx.full.min.js` (SheetJS).
 
@@ -235,7 +235,7 @@ None yet.
 
 - **Bump the version on every change.** Browsers keep old copies of pages and files for a while, which mixed old and new screens (unstyled lanes, the old entry form still showing). Each new-system page (`index`, `register`, `entry`, `awards`, `breeds`) has `<meta name="mncf-version">` and loads `css/style.css` and `js/api.js`, `js/shell.js`, `js/nav.js`, `js/focus.js`, `js/schedule.js` with `?v=<version>`. `shell.js` fetches `version.json` without cache and, if it differs from the page's meta, reloads once with `&_v=<version>`. When you change anything, replace the old version string everywhere: `grep -rl OLD --include=*.html --include=version.json . | xargs sed -i s/OLD/NEW/g`.
 
-- Clone the repo, edit the files and push to `main`. GitHub Pages redeploys in about a minute.
+- Clone the repo, edit the files and push to `main`. GitHub Pages and Cloudflare Pages both redeploy in about a minute. Keep links relative (no leading `/`), because GitHub Pages serves the site under `/Show/` and Cloudflare at the root. Cloudflare also drops `.html` from URLs (`awards.html` → `/awards`), which relative links and query strings survive.
 - **Commit identity:** `Sam Micallef <sammicallef12@gmail.com>`.
 - **Testing:** use Playwright at phone size (390×844) and replace `api.js` with a fake that returns sample entries, so no sign-in is needed. Test SQL inside a transaction that is rolled back, using `set local role authenticated` and the JWT claims.
 - **Styling:** keep the existing look. Touch targets are at least 46px, and `style.css` uses CSS variables.
