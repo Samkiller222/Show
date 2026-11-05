@@ -4,16 +4,14 @@ The site is plain HTML, CSS and JS with no build step, so Cloudflare Pages serve
 
 ## One-time setup (Cloudflare dashboard)
 
-1. Go to **Workers & Pages → Create → Pages → Connect to Git**. (If you only see a Workers screen, look for the small "Looking to deploy Pages? Get started" link.)
-2. Sign in to GitHub when asked and allow Cloudflare to see the `Samkiller222/Show` repository.
-3. Pick `Show` and set:
-   - Project name: anything, for example `mncf-show`
-   - Production branch: `main`
-   - Framework preset: **None**
-   - Build command: leave empty
-   - Build output directory: `/` (the repo root)
-4. Click **Save and Deploy**. The site appears at `https://<project-name>.pages.dev`.
-5. In the Pages project open **Custom domains → Set up a custom domain**, type your domain (and `www.` too if you want it), and confirm. Because the domain is already on Cloudflare, it adds the DNS record and the HTTPS certificate for you. It can take a few minutes to go green.
+`wrangler.jsonc` tells Cloudflare to serve the repo folder as a static site, and `.assetsignore` keeps notes, SQL and git data off the website.
+
+1. Go to **Workers & Pages → Create → Import a repository**, sign in to GitHub and pick `Samkiller222/Show`.
+2. Project name: `show` (it must match `name` in `wrangler.jsonc`). Build command: leave empty. Deploy command: `npx wrangler deploy`. Leave **Protect with Cloudflare Access** off, because the site has its own sign-in and payers must reach it.
+3. Click **Deploy**. The site appears at `https://show.<your-account>.workers.dev`.
+4. In the Worker open **Settings → Domains & Routes → Add → Custom domain**, type your domain (and `www.` too if you want it). Cloudflare adds the DNS record and HTTPS certificate.
+
+Cloudflare drops `.html` from addresses (`awards.html` becomes `/awards`). Relative links and `?show=` query strings still work.
 
 ## After the domain works
 
