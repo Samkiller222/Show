@@ -72,7 +72,8 @@
   window.mncfRoleCached=()=>{try{return asPreview(localStorage.getItem("mncf-role")||"")}catch(e){return ""}};
   const EDIT_ACTIONS=["setFee","checkout","markPaid","addShow","updateShow","setSchedule","saveEntry","deleteEntry","setAbsent","addBreed","setBreedGroup","saveDog","importEntries"];
   // Handlers enter, change and withdraw their own dogs, and edit their own dogs' details. The database checks which dogs are theirs.
-  const HANDLER_ACTIONS=["saveEntry","deleteEntry","saveDog"];
+  // Owners and handlers can also pay their own dogs' entry fees by card (the payments function checks which entries are theirs).
+  const HANDLER_ACTIONS=["saveEntry","deleteEntry","saveDog","checkout"];
   const canEdit=r=>r==="admin"||r==="organiser", canAward=r=>canEdit(r)||r==="steward";
   function roleBlock(action,data,r){
     if((r==="handler"||r==="owner")&&HANDLER_ACTIONS.includes(action)) return "";
@@ -215,7 +216,7 @@
       const row=d.paid?{paid_at:new Date().toISOString(),paid_via:"cash",payment_id:null}:{paid_at:null,paid_via:null,payment_id:null};
       let q=sb.from("entries").update(row).in("id",ids);q=d.paid?q.is("paid_at",null):q.eq("paid_via","cash");
       const {error}=await q;if(error)fail(error);return {ok:true}},
-    async checkout(d){return payFn({action:"checkout",show_id:d.show_id,entry_ids:d.entry_ids,payer:d.payer||""})},
+    async checkout(d){return payFn({action:"checkout",show_id:d.show_id,entry_ids:d.entry_ids,payer:d.payer||"",back:d.back||""})},
     async refreshPayment(d){return payFn({action:"refresh",payment_id:d.payment_id})},
     async importEntries(d){const {data,error}=await sb.rpc("import_entries",{p_show:d.show,p_entries:d.entries});if(error)fail(error);return Object.assign({ok:true},data)},
     async syncState(d){const {data,error}=await sb.rpc("sync_state",{p_show:d.show,p_changes:d.changes||[],p_since:d.since||0});if(error)fail(error);return Object.assign({ok:true},data)},
