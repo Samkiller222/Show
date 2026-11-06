@@ -55,7 +55,7 @@
     if(!opt.add) gateP=p;
     return p;
   }
-  // Saved copies of lists belong to whoever was signed in: drop them when the login changes (handlers only see their own dogs).
+  // Saved copies of lists belong to whoever was signed in: drop them when the login changes (owners only see their own dogs).
   function clearCache(){try{for(let i=localStorage.length-1;i>=0;i--){const k=localStorage.key(i);if(k&&k.startsWith("mncf-cache-"))localStorage.removeItem(k)}}catch(e){}}
   // Everything this phone remembers about the current login (role, admin preview, saved lists).
   function resetLocal(){try{localStorage.removeItem("mncf-role");sessionStorage.removeItem("mncf-preview-role");clearCache()}catch(e){}}
@@ -117,19 +117,19 @@
   };
   const saveRole=r=>{if(!curEmail||r==null)return;const a=readAccts(),x=a.find(y=>y.email===curEmail);if(x&&x.role!==r){x.role=r;writeAccts(a)}};
 
-  // ---- roles: admin, organiser, steward (awards only), viewer (read only) ----
+  // ---- roles: admin, organiser, steward (awards only), viewer (read only), owner (own dogs only) ----
   // The database enforces these; pages only use the role to hide what this login can't do.
-  const ROLE_NAMES={admin:"Admin",organiser:"Organiser",steward:"Steward",viewer:"Viewer",handler:"Handler",owner:"Owner"};
+  const ROLE_NAMES={admin:"Admin",organiser:"Organiser",steward:"Steward",viewer:"Viewer",owner:"Owner"};
   let roleP=null;
   window.mncfRoleName=r=>ROLE_NAMES[r]||"Not on the team";
   // Admins can preview the site as another role (kept for this browser tab only).
   // The preview only changes what this page shows and allows; the database still sees an admin.
   const PREVIEW_KEY="mncf-preview-role";
-  // A handler or owner preview can name the person ("handler:email", "owner:email") so the page shows their dogs.
+  // An owner preview can name the person ("owner:email") so the page shows their dogs.
   window.mncfPreview={
     raw(){try{return sessionStorage.getItem(PREVIEW_KEY)||""}catch(e){return ""}},
-    get(){const r=this.raw().split(":")[0];return ["organiser","steward","viewer","handler","owner"].includes(r)?r:""},
-    email(){const r=this.raw(),i=r.indexOf(":");return i>0&&["handler","owner"].includes(r.slice(0,i))?r.slice(i+1).toLowerCase():""},
+    get(){const r=this.raw().split(":")[0];return ["organiser","steward","viewer","owner"].includes(r)?r:""},
+    email(){const r=this.raw(),i=r.indexOf(":");return i>0&&r.slice(0,i)==="owner"?r.slice(i+1).toLowerCase():""},
     set(r){try{if(r&&r!=="admin")sessionStorage.setItem(PREVIEW_KEY,r);else sessionStorage.removeItem(PREVIEW_KEY)}catch(e){}clearCache()} // saved lists differ per role
   };
   const asPreview=r=>r==="admin"&&mncfPreview.get()?mncfPreview.get():r;
@@ -144,12 +144,12 @@
   // last known role on this phone, so the page can hide things before the database answers
   window.mncfRoleCached=()=>{try{return asPreview(localStorage.getItem("mncf-role")||"")}catch(e){return ""}};
   const EDIT_ACTIONS=["setFee","checkout","markPaid","addShow","updateShow","setSchedule","saveEntry","deleteEntry","setAbsent","addBreed","setBreedGroup","saveDog","importEntries"];
-  // Handlers enter, change and withdraw their own dogs, and edit their own dogs' details. The database checks which dogs are theirs.
-  // Owners and handlers can also pay their own dogs' entry fees by card (the payments function checks which entries are theirs).
-  const HANDLER_ACTIONS=["saveEntry","deleteEntry","saveDog","checkout"];
+  // Owners enter, change and withdraw their own dogs, edit their own dogs' details and pay their own dogs' entry fees by card.
+  // The database and the payments function check which dogs and entries are theirs.
+  const OWNER_ACTIONS=["saveEntry","deleteEntry","saveDog","checkout"];
   const canEdit=r=>r==="admin"||r==="organiser", canAward=r=>canEdit(r)||r==="steward";
   function roleBlock(action,data,r){
-    if((r==="handler"||r==="owner")&&HANDLER_ACTIONS.includes(action)) return "";
+    if(r==="owner"&&OWNER_ACTIONS.includes(action)) return "";
     if(EDIT_ACTIONS.includes(action)&&!canEdit(r)) return `Your login is ${r?"a "+ROLE_NAMES[r]:"not on the team"}, so it can't change shows, entries, dogs or breeds. Ask an admin to change your role.`;
     if(action==="syncState"&&(data.changes||[]).length&&!canAward(r)) return `Your login is ${r?"a "+ROLE_NAMES[r]:"not on the team"}, so it can't record awards. Ask an admin to change your role.`;
     if(["team","setMember","removeMember"].includes(action)&&r!=="admin") return "Only admins can see and change users.";
@@ -159,7 +159,7 @@
 
   // ---- shapes the pages use ----
   const showOut=s=>({id:s.id,Show:s.name,Date:s.show_date,Venue:s.venue,Judge:s.judge,Status:s.status,Notes:s.notes,Schedule:Array.isArray(s.schedule)?s.schedule:[],Fee:s.entry_fee_cents==null?null:s.entry_fee_cents});
-  const dogOut=d=>({"Dog name":d.name,Breed:d.breed,Sex:d.sex,"Date of birth":d.dob,Owner:d.owner,Phone:d.phone,Address:d.address,Breeder:d.breeder,Sire:d.sire,Dam:d.dam,Handlers:Array.isArray(d.handler_emails)?d.handler_emails:null,Owners:Array.isArray(d.owner_emails)?d.owner_emails:null});
+  const dogOut=d=>({"Dog name":d.name,Breed:d.breed,Sex:d.sex,"Date of birth":d.dob,Owner:d.owner,Phone:d.phone,Address:d.address,Breeder:d.breeder,Sire:d.sire,Dam:d.dam,Owners:Array.isArray(d.owner_emails)?d.owner_emails:null});
   const breedOut=b=>({Breed:b.name,Group:b.grp});
   const entryOut=e=>({_row:e.id,Show:e.show_name,"Ring No":e.ring_no,"Dog name":e.dog_name,Class:e.class,Absent:e.absent,Breed:e.breed,Group:e.grp,Sex:e.sex,Owner:e.owner,PaidAt:e.paid_at||null,PaidVia:e.paid_via||"",PaymentId:e.payment_id||null});
   const fail=e=>{throw new Error(e.message||String(e))};
@@ -219,11 +219,7 @@
       if(!name)fail({message:"Type the dog's name."});if(!breed)fail({message:"Pick the dog's breed."});
       const row={name,breed,sex:["Dog","Bitch"].includes(g.Sex)?g.Sex:""};
       [["dob","Date of birth"],["owner","Owner"],["phone","Phone"],["address","Address"],["breeder","Breeder"],["sire","Sire"],["dam","Dam"]].forEach(([c,k])=>row[c]=String(g[k]||"").trim());
-      // handler logins (organisers set these; a handler's own new dog is linked to them by the database)
-      if(Array.isArray(g.Handlers)){
-        const bad=g.Handlers.find(e=>!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e));if(bad)fail({message:bad+" isn't a valid email."});
-        row.handler_emails=[...new Set(g.Handlers.map(e=>String(e).trim().toLowerCase()).filter(Boolean))];
-      }
+      // owner logins (organisers set these; an owner's own new dog is linked to them by the database)
       if(Array.isArray(g.Owners)){
         const bad=g.Owners.find(e=>!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e));if(bad)fail({message:bad+" isn't a valid email."});
         row.owner_emails=[...new Set(g.Owners.map(e=>String(e).trim().toLowerCase()).filter(Boolean))];
@@ -237,7 +233,7 @@
       if(old&&old!==name){const r=await sb.from("entries").update({dog_name:name}).ilike("dog_name",likeExact(old));if(r.error)fail({message:"The dog was renamed, but its show entries still use the old name: "+r.error.message})}
       return {ok:true,dog:Object.assign(dogOut(data[0]),{id:data[0].id,Added:data[0].created_at})};
     },
-    // Handler home (mydogs.html): my dogs, every show, and my dogs' entries. The database only returns a handler's own.
+    // Owner home (mydogs.html): my dogs, every show, and my dogs' entries. The database only returns an owner's own.
     async myDogs(){
       const [g,sh,ents]=await Promise.all([all("dogs","name"),shows(),all("entries_view","created_at")]);
       const dogsOut=g.map(d=>Object.assign(dogOut(d),{id:d.id}));
@@ -328,11 +324,11 @@
       throw e;
     }
   }
-  // Previewing as a handler: the database still answers as the admin, so narrow the lists here
-  // to the dogs of the handler being previewed (or none), the way the database would for them.
+  // Previewing as an owner: the database still answers as the admin, so narrow the lists here
+  // to the dogs of the owner being previewed (or none), the way the database would for them.
   function previewFilter(action,j){
-    const pr=mncfPreview.get();if(!["handler","owner"].includes(pr)||!j||typeof j!=="object")return j;
-    const me=mncfPreview.email(),mine=d=>me&&[d.Handlers,d.Owners].some(l=>Array.isArray(l)&&l.includes(me));
+    const pr=mncfPreview.get();if(pr!=="owner"||!j||typeof j!=="object")return j;
+    const me=mncfPreview.email(),mine=d=>me&&Array.isArray(d.Owners)&&d.Owners.includes(me);
     const out=Object.assign({},j);
     if(Array.isArray(j.dogs))out.dogs=j.dogs.filter(mine);
     const names=new Set((out.dogs||[]).map(d=>String(d["Dog name"]).toLowerCase()));

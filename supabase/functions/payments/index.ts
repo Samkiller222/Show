@@ -10,7 +10,7 @@
 //
 // Calls from the site (signed in):
 //   {action:"checkout", show_id, entry_ids:[...], payer, back}  creates a Stripe Checkout Session, returns {payment}.
-//        Organisers and admins pay for any entries; owners and handlers only for their own dogs' entries.
+//        Organisers and admins pay for any entries; owners only for their own dogs' entries.
 //        back: "mydogs" sends the payer back to the My dogs page instead of Payments.
 //   {action:"refresh", payment_id}                        asks Stripe for the session's state, marks entries paid
 // Calls from Stripe (webhook, checkout.session.completed etc.): {type, data:{object:{id}}}
@@ -83,17 +83,13 @@ async function caller(req: Request) {
   return m ? { email, role: String(m.role) } : null;
 }
 const STAFF = ["admin", "organiser"];
-const OWN = ["owner", "handler"];
+const OWN = ["owner"];
 
-// Owners and handlers: the lower-cased names of the dogs linked to their email (entries link to dogs by name).
+// Owners: the lower-cased names of the dogs linked to their email (entries link to dogs by name).
 async function myDogNames(email: string) {
-  const [a, b] = await Promise.all([
-    db.from("dogs").select("name").contains("owner_emails", [email]),
-    db.from("dogs").select("name").contains("handler_emails", [email]),
-  ]);
-  if (a.error) throw a.error;
-  if (b.error) throw b.error;
-  return new Set([...(a.data || []), ...(b.data || [])].map((d) => String(d.name).toLowerCase()));
+  const { data, error } = await db.from("dogs").select("name").contains("owner_emails", [email]);
+  if (error) throw error;
+  return new Set((data || []).map((d) => String(d.name).toLowerCase()));
 }
 
 // Before a new checkout: an older checkout that is still open for any of the same entries is
@@ -136,7 +132,7 @@ Deno.serve(async (req) => {
       const { data: p, error } = await db.from("payments").select("*").eq("id", String(d.payment_id || "")).maybeSingle();
       if (error) throw error;
       if (!p) return reply({ ok: false, error: "That payment wasn't found." });
-      // owners and handlers only check payments they started, or that cover their own dogs
+      // owners only check payments they started, or that cover their own dogs
       if (OWN.includes(who.role) && p.created_by !== who.email) {
         const mine = await myDogNames(who.email);
         const { data: es } = await db.from("entries").select("dog_name").in("id", (p as Payment).entry_ids.length ? (p as Payment).entry_ids : ["00000000-0000-0000-0000-000000000000"]);
@@ -146,7 +142,7 @@ Deno.serve(async (req) => {
     }
 
     if (d.action === "checkout") {
-      if (!STAFF.includes(who.role) && !OWN.includes(who.role)) return reply({ ok: false, error: "Only organisers, admins and the dogs' owners or handlers can pay entry fees." }, 403);
+      if (!STAFF.includes(who.role) && !OWN.includes(who.role)) return reply({ ok: false, error: "Only organisers, admins and the dogs' owners can pay entry fees." }, 403);
       const { data: show, error: se } = await db.from("shows").select("id,name,entry_fee_cents").eq("id", String(d.show_id || "")).maybeSingle();
       if (se) throw se;
       if (!show) return reply({ ok: false, error: "That show wasn't found." });

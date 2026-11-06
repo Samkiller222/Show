@@ -7,7 +7,7 @@
 <title>MNCF My Dogs</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<link rel="stylesheet" href="css/style.css?v=2026-11-06a">
+<link rel="stylesheet" href="css/style.css?v=2026-11-06b">
 <style>
 .mcard{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
 .mcard .bhead{display:flex;justify-content:space-between;align-items:center;gap:10px}
@@ -35,11 +35,11 @@
   <header>
     <div class="sub" id="sub">Your dogs, and the shows you can enter them in.</div>
   </header>
-  <!-- admins: pick a handler to see this page as them -->
+  <!-- admins: pick an owner to see this page as them -->
   <section class="panel" id="adminPanel" hidden>
-    <h2>See this page as an owner or handler</h2>
-    <p class="note">This is the page owners and handlers land on. Pick someone to preview exactly what they see. Only this browser tab changes, and the orange bar at the top takes you back.</p>
-    <div class="pickh" id="handlers"><p class="loading">Loading owners and handlers…</p></div>
+    <h2>See this page as an owner</h2>
+    <p class="note">This is the page owners land on. Pick someone to preview exactly what they see. Only this browser tab changes, and the orange bar at the top takes you back.</p>
+    <div class="pickh" id="owners"><p class="loading">Loading owners…</p></div>
   </section>
   <div id="main" style="display:flex;flex-direction:column;gap:12px" hidden>
     <section class="panel"><h2>Open shows</h2><p class="note">Enter your dogs while a show is Open. Organisers give out ring numbers before the show.</p></section>
@@ -50,15 +50,15 @@
 </div>
 <div class="toast" id="toast"></div>
 <script src="vendor/supabase.min.js"></script>
-<script src="js/api.js?v=2026-11-06a"></script>
-<script src="js/shell.js?v=2026-11-06a"></script>
+<script src="js/api.js?v=2026-11-06b"></script>
+<script src="js/shell.js?v=2026-11-06b"></script>
 <script>
-mncfShell({page:"mydogs",title:"My dogs",kicker:"Owners and handlers"});
+mncfShell({page:"mydogs",title:"My dogs",kicker:"Owners"});
 const esc=mncfEsc,$=id=>document.getElementById(id);
 const sx=s=>s==="Dog"?"♂ ":s==="Bitch"?"♀ ":"";
 let OWN=false,DATA=null;
 const eur=c=>"€"+(c/100).toFixed(2);
-// Owners and handlers see what their entries cost (the show's fee per entry), which are paid,
+// Owners see what their entries cost (the show's fee per entry), which are paid,
 // and can pay what's due by card (Stripe Checkout). Stripe sends them back here with ?payment=<id>.
 const PEOPLE=["Junior Handler","Childrens Class"];
 const dueOf=es=>es.filter(e=>!e.PaidAt&&!PEOPLE.includes(e.Class));
@@ -86,18 +86,18 @@ function draw(j){
 }
 (async()=>{
   const role=await mncfRole(),real=await mncfRealRole();
-  const own=role==="handler"||role==="owner";OWN=own;
-  // an admin (not previewing): choose which owner or handler to see the page as
+  const own=role==="owner";OWN=own;
+  // an admin (not previewing): choose which owner to see the page as
   if(real==="admin"&&!own){
-    $("adminPanel").hidden=false;$("sub").textContent="The home page for owners and handlers.";
-    try{const t=await mncfApi("team");const hs=t.members.filter(m=>m.role==="handler"||m.role==="owner");
-      $("handlers").innerHTML=hs.map(h=>`<button type="button" data-h="${esc(h.role+":"+h.email)}"><span><b>${esc(h.name||h.email)}</b> <small>${esc(mncfRoleName(h.role))}</small><br><small>${esc(h.email)} · ${h.dogs||0} dog${h.dogs===1?"":"s"}</small></span><span aria-hidden="true">›</span></button>`).join("")
-        ||'<p class="note">No owners or handlers yet. Give someone the Owner or Handler role on <a href="users.html">Users and roles</a>.</p>';
-      $("handlers").querySelectorAll("[data-h]").forEach(b=>b.onclick=()=>{mncfPreview.set(b.dataset.h);location.reload()});
-    }catch(e){$("handlers").innerHTML=`<p class="err">${esc(e.message)}</p>`}
+    $("adminPanel").hidden=false;$("sub").textContent="The home page for owners.";
+    try{const t=await mncfApi("team");const hs=t.members.filter(m=>m.role==="owner");
+      $("owners").innerHTML=hs.map(h=>`<button type="button" data-h="${esc(h.role+":"+h.email)}"><span><b>${esc(h.name||h.email)}</b> <small>${esc(mncfRoleName(h.role))}</small><br><small>${esc(h.email)} · ${h.dogs||0} dog${h.dogs===1?"":"s"}</small></span><span aria-hidden="true">›</span></button>`).join("")
+        ||'<p class="note">No owners yet. Give someone the Owner role on <a href="users.html">Users and roles</a>.</p>';
+      $("owners").querySelectorAll("[data-h]").forEach(b=>b.onclick=()=>{mncfPreview.set(b.dataset.h);location.reload()});
+    }catch(e){$("owners").innerHTML=`<p class="err">${esc(e.message)}</p>`}
     return;
   }
-  if(!own){$("main").hidden=false;$("main").innerHTML='<div class="empty">This page is for owner and handler logins. <a href="index.html">Go to all shows</a>.</div>';return}
+  if(!own){$("main").hidden=false;$("main").innerHTML='<div class="empty">This page is for owner logins. <a href="index.html">Go to all shows</a>.</div>';return}
   $("main").hidden=false;
   try{draw(await mncfApi("myDogs"))}catch(e){$("open").innerHTML=`<p class="err">${esc(e.message)}</p>`}
   // back from Stripe's payment page: check the payment straight away

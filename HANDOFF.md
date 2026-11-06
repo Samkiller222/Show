@@ -1,6 +1,6 @@
 # Handoff: MNCF dog show awards organiser
 
-Notes for picking this project up in a new chat. Last updated 5 November 2026 (handler and owner roles; entry fee payments by card through Stripe, paid out to Revolut).
+Notes for picking this project up in a new chat. Last updated 6 November 2026 (handler role removed, owners stay; entry fee payments by card through Stripe, paid out to Revolut).
 
 ## What it is
 
@@ -213,7 +213,15 @@ Sam: *"add an admin view where an admin can see and change the roles of certain 
 - **Site:** `api.js` has `mncfRole()` (cached per page, last value in localStorage `mncf-role`), `mncfRoleName()`, actions `team`, `setMember`, `removeMember`, and refuses writes the role can't make with a plain message (no more sign-out on a permission error while signed in). `shell.js` sets `body[data-role]` and the classes `ro-edit` (steward, viewer, not on team) and `ro-award` (viewer), which hide Edit show, the Add entry tab, + New show, + Add dog, Edit details, entry buttons and drag, the breed form, the save bar on judging days, and lock award pickers; a note under the header says what the login can do. The drawer shows the role badge and, for admins, "Users and roles". If `my_role` is missing (migration not applied) the site behaves exactly as before.
 - Creating the login itself still happens in Supabase (Authentication → Users). Adding the email on `users.html` gives it a role.
 
-## Handler and owner roles (3 and 5 Nov 2026)
+## Handler role removed (6 Nov 2026)
+
+Sam: *"remove the handler role entierly"*. The roles are now admin, organiser, steward, viewer and owner. Everything below about handlers is history: owners keep all of it (their own dogs through `dogs.owner_emails`, entering them into Open shows, My dogs, paying their entry fees by card).
+
+- **Migration `20261106_remove_handler_role.sql`**: any `handler` login becomes `owner` and any `handler_emails` are merged into `owner_emails` (there were none on 6 Nov); the role check drops `handler`; `private.is_owner()` replaces `is_handler()`; `my_dog()`, the policies, `team_list()`, `set_team_member()` and `need_edit()` only know owners; the triggers and checks are renamed `owner_dog_rules`, `owner_entry_rules`, `owner_dog_check` (`upsert_dog_` now calls `owner_dog_check`); `dogs.handler_emails` and its index are dropped.
+- **Payments function**: owners only, and it no longer reads `handler_emails`, so it must be redeployed **before** the migration runs.
+- **Site**: no Handler in the role list, the preview buttons, Users and roles or the dog form; `body.ro-owner` (was `ro-handler`) hides what owners can't use. "Junior Handler" is still a show class, unrelated to the role.
+
+## Handler and owner roles (3 and 5 Nov 2026, handler removed 6 Nov)
 
 Sam: *"add another user type called handler where those users can see dogs registered to them and write them up for shows"*. Sam chose to link dogs to handlers by email, set on each dog.
 
@@ -223,7 +231,7 @@ Sam: *"add another user type called handler where those users can see dogs regis
   - They add dogs (linked to them by the `handler_dog_rules` trigger), edit their own dogs but can't rename them or change `handler_emails`, and enter, change or withdraw their own dogs while the show's status is Open. They can't set ring numbers, enter Junior Handler or Childrens Class, add breeds, or mark absent. `handler_entry_rules` gives the plain error messages and stops them changing the payment columns. They read only payments that include their own dogs' entries.
   - `upsert_dog_` starts with `perform private.handler_dog_check(p_name)` so entering a dog registered to someone else says so. `need_edit()` lets handlers through; RLS and the triggers decide. `team_list()` gains a `dogs` count.
 - **Handlers' home page** `mydogs.html` (Sam: *"make it a previewable page for admins"*): open shows with an "Enter a dog" button and the handler's entries in each (Change links back to the entry form), their dogs (+ Add a dog), and earlier/closed shows. Handlers are sent there from `index.html` and have "My dogs" in the drawer. An admin opening it (drawer: "Handlers' home page") gets a list of handlers and picks one to preview the page as them; Preview on Users and roles also lands here. Data comes from `mncfApi("myDogs")` (dogs, shows, entries; RLS limits a handler to their own).
-- **Site:** Club dogs has "Owner logins" and "Handler logins" fields (organisers and admins) and shows the logins on the dog page. `body.ro-handler` hides show setup, awards and results, judging days, catalogue, breeds, Absent, the ring number field, handler classes and "Add a new breed". Users and roles lists Handler, shows each handler's dog count and has a Preview button per handler (`mncf-preview-role` = `handler:<email>`). In a handler preview `api.js` (`previewFilter`) narrows dogs and entries to that email's dogs, since the database still answers as the admin. Saved lists (`mncf-cache-*`) are cleared on sign-in, sign-out and preview changes so one login never sees another's.
+- **Site:** Club dogs has "Owner logins" and "Handler logins" fields (organisers and admins) and shows the logins on the dog page. `body.ro-owner` hides show setup, awards and results, judging days, catalogue, breeds, Absent, the ring number field, handler classes and "Add a new breed". Users and roles lists Handler, shows each handler's dog count and has a Preview button per handler (`mncf-preview-role` = `handler:<email>`). In a handler preview `api.js` (`previewFilter`) narrows dogs and entries to that email's dogs, since the database still answers as the admin. Saved lists (`mncf-cache-*`) are cleared on sign-in, sign-out and preview changes so one login never sees another's.
 
 ## Entry fee payments by card (5 Nov 2026)
 
@@ -259,6 +267,7 @@ None yet.
 2. Optionally, turn off new sign-ups in Authentication settings.
 3. Payments: redeploy the `payments` function after the audit PR, and run `20261105_audit_fixes.sql`.
 4. Payments: Stripe account with the Revolut IBAN for payouts, apply `20261105_payments.sql`, deploy the `payments` function, add `STRIPE_SECRET_KEY` and the webhook (steps in `supabase/README.md`).
+5. Handler role removal: redeploy the `payments` function first, then run `20261106_remove_handler_role.sql`.
 
 ## How to work on it
 
