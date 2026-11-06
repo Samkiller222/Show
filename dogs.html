@@ -176,7 +176,7 @@ function winsFor(entries,results){
     results.forEach(r=>{
       if(r.show_id!==e.show_id)return;
       const v=typeof r.value==="string"?r.value:String(r.value==null?"":r.value),key=r.key;
-      if(!v||v==="__W"||key.startsWith("g|")||key.startsWith("auto-off|"))return;
+      if(!v||v==="__W"||key.startsWith("g|")||key.startsWith("auto-off|")||key.startsWith("auto|"))return;
       const p=key.split("|");
       if(p[0]==="GROUP"||p[0]==="SHOW"){
         if(v!==bname+"::"+k)return;
