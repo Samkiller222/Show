@@ -251,7 +251,7 @@
       const ids=[...new Set(ents.map(e=>e.show_id))];
       let res=[],shw=[];
       if(ids.length){
-        const [r,s]=await Promise.all([sb.from("live_results").select("show_id,key,value").in("show_id",ids).not("key","like","g|%").not("key","like","auto-off|%").limit(5000),sb.from("shows").select("*").in("id",ids)]);
+        const [r,s]=await Promise.all([sb.from("live_results").select("show_id,key,value").in("show_id",ids).not("key","like","g|%").not("key","like","auto-off|%").not("key","like","auto|%").limit(5000),sb.from("shows").select("*").in("id",ids)]);
         if(r.error)fail(r.error);if(s.error)fail(s.error);res=r.data;shw=s.data.map(showOut);
       }
       return {ok:true,entries:ents.map(e=>Object.assign(entryOut(e),{show_id:e.show_id})),results:res,shows:shw};
