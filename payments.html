@@ -7,7 +7,7 @@
 <title>MNCF Payments</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<link rel="stylesheet" href="css/style.css?v=2026-11-06b">
+<link rel="stylesheet" href="css/style.css?v=2026-11-06q">
 <style>
 #feeErr:empty{display:none}
 .feerow{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
@@ -15,11 +15,20 @@
 .money{position:relative}
 .money span{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-weight:600;pointer-events:none}
 .money input{padding-left:28px;width:100%;box-sizing:border-box}
-.sums{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-.sum{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
-.sum small{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
-.sum b{font-family:var(--display);font-size:24px;line-height:1.1;font-variant-numeric:tabular-nums}
-.sum.ok b{color:var(--ok)}
+.sums{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:8px}
+.sums .top{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.sums .top > div{display:flex;flex-direction:column;gap:2px;min-width:0}
+.sums small{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:700}
+.sums .big{font-family:var(--display);font-size:40px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.sums .due .big,.sums .due small{color:var(--due)}
+.sums .got{text-align:right}.sums .got b{font-family:var(--display);font-size:26px;line-height:1;color:var(--ok);font-variant-numeric:tabular-nums}
+.sums.allpaid{border-color:var(--ok);background:var(--ok-soft)}.sums.allpaid .due .big,.sums.allpaid .due small{color:var(--ok)}
+.sums .bar{height:10px;border-radius:5px;margin:0}
+.sums .prog{margin:0}
+.feeset{border-color:var(--due-line);box-shadow:0 0 0 3px var(--due-soft)}
+.owner .bhead .pill-s{font-size:13px;padding:4px 11px}
+.owner .owait{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 14px;border-top:1px solid var(--line);background:var(--due-soft);color:var(--fg);font-size:14px}
+.owner .owait button{min-height:40px}
 .seg3{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--line);border-radius:10px;overflow:hidden;flex:1 1 240px}
 .seg3 button{border:0;border-radius:0;background:var(--card);min-height:44px;font-size:14px;padding:8px 4px}
 .seg3 button[aria-pressed="true"]{background:var(--accent);color:var(--card)}
@@ -34,18 +43,23 @@
 .prow .nm small{color:var(--muted);font-size:13px}
 .tag{flex:none;display:inline-block;padding:3px 9px;border-radius:999px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;background:var(--bg);border:1px solid var(--line);color:var(--muted)}
 .tag.ok{background:var(--ok-soft);border-color:var(--ok);color:var(--ok)}
-.tag.test{background:#fdf0d5;border-color:#b45309;color:#8a4b0a}
+.tag.test{background:var(--due-soft);border-color:var(--due-line);color:var(--due)}
 .ofoot{display:flex;gap:8px;flex-wrap:wrap;padding:10px 14px;border-top:1px solid var(--line);background:var(--bg)}
 .ofoot button{flex:1 1 140px;min-height:46px}
-.testbar{padding:8px 12px;border-radius:8px;background:#fdf0d5;color:#8a4b0a;font-size:14px;font-weight:600;border:1px solid #e8c27a}
+.testbar{padding:8px 12px;border-radius:8px;background:var(--due-soft);color:var(--due);font-size:14px;font-weight:600;border:1px solid var(--due-line);margin:0}
+.payrow .why{color:var(--due);font-weight:600}
 .payrow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;border-top:1px solid var(--line)}
-.payrow div{min-width:0;display:flex;flex-direction:column}
+.payrow{flex-wrap:wrap}
+.payrow div{min-width:0;display:flex;flex-direction:column;flex:1 1 180px}
 .payrow small{color:var(--muted);font-size:13px}
 .paydlg{border:1px solid var(--line);border-radius:14px;padding:0;background:var(--card);color:var(--fg);width:min(92vw,440px);box-shadow:0 18px 40px rgba(0,0,0,.25)}
 .paydlg::backdrop{background:rgba(10,12,20,.45)}
 .paydlg .in{padding:18px;display:flex;flex-direction:column;gap:12px}
 .paydlg h2{margin:0}
-.paydlg .big{font-family:var(--display);font-size:40px;line-height:1;font-variant-numeric:tabular-nums}
+.paydlg .big{font-family:var(--display);font-size:48px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.paydlg .what{margin:0;font-size:15px}
+.paydlg .what b{display:block}
+.paydlg .callout .steps{font-size:14px}
 .paydlg .btns{flex-direction:column}
 .paydlg .btns > *{width:100%;box-sizing:border-box;text-align:center;min-height:48px}
 .paydlg a.btn{font-size:16px;padding:13px 14px}
@@ -59,11 +73,18 @@
   </header>
   <section class="panel">
     <h2>Entry fees</h2>
-    <p class="note">Each owner pays the fee for every dog they entered. Tap <b>Pay by card</b> to open the card payment page (Stripe) on this phone, or share the link so they can pay on their own phone. Stripe pays the money out to the club's Revolut account, and the entries are ticked off as paid by themselves. Cash at the desk can be ticked off by hand.</p>
+    <p class="note">Each owner pays the fee for every dog they entered, by card or in cash at the desk.</p>
+    <details class="how"><summary>How card payments work</summary><ol class="steps">
+      <li>Tap <b>Pay by card</b> on an owner below.</li>
+      <li>Pay on this phone, or send the payment link so the owner pays on their own phone.</li>
+      <li>Stripe takes the card payment and pays the money out to the club's Revolut account.</li>
+      <li>The dogs are ticked off as paid by themselves. Cash at the desk: tap <b>Paid in cash</b>.</li>
+    </ol></details>
     <form class="feerow needs-edit" id="feeForm" autocomplete="off">
-      <div class="field"><label for="fee">Fee per entry</label><div class="money"><span>€</span><input type="text" id="fee" inputmode="decimal" placeholder="0.00"></div></div>
+      <div class="field"><label for="fee">Fee per entry</label><div class="money"><span>€</span><input type="text" id="fee" aria-describedby="feeHint" inputmode="decimal" placeholder="0.00"></div></div>
       <button class="pri" type="submit" id="feeBtn" style="min-height:var(--tap,46px)">Save fee</button>
     </form>
+    <p class="note" id="feeHint">The same fee for every entry in this show.</p>
     <p class="err" id="feeErr"></p>
     <p class="testbar" id="testBar" hidden>Test mode: no real money moves. Pay with Stripe's test card 4242 4242 4242 4242, any future date and any CVC.</p>
   </section>
@@ -73,8 +94,15 @@
   <article class="breed" id="payPanel" hidden><div class="bhead"><div><small>Stripe</small><h2>Card payments</h2></div></div><div id="payList"></div></article>
 </div>
 <dialog class="paydlg" id="payDlg" aria-labelledby="pdTitle"><div class="in">
-  <h2 id="pdTitle">Ready to pay</h2>
-  <div><div class="big" id="pdAmount"></div><p class="note" id="pdWhat" style="margin:4px 0 0"></p></div>
+  <h2 id="pdTitle">Card payment</h2>
+  <p class="testbar" id="pdTest" hidden>Test mode: no real money moves. Use card 4242 4242 4242 4242.</p>
+  <div><small class="note" style="text-transform:uppercase;letter-spacing:.06em;font-weight:700">Amount to pay</small><div class="big" id="pdAmount"></div></div>
+  <p class="what" id="pdWhat"></p>
+  <div class="callout due" id="pdState"><small>Waiting for payment</small><ol class="steps">
+    <li>Tap <b>Pay now on this phone</b>, or send the link to the owner.</li>
+    <li>They pay by card on Stripe's secure page.</li>
+    <li>The dogs are ticked off as paid by themselves. If not, tap <b>Check if it's paid</b>.</li>
+  </ol></div>
   <div class="btns">
     <a class="btn pri" id="pdOpen" href="#">Pay now on this phone</a>
     <button type="button" id="pdShare">Send the link to the owner</button>
@@ -85,8 +113,8 @@
 </div></dialog>
 <div class="toast" id="toast"></div>
 <script src="vendor/supabase.min.js"></script>
-<script src="js/api.js?v=2026-11-06b"></script>
-<script src="js/shell.js?v=2026-11-06b"></script>
+<script src="js/api.js?v=2026-11-06q"></script>
+<script src="js/shell.js?v=2026-11-06q"></script>
 <script>
 mncfShell({page:"payments",kicker:"Payments"});
 const esc=mncfEsc,$=id=>document.getElementById(id);
@@ -96,6 +124,10 @@ const day=t=>t?new Date(t).toLocaleDateString([],{day:"numeric",month:"short"}):
 const PEOPLE=["Junior Handler","Childrens Class"];
 const ownerOf=e=>PEOPLE.includes(e.Class)?(e["Dog name"]||"")+" ("+e.Class+")":(e.Owner||"No owner on record");
 const STATE={creating:"Starting",pending:"Waiting",completed:"Paid",expired:"Expired",failed:"Failed"};
+const TONE={creating:"due",pending:"due",completed:"ok",failed:"bad"}; // expired stays grey
+const WHY={creating:"Not finished yet. Tap Check after they pay.",pending:"Not finished yet. Tap Check after they pay.",expired:"Not paid. The link ran out, so start a new one.",failed:"Not paid. Start a new card payment."};
+const live=p=>p.state==="pending"||p.state==="creating";
+const when=t=>new Date(t).toLocaleString([],{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
 
 function groups(){
   const m=new Map();
@@ -104,10 +136,15 @@ function groups(){
 }
 function draw(){
   const fee=S.showRow&&S.showRow.Fee;
-  if(!fee){$("sums").hidden=true;$("list").innerHTML=`<div class="empty">Set the fee per entry above to start taking payments for this show.</div>`;drawPayments();return}
+  $("fee").classList.toggle("feeset",!fee);
+  if(!fee){$("sums").hidden=true;$("list").innerHTML=`<div class="callout due"><small>First step</small><p>Type the fee per entry above and tap <b>Save fee</b>. Then you can take payments for this show.</p></div>`;drawPayments();return}
   const paid=S.entries.filter(e=>e.PaidAt),un=S.entries.length-paid.length;
-  $("sums").hidden=false;
-  $("sums").innerHTML=`<div class="sum ok"><small>Collected</small><b>${eur(paid.length*fee)}</b></div><div class="sum"><small>Still due</small><b>${eur(un*fee)}</b></div><div class="sum"><small>Entries paid</small><b>${paid.length}/${S.entries.length}</b></div>`;
+  $("sums").hidden=false;$("sums").classList.toggle("allpaid",!!S.entries.length&&!un);
+  const pct=S.entries.length?Math.round(paid.length/S.entries.length*100):0;
+  $("sums").innerHTML=`<div class="top"><div class="due"><small>${un?"Still to collect":"Everything is paid"}</small><span class="big">${un?eur(un*fee):"✓ "+eur(paid.length*fee)}</span><span class="note">${un?`${un} ${un===1?"entry isn't":"entries aren't"} paid yet`:"Every entry in this show is paid."}</span></div>
+    <div class="got"><small>Collected</small><b>${eur(paid.length*fee)}</b></div></div>
+    <div class="bar" role="progressbar" aria-label="Entries paid" aria-valuemin="0" aria-valuemax="${S.entries.length}" aria-valuenow="${paid.length}"><i style="width:${pct}%"></i></div>
+    <div class="prog"><span>${paid.length} of ${S.entries.length} entries paid</span><span>Total ${eur(S.entries.length*fee)}</span></div>`;
   const t=$("q").value.trim().toLowerCase();
   const html=groups().map(([owner,list])=>{
     const unp=list.filter(e=>!e.PaidAt),all=!unp.length;
@@ -115,13 +152,15 @@ function draw(){
     if(t&&!(owner+" "+list.map(e=>e["Dog name"]+" "+(e["Ring No"]||"")).join(" ")).toLowerCase().includes(t))return "";
     const sel=unp.filter(e=>S.sel[e._row]!==false);
     const cash=list.filter(e=>e.PaidVia==="cash");
+    const ids=new Set(unp.map(e=>e._row)),wait=S.payments.find(p=>live(p)&&p.order_ref&&(p.entry_ids||[]).some(id=>ids.has(id)));
+    const waitLine=wait?`<div class="owait"><span><span class="pill-s due">Card payment waiting</span> ${eur(wait.amount_cents)} started ${esc(when(wait.created_at))}. Not finished yet.</span><span class="btns"><button type="button" data-link="${esc(wait.id)}">Show link</button><button type="button" data-check="${esc(wait.id)}">Check</button></span></div>`:"";
     const rows=list.map(e=>{
       const tag=e.PaidAt?`<span class="tag ok">${e.PaidVia==="cash"?"Cash":"Card"} · ${esc(day(e.PaidAt))}</span>`:`<span class="tag">${eur(fee)}</span>`;
       const box=e.PaidAt?`<span style="width:22px;flex:none;text-align:center;color:var(--ok);font-weight:700">✓</span>`:`<input type="checkbox" data-sel="${esc(e._row)}"${S.sel[e._row]!==false?" checked":""} aria-label="Include ${esc(e["Dog name"])}">`;
       return `<div class="prow"><label>${box}<span class="no">${esc(e["Ring No"]||"–")}</span><span class="nm"><b>${esc(e["Dog name"])}</b><small>${esc([e.Breed,e.Class].filter(Boolean).join(" · "))}${e.Absent?" · absent":""}</small></span></label>${tag}</div>`}).join("");
     const foot=(unp.length?`<button class="pri" type="button" data-pay="${esc(owner)}"${sel.length?"":" disabled"}>${sel.length?`Pay ${eur(sel.length*fee)} by card`:"Tick a dog to pay"}</button><button type="button" data-cash="${esc(owner)}"${sel.length?"":" disabled"}>Paid in cash</button>`:"")+
       (cash.length?`<button type="button" data-uncash="${esc(owner)}">Undo cash</button>`:"");
-    return `<article class="breed owner${all?" paid":""}"><div class="bhead"><div><small>${list.length} ${list.length===1?"entry":"entries"}</small><h2>${esc(owner)}</h2></div><span class="count">${all?"Paid":eur(unp.length*fee)+" due"}</span></div>${rows}${foot?`<div class="ofoot needs-edit">${foot}</div>`:""}</article>`;
+    return `<article class="breed owner${all?" paid":""}"><div class="bhead"><div><small>${list.length} ${list.length===1?"entry":"entries"}</small><h2>${esc(owner)}</h2></div>${all?`<span class="pill-s ok">Paid</span>`:`<span class="pill-s due">${eur(unp.length*fee)} due</span>`}</div>${rows}${waitLine}${foot?`<div class="ofoot needs-edit">${foot}</div>`:""}</article>`;
   }).join("");
   $("list").innerHTML=html||`<div class="empty">${S.entries.length?(S.filter==="unpaid"&&!t?"Everyone has paid. 🎉":"Nobody matches."):"No entries in this show yet."}</div>`;
   drawPayments();
@@ -130,8 +169,8 @@ function drawPayments(){
   const list=S.payments.filter(p=>p.order_ref);
   $("payPanel").hidden=!list.length;
   $("payList").innerHTML=list.slice(0,30).map(p=>{const st=STATE[p.state]||p.state;
-    return `<div class="payrow"><div><b>${esc(p.payer||"Payment")} · ${eur(p.amount_cents)}</b><small>${esc(new Date(p.created_at).toLocaleString([],{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}))} · ${p.entry_ids.length} ${p.entry_ids.length===1?"entry":"entries"}</small></div>
-      <span style="display:flex;gap:6px;align-items:center;flex:none">${p.mode==="test"?'<span class="tag test">Test</span>':""}<span class="tag${p.state==="completed"?" ok":""}">${esc(st)}</span>${p.state!=="completed"&&p.state!=="failed"&&p.state!=="expired"?`<button type="button" data-check="${esc(p.id)}">Check</button>`:""}</span></div>`}).join("");
+    return `<div class="payrow"><div><b>${esc(p.payer||"Payment")} · ${eur(p.amount_cents)}</b><small>${esc(when(p.created_at))} · ${p.entry_ids.length} ${p.entry_ids.length===1?"entry":"entries"}</small>${WHY[p.state]?`<small class="why">${WHY[p.state]}</small>`:""}</div>
+      <span style="display:flex;gap:6px;align-items:center;flex:none;flex-wrap:wrap;justify-content:flex-end">${p.mode==="test"?'<span class="tag test">Test</span>':""}<span class="pill-s ${TONE[p.state]||""}">${esc(st)}</span>${live(p)?`<button type="button" data-check="${esc(p.id)}">Check</button>`:""}</span></div>`}).join("");
   const test=S.mode?S.mode==="test":list.length&&list[0].mode==="test";$("testBar").hidden=!test;
 }
 async function load(){
@@ -160,6 +199,8 @@ const pick=owner=>(groups().find(([o])=>o===owner)||[,[]])[1];
 $("list").addEventListener("change",e=>{const c=e.target;if(c.dataset.sel){S.sel[c.dataset.sel]=c.checked;draw()}});
 $("list").addEventListener("click",async e=>{
   const b=e.target.closest("button");if(!b)return;
+  if(b.dataset.check){check(b.dataset.check,b);return}
+  if(b.dataset.link){const p=S.payments.find(x=>x.id===b.dataset.link);if(p)openPay(p);return}
   if(b.dataset.pay!=null){
     const owner=b.dataset.pay,ids=pick(owner).filter(x=>!x.PaidAt&&S.sel[x._row]!==false).map(x=>x._row);if(!ids.length)return;
     b.disabled=true;const was=b.textContent;b.textContent="Starting…";
@@ -191,7 +232,9 @@ async function check(id,btn){
 let CUR=null;
 function openPay(p){
   CUR=p;$("pdAmount").textContent=eur(p.amount_cents);
-  $("pdWhat").textContent=`${p.entry_ids.length} ${p.entry_ids.length===1?"entry":"entries"}${p.payer?" for "+p.payer:""}${p.mode==="test"?" · test mode, no real money":""}`;
+  const dogs=(p.entry_ids||[]).map(id=>S.entries.find(e=>e._row===id)).filter(Boolean).map(e=>e["Dog name"]+(e["Ring No"]?" ("+e["Ring No"]+")":""));
+  $("pdWhat").innerHTML=`<b>${esc(p.payer||"Entry fees")}</b>${p.entry_ids.length} ${p.entry_ids.length===1?"entry":"entries"}${dogs.length?": "+esc(dogs.join(", ")):""}`;
+  $("pdTest").hidden=p.mode!=="test";
   $("pdOpen").href=p.checkout_url;$("pdLink").textContent=p.checkout_url;
   const d=$("payDlg");if(d.showModal)d.showModal();else d.setAttribute("open","");
 }

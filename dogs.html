@@ -7,7 +7,7 @@
 <title>MNCF Club Dogs</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<link rel="stylesheet" href="css/style.css?v=2026-11-06b">
+<link rel="stylesheet" href="css/style.css?v=2026-11-06q">
 </head>
 <body>
 <style>
@@ -85,8 +85,8 @@ a.btn,button{min-height:46px}
 </div>
 <div class="toast" id="toast"></div>
 <script src="vendor/supabase.min.js"></script>
-<script src="js/api.js?v=2026-11-06b"></script>
-<script src="js/shell.js?v=2026-11-06b"></script>
+<script src="js/api.js?v=2026-11-06q"></script>
+<script src="js/shell.js?v=2026-11-06q"></script>
 <script>
 const esc=mncfEsc,$=id=>document.getElementById(id);
 const DOG_ID=mncfQuery("dog");
@@ -172,7 +172,7 @@ function winsFor(entries,results){
     results.forEach(r=>{
       if(r.show_id!==e.show_id)return;
       const v=typeof r.value==="string"?r.value:String(r.value==null?"":r.value),key=r.key;
-      if(!v||v==="__W"||key.startsWith("g|")||key.startsWith("auto-off|"))return;
+      if(!v||v==="__W"||key.startsWith("g|")||key.startsWith("auto-off|")||key.startsWith("auto|"))return;
       const p=key.split("|");
       if(p[0]==="GROUP"||p[0]==="SHOW"){
         if(v!==bname+"::"+k)return;

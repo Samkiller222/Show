@@ -257,6 +257,13 @@ Sam asked for an account quick switcher. Every page now has a round button with 
 - After "Sign out" the sign-in screen lists the remaining saved logins for one-tap sign-in. Add account has a Cancel that keeps the current login.
 - This is different from the admin "Preview the site as" (which only changes what an admin's screens show): switching is a real sign-in as the other person, so the database answers as them.
 
+## Clearer payment screens (6 Nov 2026)
+
+Sam asked to make the site friendlier and highlight what matters on the payment screens. Colours: green = paid, amber = due or waiting, red = problem (shared `.callout` and `.pill-s` classes and `--due` colours in `css/style.css`).
+- `payments.html`: a big "Still to collect" total with a paid progress bar; each owner card shows "€x due" or "Paid"; a card checkout that was started but not finished shows on the owner card with Show link and Check; card payments say what to do next (waiting, expired, failed); the pay sheet lists the dogs being paid for and the three next steps. "How card payments work" is folded away.
+- `mydogs.html`: per dog Paid / Not paid pills, a highlighted "Entry fees to pay" box with the amount, the dogs and the Pay button, and a banner (not just a toast) after coming back from Stripe.
+- Sign in: Show/Hide password button and "Forgot your password? Ask a club admin."
+
 ## Next request
 
 None yet.

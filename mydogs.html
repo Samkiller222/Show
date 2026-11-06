@@ -7,7 +7,7 @@
 <title>MNCF My Dogs</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<link rel="stylesheet" href="css/style.css?v=2026-11-06b">
+<link rel="stylesheet" href="css/style.css?v=2026-11-06q">
 <style>
 .mcard{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
 .mcard .bhead{display:flex;justify-content:space-between;align-items:center;gap:10px}
@@ -18,7 +18,10 @@
 .mrow .no.missing{font-family:var(--body);font-size:12px;color:var(--muted);font-weight:600;line-height:1.2}
 .mrow small{display:block;color:var(--muted);font-size:12px}
 .mrow a.btn{min-height:40px;padding:6px 12px}
-.mfee{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}.mfee button{min-height:46px}
+.mfee{padding:12px 14px;border-top:1px solid var(--line)}
+.mfee .callout button{min-height:50px;font-size:16px;width:100%;margin-top:4px}
+.mrow .pill-s{margin-top:4px;font-size:11px;padding:2px 8px}
+.dhead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
 .mempty{padding:12px 14px;border-top:1px solid var(--line);color:var(--muted);font-size:14px}
 .dgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
 .dcard{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;text-decoration:none;color:var(--fg);min-height:56px}
@@ -42,6 +45,7 @@
     <div class="pickh" id="owners"><p class="loading">Loading owners…</p></div>
   </section>
   <div id="main" style="display:flex;flex-direction:column;gap:12px" hidden>
+    <div class="callout" id="payNote" role="status" hidden></div>
     <section class="panel"><h2>Open shows</h2><p class="note">Enter your dogs while a show is Open. Organisers give out ring numbers before the show.</p></section>
     <div id="open" style="display:flex;flex-direction:column;gap:10px"><p class="loading">Loading…</p></div>
     <section class="panel"><div class="dhead"><h2>My dogs <span class="note" id="dogCount"></span></h2><a class="btn pri" href="dogs.html?add=1">+ Add a dog</a></div><div class="dgrid" id="dogs"></div></section>
@@ -50,8 +54,8 @@
 </div>
 <div class="toast" id="toast"></div>
 <script src="vendor/supabase.min.js"></script>
-<script src="js/api.js?v=2026-11-06b"></script>
-<script src="js/shell.js?v=2026-11-06b"></script>
+<script src="js/api.js?v=2026-11-06q"></script>
+<script src="js/shell.js?v=2026-11-06q"></script>
 <script>
 mncfShell({page:"mydogs",title:"My dogs",kicker:"Owners"});
 const esc=mncfEsc,$=id=>document.getElementById(id);
@@ -64,15 +68,22 @@ const PEOPLE=["Junior Handler","Childrens Class"];
 const dueOf=es=>es.filter(e=>!e.PaidAt&&!PEOPLE.includes(e.Class));
 function feeLine(s,es){
   if(!OWN||!s.Fee||!es.length)return "";
-  const paid=es.filter(e=>e.PaidAt).length,due=dueOf(es).length;
-  return `<div class="mempty mfee"><span><b>Entry fees:</b> ${eur(s.Fee)} each · ${due?`<b>${eur(due*s.Fee)} to pay</b>`:"all paid"}${paid?` · ${eur(paid*s.Fee)} paid`:""}</span>${due?`<button class="pri" type="button" data-pay="${esc(s.id)}">Pay ${eur(due*s.Fee)} by card</button>`:""}</div>`;
+  const paid=es.filter(e=>e.PaidAt).length,due=dueOf(es);
+  if(!due.length)return paid?`<div class="mfee"><div class="callout ok"><small>Entry fees</small><p><b>✓ All paid</b> · ${eur(paid*s.Fee)} for ${paid} ${paid===1?"entry":"entries"}. Thank you!</p></div></div>`:"";
+  const open=s.Status==="Open";
+  return `<div class="mfee"><div class="callout due"><small>Entry fees to pay</small><span class="amt">${eur(due.length*s.Fee)}</span>
+    <p>${due.length} × ${eur(s.Fee)} for ${esc(due.map(e=>e["Dog name"]).join(", "))}${paid?` · ${eur(paid*s.Fee)} already paid`:""}</p>
+    <button class="pri" type="button" data-pay="${esc(s.id)}">Pay ${eur(due.length*s.Fee)} by card</button>
+    <p class="note">You pay on Stripe's secure card page, then come straight back here. ${open?"You can also pay in cash at the show desk.":""}</p></div></div>`;
 }
 function draw(j){
   DATA=j;
   const names=new Set(j.dogs.map(d=>d["Dog name"].toLowerCase()));
   const ents=j.entries.filter(e=>names.has(String(e["Dog name"]).toLowerCase()));
   const byShow={};ents.forEach(e=>(byShow[e.show_id]=byShow[e.show_id]||[]).push(e));
-  const row=(e,open)=>`<div class="mrow"><span class="no${e["Ring No"]?"":" missing"}">${e["Ring No"]?esc(e["Ring No"]):"No.<br>to come"}</span><span><b>${esc(e["Dog name"])}</b><small>${esc([e.Class,e.Breed,e.Absent?"Absent":"",OWN?(e.PaidAt?"Paid"+(e.PaidVia?" ("+e.PaidVia+")":""):"Not paid"):""].filter(Boolean).join(" · "))}</small></span>${open?`<a class="btn" href="entry.html?show=${encodeURIComponent(e.Show)}&edit=${encodeURIComponent(e._row)}">Change</a>`:"<span></span>"}</div>`;
+  const feeOf={};j.shows.forEach(s=>feeOf[s.id]=s.Fee);
+  const fee=e=>feeOf[e.show_id]&&!PEOPLE.includes(e.Class);
+  const row=(e,open)=>`<div class="mrow"><span class="no${e["Ring No"]?"":" missing"}">${e["Ring No"]?esc(e["Ring No"]):"No.<br>to come"}</span><span><b>${esc(e["Dog name"])}</b><small>${esc([e.Class,e.Breed,e.Absent?"Absent":""].filter(Boolean).join(" · "))}</small>${OWN&&fee(e)?(e.PaidAt?`<span class="pill-s ok">Paid${e.PaidVia?" by "+esc(e.PaidVia):""}</span>`:`<span class="pill-s due">Not paid</span>`):""}</span>${open?`<a class="btn" href="entry.html?show=${encodeURIComponent(e.Show)}&edit=${encodeURIComponent(e._row)}">Change</a>`:"<span></span>"}</div>`;
   const open=j.shows.filter(s=>s.Status==="Open");
   $("open").innerHTML=open.map(s=>{const es=byShow[s.id]||[];
     return `<article class="mcard"><div class="bhead"><div><small>${esc([s.Date,s.Venue].filter(Boolean).join(" · ")||"Open for entries")}</small><b>${esc(s.Show)}</b></div><a class="btn pri" href="entry.html?show=${encodeURIComponent(s.Show)}">Enter a dog</a></div>
@@ -103,10 +114,13 @@ function draw(j){
   // back from Stripe's payment page: check the payment straight away
   const pid=mncfQuery("payment");
   if(pid){const u=new URL(location.href);u.searchParams.delete("payment");history.replaceState(null,"",u.toString());
+    const note=(tone,head,text)=>{const n=$("payNote");n.className="callout "+tone;n.innerHTML=`<small>${esc(head)}</small><p>${esc(text)}</p>`;n.hidden=false;n.scrollIntoView({block:"nearest"})};
+    note("","Checking your payment","One moment…");
     try{const p=(await mncfApi("refreshPayment",{payment_id:pid})).payment;
-      mncfToast(p.state==="completed"?`Payment received: ${eur(p.amount_cents)}. Thank you!`:p.state==="expired"?"That payment was cancelled. Nothing was charged.":"The payment isn't finished yet. If you paid, it will show here in a minute.",{ms:6000});
-      if(p.state==="completed")draw(await mncfApi("myDogs"));
-    }catch(e){mncfToast(e.message,{ms:6000})}}
+      if(p.state==="completed"){note("ok","Payment received",`✓ ${eur(p.amount_cents)} paid. Thank you! Your dogs are marked as paid below.`);draw(await mncfApi("myDogs"))}
+      else if(p.state==="expired"||p.state==="failed")note("bad","Not paid","The payment was cancelled, so nothing was charged. Tap Pay by card to try again.");
+      else note("due","Payment not finished yet","If you paid, it will show here in a minute. Reload this page to check again.");
+    }catch(e){note("bad","Couldn't check the payment",e.message)}}
 })();
 // Pay by card: start a Stripe checkout for this show's unpaid entries and go to Stripe's page.
 document.addEventListener("click",async ev=>{

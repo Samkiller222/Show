@@ -68,6 +68,7 @@ select:focus,textarea:focus,button:focus-visible,input:focus-visible{outline:2px
 .row.isgiven .lab,.row.isgiven select{opacity:.6}
 .row.only{background:var(--ok-soft);border-radius:8px;padding:6px 8px;margin-inline:-8px;box-shadow:inset 4px 0 0 var(--ok)}
 .row.only select{border-color:var(--ok);font-weight:600}
+.row.dead .lab,.row.dead select,.row.dead .given{opacity:.5}
 .lab{flex-wrap:wrap}
 .onlytag{flex-basis:100%;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ok);padding-left:20px}
 .prep{padding:10px 14px;border-top:1px solid var(--line);background:color-mix(in srgb,var(--ok) 7%,var(--card))}
@@ -160,11 +161,11 @@ pre{white-space:pre-wrap;font-size:13px;background:var(--bg);border:1px solid va
 
 <script src="vendor/xlsx.full.min.js"></script>
 <script src="vendor/supabase.min.js"></script>
-<script src="js/api.js?v=2026-11-06b"></script>
-<script src="js/shell.js?v=2026-11-06b"></script>
-<script src="js/focus.js?v=2026-11-06b"></script>
-<script src="js/nav.js?v=2026-11-06b"></script>
-<script src="js/schedule.js?v=2026-11-06b"></script>
+<script src="js/api.js?v=2026-11-06q"></script>
+<script src="js/shell.js?v=2026-11-06q"></script>
+<script src="js/focus.js?v=2026-11-06q"></script>
+<script src="js/nav.js?v=2026-11-06q"></script>
+<script src="js/schedule.js?v=2026-11-06q"></script>
 <script>mncfShell({page:new URLSearchParams(location.search).get("view")==="results"?"results":"awards"});</script>
 <script>
 function startEngine(){
@@ -215,10 +216,12 @@ function breedAwards(b){
   add("BJ","Best Junior in Breed",c=>/junior/i.test(c));
   add("BV","Best Veteran in Breed",c=>/veteran/i.test(c));
   // Best of Breed is chosen between Best Dog and Best Bitch
+  // (with no Dog or Bitch classes at all, it's chosen between the class winners)
   const feeders=out.filter(a=>a.id==="BD"||a.id==="BB");
+  if(!feeders.length){const r=fromClasses(b,()=>true);out.push({id:"BOB",t:"Best of Breed",...r});return out}
   const decided=feeders.every(a=>res[bk(b,a.id)]);
   const pool=decided?feeders.map(a=>res[bk(b,a.id)]).filter(v=>v&&v!==W).map(k=>findEntry(b,k)).filter(Boolean):b.classes.flatMap(c=>c.entries);
-  out.push({id:"BOB",t:"Best of Breed",pool,decided});
+  out.push({id:"BOB",t:"Best of Breed",pool:uniq(pool,keyOf),decided});
   return out;
 }
 function uniq(list,kf){const s=new Set();return list.filter(x=>{const k=kf(x);if(s.has(k))return false;s.add(k);return true})}
@@ -277,32 +280,46 @@ function groupAwards(breeds){
   return out;
 }
 
-// Clear choices that no longer fit, and fill in any award with only one possible dog
+// Clear choices that no longer fit, and fill in any award with only one possible dog.
+// An award filled in this way is marked "auto|key". If more dogs become possible later (a late entry,
+// a dog no longer absent), the automatic pick is taken back off, unless it has already been given.
+// When a pick is cleared because that dog can't win it any more, its Given tick goes too.
+function settle(k,keys,canFill){
+  const v=res[k],drop=()=>{delete res[k];delete res["g|"+k];delete res["auto|"+k]};
+  if(v&&v!==W&&!keys.includes(v)) drop();
+  else if(v&&res["auto|"+k]&&!res["g|"+k]&&!(canFill&&keys.length===1&&keys[0]===v)) drop();
+  if(!res[k]) delete res["auto|"+k];
+  if(!res[k]&&canFill&&keys.length===1&&!res["auto-off|"+k]){res[k]=keys[0];res["auto|"+k]=1}
+}
 function reconcile(breeds){
   breeds.forEach(b=>{
     b.classes.forEach(c=>{
-      PLACES.slice(0,nPlaces(b,c)).forEach(pl=>{const k=ck(b,c,pl.p);const v=res[k];if(v&&v!==W&&!c.entries.some(e=>keyOf(e)===v))delete res[k]});
-      if(c.entries.length===1&&!res[ck(b,c,1)]&&!res["auto-off|"+ck(b,c,1)]) res[ck(b,c,1)]=keyOf(c.entries[0]);
+      const keys=uniq(c.entries,keyOf).map(keyOf),n=nPlaces(b,c);
+      PLACES.forEach(pl=>{const k=ck(b,c,pl.p);
+        if(pl.p>n){if(res[k]!==undefined){delete res[k];delete res["g|"+k];delete res["auto|"+k]}return}
+        settle(k,keys,pl.p===1&&keys.length===1)});
     });
     // awards depend on earlier ones, so recompute after each
     ["BD","BB","BP","BJ","BV","BOB"].forEach(id=>{
       const a=breedAwards(b).find(x=>x.id===id); if(!a) return;
-      const k=bk(b,id), v=res[k], keys=a.pool.map(keyOf);
-      if(v&&v!==W&&!keys.includes(v)) delete res[k];
-      if(!res[k]&&a.pool.length===1&&!res["auto-off|"+k]) res[k]=keys[0];
+      settle(bk(b,id),uniq(a.pool,keyOf).map(keyOf),true);
     });
   });
   for(let i=0;;i++){
     const list=groupAwards(breeds); if(i>=list.length) break;
-    const a=list[i], v=res[a.k], keys=a.pool.map(x=>x.k);
-    if(v&&v!==W&&!keys.includes(v)) delete res[a.k];
-    if(!res[a.k]&&a.decided&&a.pool.length===1&&!res["auto-off|"+a.k]) res[a.k]=keys[0];
+    const a=list[i];
+    // a runner-up isn't filled in automatically when the winner's award was withheld
+    settle(a.k,a.pool.map(x=>x.k),a.decided&&!(a.reserve&&res[a.winKey]===W));
   }
 }
+// An award no dog can win any more (every possible winner was withheld, or the only competitor took the winner's award)
+const isDead=(a,pool,k)=>a.decided&&!pool.length&&!res[k];
 
 // only: the label of the one dog that can win this award, when there is just one. Stewards can prepare it straight away.
-function row(k,lab,opts,cur,hint,only){
+// dead: no dog can win it any more, so it's shown greyed out and left out of the progress count.
+function row(k,lab,opts,cur,hint,only,dead){
   const g=!!res["g|"+k];
+  if(dead) return `<div class="row dead"><span class="lab">${lab}</span><select data-k="${esc(k)}" aria-label="${esc(k)}" disabled><option value="">No dog left for this award</option></select><span class="given"></span></div>`;
   return `<div class="row${g?" isgiven":""}${only?" only":""}"><span class="lab">${lab}${only?'<span class="onlytag">Only 1 dog</span>':""}</span><select data-k="${esc(k)}" aria-label="${esc(k)}"><option value="">${hint||"Choose dog…"}</option>${opts}<option value="${W}"${cur===W?" selected":""}>Withheld</option></select><label class="given"><input type="checkbox" data-g="${esc(k)}"${g?" checked":""}>Given</label></div>`;
 }
 const opt=(v,l,cur,dis)=>`<option value="${esc(v)}"${v===cur?" selected":""}${dis?" disabled":""}>${esc(l)}</option>`;
@@ -351,7 +368,7 @@ function drawAll(){
   const dayNote=SCH&&DAY!=="all"&&SL.length?(DAY==="none"?" not on a day":" on "+SCH.short(SL[+DAY]||{})):"";
   document.getElementById("breeds").innerHTML=shown.map(b=>{const bi=breeds.indexOf(b);
     const aw=breedAwards(b);
-    const keys=[...b.classes.flatMap(c=>PLACES.slice(0,nPlaces(b,c)).map(pl=>ck(b,c,pl.p))),...aw.map(a=>bk(b,a.id))];
+    const keys=[...b.classes.flatMap(c=>PLACES.slice(0,nPlaces(b,c)).map(pl=>ck(b,c,pl.p))),...aw.filter(a=>!isDead(a,uniq(a.pool,keyOf),bk(b,a.id))).map(a=>bk(b,a.id))];
     const g=keys.filter(k=>res["g|"+k]).length; total+=keys.length; given+=g;
     const done=g===keys.length; if(done)doneBreeds++;
     const prep=[];
@@ -372,7 +389,7 @@ function drawAll(){
         const hint=a.decided?"Choose dog…":(a.id==="BOB"?"Choose after Best Dog / Bitch":"Choose after class winners");
         const pool=uniq(a.pool,keyOf), only=pool.length===1?label(pool[0]):null;
         if(only)prep.push({t:a.t.replace(" in Breed",""),d:only,c:"rc",g:!!res["g|"+k]});
-        h+=row(k,`<span class="rib rc"></span>${a.t.replace(" in Breed","")}`,pool.map(e=>opt(keyOf(e),label(e),cur)).join(""),cur,hint,only)});
+        h+=row(k,`<span class="rib rc"></span>${a.t.replace(" in Breed","")}`,pool.map(e=>opt(keyOf(e),label(e),cur)).join(""),cur,hint,only,isDead(a,pool,k))});
       h+=`</div>`;
     }
     return h.replace("<!--PREP-->",prepBox(prep))+`</article>`;
@@ -382,13 +399,14 @@ function drawAll(){
   const secDay=sec=>!SCH?-1:sec==="Best in Show finals"?SCH.find(SL,{finals:true}):SCH.find(SL,{group:sec.replace(/ Group$/,"").replace(/^Best Veteran /,"")});
   const allSecs=[...new Set(gAw.map(a=>a.sec))],secs=allSecs.filter(sec=>onDay(secDay(sec)));
   document.getElementById("groups").innerHTML=secs.map((sec,si)=>{
-    const list=gAw.filter(a=>a.sec===sec);
+    const all=gAw.filter(a=>a.sec===sec),list=all.filter(a=>!isDead(a,a.pool,a.k));
     const g=list.filter(a=>res["g|"+a.k]).length; total+=list.length; given+=g;
     let h=`<article class="breed${g===list.length?" done":""}"><div class="bhead"><div><small>Round ${breeds.length+allSecs.indexOf(sec)+1} · ${sec==="Best in Show finals"?"Finals":"Group judging"}</small><h2>${esc(sec)}</h2></div><span class="count">${g} / ${list.length} given</span></div><div class="bneeds">${chips(list.map(a=>({c:"rc",g:1,t:a.t,n:1})))}</div><div class="cls">`;
     const prep=[];
-    list.forEach(a=>{const cur=res[a.k]||"";
-      const only=a.pool.length===1?a.pool[0].l:null;if(only)prep.push({t:a.t,d:only,c:"rc",g:!!res["g|"+a.k]});
-      h+=row(a.k,`<span class="rib rc" style="background:var(--muted)${a.reserve?";opacity:.55":""}"></span>${a.t}`,a.pool.map(x=>opt(x.k,x.l,cur)).join(""),cur,a.decided?"Choose dog…":a.reserve?"Choose after the winner":"Choose after breed awards",only)});
+    all.forEach(a=>{const cur=res[a.k]||"";
+      // before the winner is picked, a runner-up's list still holds the dog that will win, so it isn't "only 1 dog" yet
+      const only=a.pool.length===1&&(!a.reserve||a.decided)?a.pool[0].l:null;if(only)prep.push({t:a.t,d:only,c:"rc",g:!!res["g|"+a.k]});
+      h+=row(a.k,`<span class="rib rc" style="background:var(--muted)${a.reserve?";opacity:.55":""}"></span>${a.t}`,a.pool.map(x=>opt(x.k,x.l,cur)).join(""),cur,a.decided?"Choose dog…":a.reserve?"Choose after the winner":"Choose after breed awards",only,isDead(a,a.pool,a.k))});
     return h.replace('<div class="cls">',prepBox(prep)+'<div class="cls">')+`</div></article>`;
   }).join("");
 
@@ -433,7 +451,7 @@ function cheer(sel,cls,was){
 }
 document.addEventListener("change",ev=>{
   const t=ev.target;
-  if(t.dataset.k){const k=t.dataset.k,was=doneNow();if(t.value){res[k]=t.value;delete res["auto-off|"+k]}else{delete res[k];res["auto-off|"+k]=1}save(KS,res);render();if(t.value)cheer(`[data-k="${CSS.escape(k)}"]`,"picked",was)}
+  if(t.dataset.k){const k=t.dataset.k,was=doneNow();delete res["auto|"+k];if(t.value){res[k]=t.value;delete res["auto-off|"+k]}else{delete res[k];res["auto-off|"+k]=1}save(KS,res);render();if(t.value)cheer(`[data-k="${CSS.escape(k)}"]`,"picked",was)}
   if(t.dataset.g){const k=t.dataset.g,on=t.checked,was=doneNow();if(on)res["g|"+k]=1;else delete res["g|"+k];save(KS,res);const r=t.closest(".row");if(r)r.classList.toggle("isgiven",on);render();if(on)cheer(`[data-g="${CSS.escape(k)}"]`,"pop",was)}
 });
 function toast(t){mncfToast(t)}
@@ -494,7 +512,7 @@ document.getElementById("xlsxBtn").onclick=exportExcel;
 function importText(txt){
   const breeds=allBreeds();let cur=null,n=0;const miss=[];
   const valOf=(b,str)=>{str=str.trim();if(/^withheld$/i.test(str))return W;const m=str.match(/^(\d+)\s*·/);if(!m)return null;return b&&findEntry(b,m[1])?m[1]:null};
-  const set=(k,v)=>{res[k]=v;delete res["auto-off|"+k];if(v!==W)res["g|"+k]=1;n++};
+  const set=(k,v)=>{res[k]=v;delete res["auto-off|"+k];delete res["auto|"+k];if(v!==W)res["g|"+k]=1;n++};
   for(const raw of txt.split(/\r?\n/)){
     const line=raw.replace(/\s+$/,"");if(!line.trim())continue;
     if(/^MNCF Championship Show/.test(line))continue;
@@ -569,7 +587,7 @@ window.mncfLive&&window.mncfLive.start();
     };
     SOURCES.forEach(src=>{const r=read(src);
       Object.entries(r).forEach(([k,v])=>{
-        if(k.startsWith("auto-off|")) return;
+        if(k.startsWith("auto-off|")||k.startsWith("auto|")) return;
         if(k.startsWith("g|")){const m=mapKey(k.slice(2),r[k.slice(2)]);if(m)out["g|"+m[0]]=1;return}
         const m=mapKey(k,v);if(m&&m[1]!==undefined&&m[1]!=="")out[m[0]]=m[1];
       });
