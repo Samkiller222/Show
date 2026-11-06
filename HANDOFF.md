@@ -73,7 +73,7 @@ Shared scripts (in `js/`; styles in `css/`):
   - `dogs`, `saveDog` (by id; renaming a dog also renames its entries), `dogHistory` (entries plus `live_results` of those shows)
   - `importEntries`, `syncState`, `extract`
 
-  It also maps database rows to the shapes the pages use, for example an entry is `{_row, Show, "Ring No", "Dog name", Class, Absent, Breed, Group, Sex, Owner}`. Helpers: `mncfEsc`, `mncfToast`, `mncfQuery`, `mncfCache`, `mncfSignOut`.
+  It also maps database rows to the shapes the pages use, for example an entry is `{_row, Show, "Ring No", "Dog name", Class, Absent, Breed, Group, Sex, Owner}`. Helpers: `mncfEsc`, `mncfToast`, `mncfQuery`, `mncfCache`, `mncfSignOut`, `mncfAccounts` (saved logins: `list`, `current`, `switchTo`, `add`, `remove`).
 - `shell.js`: `mncfShell({page,title,kicker})` builds the top bar (with the "Edit show" dialog when a show is open), the burger drawer and the bottom tabs. Renaming a show moves this phone's `…::<show>` localStorage keys to the new name and reloads with the new `?show=`. The drawer holds:
   - show search
   - all shows, new show, breeds and groups
@@ -240,6 +240,14 @@ Sam: *"when in handler/owner mode i cant pay for registrations and while your ch
 - **Edge function `payments`**: `checkout` now takes owners and handlers, but only for entries of dogs linked to their email (checked server-side with the service key); their checkout email is pre-filled and `back:"mydogs"` picks the return page. `refresh` by an owner or handler only works on their own payments. Before a new checkout, older still-open checkouts covering the same entries are checked with Stripe and expired, so one entry can't be paid twice.
 - **Migration `20261105_audit_fixes.sql`**: owners and handlers can't withdraw a paid entry or move it to another dog.
 - **Site fixes**: Add entry treated owners like organisers (offered Junior Handler, Childrens Class and "Add a new breed", which the database then refused); now owners get the handler form, and saving an edit sends owners and handlers back to My dogs. `nav.js` escapes group and breed names in the jump bar.
+
+## Account quick switcher (6 Nov 2026)
+
+Sam asked for an account quick switcher. Every page now has a round button with the login's first letter at the top right of the top bar (and "Switch account" in the drawer). It opens an Accounts panel: who is signed in and their role, other logins saved on this phone (tap to switch, × to remove), "+ Add another account" and "Sign out".
+- `api.js` keeps each login that signs in here under localStorage `mncf-accounts` (email, role, latest tokens). Supabase rotates the refresh token, so the saved copy is updated on every auth event for the login in use; idle logins aren't refreshed, so their token stays valid.
+- Switching checks the saved login with a throwaway client first, so an expired one only drops itself from the list and never signs out the current login. Switching clears the role, admin preview and cached lists, then reloads; other open tabs reload too (`mncf-active-account`).
+- After "Sign out" the sign-in screen lists the remaining saved logins for one-tap sign-in. Add account has a Cancel that keeps the current login.
+- This is different from the admin "Preview the site as" (which only changes what an admin's screens show): switching is a real sign-in as the other person, so the database answers as them.
 
 ## Next request
 
