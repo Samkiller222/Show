@@ -145,3 +145,25 @@ a.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--card)}
 .lane .erow .acts button{padding:5px 9px;min-height:36px}
 .lane .erow .given{font-size:13px!important}
 .lhead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+/* Money and payment status: paid (green), due or waiting (amber), problem (red), so the important part stands out */
+:root{--due:#9a4a06;--due-soft:#fdf0d5;--due-line:#e8c27a}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--due:#f2b84a;--due-soft:#33270f;--due-line:#6b4b14}}
+:root[data-theme="dark"]{--due:#f2b84a;--due-soft:#33270f;--due-line:#6b4b14}
+.callout{border-radius:10px;padding:12px 14px;border:1px solid var(--line);background:var(--bg);display:flex;flex-direction:column;gap:6px;min-width:0}
+.callout.due{background:var(--due-soft);border-color:var(--due-line)}
+.callout.ok{background:var(--ok-soft);border-color:var(--ok)}
+.callout.bad{background:color-mix(in srgb,var(--red) 10%,var(--card));border-color:var(--red)}
+.callout small{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.callout.due small,.callout.due .amt{color:var(--due)}
+.callout.ok small,.callout.ok .amt{color:var(--ok)}
+.callout .amt{font-family:var(--display);font-size:34px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.callout p{margin:0}
+.pill-s{display:inline-flex;align-items:center;gap:6px;flex:none;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;border:1px solid var(--line);background:var(--bg);color:var(--muted);white-space:nowrap}
+.pill-s::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.pill-s.ok{background:var(--ok-soft);border-color:var(--ok);color:var(--ok)}
+.pill-s.due{background:var(--due-soft);border-color:var(--due-line);color:var(--due)}
+.pill-s.bad{background:color-mix(in srgb,var(--red) 10%,var(--card));border-color:var(--red);color:var(--red)}
+.steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px;font-size:14px}
+details.how{font-size:14px}
+details.how summary{cursor:pointer;font-weight:600;color:var(--accent);min-height:32px;display:flex;align-items:center}
+details.how[open] summary{margin-bottom:6px}
