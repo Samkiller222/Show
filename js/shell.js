@@ -48,6 +48,26 @@ body.drawer-open{overflow:hidden}
 @media (min-width:900px){.tabs{left:50%;right:auto;transform:translateX(-50%);width:560px;border:1px solid var(--line);border-bottom:0;border-radius:14px 14px 0 0}}
 .appbar .editshow{flex:none;display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font-size:14px;font-weight:600}
 .appbar .editshow svg{width:18px;height:18px}
+.appbar .acctbtn{flex:none;width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:var(--accent-soft);color:var(--fg);font-family:var(--display);font-size:19px;font-weight:700;text-transform:uppercase;padding:0;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+.appbar .acctbtn[hidden]{display:none}
+.acctdlg{border:1px solid var(--line);border-radius:14px;padding:0;background:var(--card);color:var(--fg);width:min(calc(100vw - 32px),380px);max-height:85vh;margin:calc(64px + env(safe-area-inset-top,0px)) max(16px,calc((100vw - 1100px)/2)) auto auto;box-shadow:0 18px 40px rgba(0,0,0,.25)}
+.acctdlg::backdrop{background:rgba(10,12,20,.3)}
+.acctdlg .in{padding:14px;display:flex;flex-direction:column;gap:8px}
+.acctdlg .dhead{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.acctdlg .dhead b{font-family:var(--display);font-size:20px;text-transform:uppercase;letter-spacing:.03em}
+.acctdlg .close{width:40px;height:40px;border-radius:10px;border:1px solid var(--line);background:var(--bg);font-size:22px;line-height:1;color:var(--fg);padding:0}
+.acctdlg h3{margin:4px 0 0;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700}
+.acctdlg .row{display:flex;align-items:stretch;gap:6px}
+.acctdlg .acct{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font:inherit;cursor:pointer}
+.acctdlg .acct.me{background:var(--accent-soft);border-color:var(--accent);cursor:default}
+.acctdlg .acct span{font-weight:600;overflow-wrap:anywhere}
+.acctdlg .acct small{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.acctdlg .x{flex:none;width:44px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--muted);font-size:20px;padding:0}
+.acctdlg .item{display:flex;align-items:center;justify-content:space-between;width:100%;padding:11px 12px;border-radius:10px;border:1px solid transparent;background:none;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
+.acctdlg .item:hover{background:var(--bg)}
+.acctdlg .err{color:var(--red,#c8322f);font-size:14px;font-weight:600;margin:0}
+.acctdlg .err:empty{display:none}
+.acctdlg .note{font-size:12px;color:var(--muted);margin:0}
 .showdlg{border:1px solid var(--line);border-radius:14px;padding:0;background:var(--card);color:var(--fg);width:min(92vw,460px);max-height:90vh;box-shadow:0 18px 40px rgba(0,0,0,.25)}
 .showdlg::backdrop{background:rgba(10,12,20,.45)}
 .showdlg form{padding:16px;display:flex;flex-direction:column;gap:12px}
@@ -129,7 +149,7 @@ body.ro-handler select[data-breed]{pointer-events:none;appearance:none;-webkit-a
     // top bar
     const header=document.querySelector("header");
     const bar=document.createElement("div");bar.className="appbar";
-    bar.innerHTML=`<button class="burger" type="button" aria-label="Open menu" aria-expanded="false">${ico.burger}</button><div class="crumb"><small>${esc(opt.kicker||(show?{entries:"Entries",add:"Add entry",awards:"Awards",results:"Results"}[opt.page]||"":"MNCF Show Desk"))}</small><b id="crumbTitle">${esc(opt.title||show||"All shows")}</b></div>${show?`<button class="editshow" type="button" id="editShowBtn" aria-label="Edit this show's details">${ico.pencil}<span>Edit show</span></button>`:""}`;
+    bar.innerHTML=`<button class="burger" type="button" aria-label="Open menu" aria-expanded="false">${ico.burger}</button><div class="crumb"><small>${esc(opt.kicker||(show?{entries:"Entries",add:"Add entry",awards:"Awards",results:"Results"}[opt.page]||"":"MNCF Show Desk"))}</small><b id="crumbTitle">${esc(opt.title||show||"All shows")}</b></div>${show?`<button class="editshow" type="button" id="editShowBtn" aria-label="Edit this show's details">${ico.pencil}<span>Edit show</span></button>`:""}<button class="acctbtn" type="button" id="acctBtn" aria-haspopup="dialog" aria-label="Switch account" hidden>?</button>`;
     if(header) header.insertBefore(bar,header.firstChild); else if(header)header.insertBefore(bar,header.firstChild);else document.body.insertBefore(bar,document.body.firstChild);
     if(header){const h1=header.querySelector("h1");if(h1&&show)h1.hidden=true}
     // drawer
@@ -145,7 +165,7 @@ body.ro-handler select[data-breed]{pointer-events:none;appearance:none;-webkit-a
       <div class="sec"><h3>Awards view on this phone</h3><div class="seg" role="group" aria-label="Awards view"><button type="button" data-view="round" aria-pressed="${mode==="round"}">One round at a time</button><button type="button" data-view="list" aria-pressed="${mode==="list"}">Full list</button></div></div>
       <div class="sec keys"><h3>Keyboard shortcuts</h3><p><kbd>/</kbd>Search</p>${show?`<p><kbd>N</kbd>Add entry</p><p><kbd>←</kbd><kbd>→</kbd>Previous or next round</p>`:""}<p><kbd>Esc</kbd>Close menu</p></div>
       <div class="sec"><h3>Older pages</h3><a class="item" href="legacy/nov-2026.html">November 2026, first version <small>›</small></a></div>
-      <div class="sec" style="margin-top:auto"><span class="who" id="drawerWho"></span><button class="item" type="button" id="drawerOut">Sign out</button></div>`;
+      <div class="sec" style="margin-top:auto"><span class="who" id="drawerWho"></span><button class="item" type="button" id="drawerSwitch">Switch account <small>›</small></button><button class="item" type="button" id="drawerOut">Sign out</button></div>`;
     document.body.appendChild(bg);document.body.appendChild(dr);
     const burger=bar.querySelector(".burger");
     const open=()=>{document.body.classList.add("drawer-open");burger.setAttribute("aria-expanded","true");loadShows();setTimeout(()=>dr.querySelector("#drawerQ").focus(),120)};
@@ -154,6 +174,36 @@ body.ro-handler select[data-breed]{pointer-events:none;appearance:none;-webkit-a
     document.addEventListener("keydown",e=>{if(e.key==="Escape")close()});
     dr.querySelector("#drawerOut").onclick=()=>window.mncfSignOut&&window.mncfSignOut();
     if(window.mncfWho)window.mncfWho().then(w=>{if(w)dr.querySelector("#drawerWho").innerHTML="Signed in as "+esc(w)+'<span class="role" id="drawerRole" hidden></span>'}).then(()=>applyRole(window.mncfRoleCached&&mncfRoleCached(),false));
+    // ---- account quick switcher: the round button at the top right ----
+    const acctBtn=bar.querySelector("#acctBtn");
+    const adlg=document.createElement("dialog");adlg.className="acctdlg";adlg.setAttribute("aria-labelledby","acctTitle");
+    document.body.appendChild(adlg);
+    const roleLabel=r=>r?(window.mncfRoleName?mncfRoleName(r):r):"";
+    function drawAccounts(){
+      const A=window.mncfAccounts;const me=A?A.current():"";
+      const others=A?A.list().filter(a=>a.email!==me):[];
+      let meRole="";try{meRole=roleLabel(localStorage.getItem("mncf-role")||"")}catch(e){}
+      adlg.innerHTML=`<div class="in"><div class="dhead"><b id="acctTitle">Accounts</b><button class="close" type="button" aria-label="Close">×</button></div>
+        <h3>Signed in as</h3><div class="row"><div class="acct me"><span>${esc(me||"Not signed in")}</span>${meRole?`<small>${esc(meRole)}</small>`:""}</div></div>
+        ${others.length?`<h3>Switch to</h3>${others.map(a=>`<div class="row"><button type="button" class="acct" data-switch="${esc(a.email)}"><span>${esc(a.email)}</span>${a.role?`<small>${esc(roleLabel(a.role))}</small>`:""}</button><button type="button" class="x" data-forget="${esc(a.email)}" aria-label="Remove ${esc(a.email)} from this phone">×</button></div>`).join("")}`:`<p class="note">Add another login to switch between them here without typing the password each time.</p>`}
+        <p class="err" id="acctErr"></p>
+        <button type="button" class="item" id="acctAdd">+ Add another account <small>›</small></button>
+        <button type="button" class="item" id="acctOut">Sign out${me?" "+esc(me):""}</button>
+        <p class="note">Logins are kept on this phone only. Sign out (or ×) removes one.</p></div>`;
+      adlg.querySelector(".close").onclick=()=>adlg.close();
+      adlg.querySelector("#acctAdd").onclick=()=>{adlg.close();A&&A.add()};
+      adlg.querySelector("#acctOut").onclick=()=>window.mncfSignOut&&mncfSignOut();
+      adlg.querySelectorAll("[data-switch]").forEach(b=>b.onclick=async()=>{
+        adlg.querySelectorAll("button").forEach(x=>x.disabled=true);b.querySelector("span").textContent="Switching to "+b.dataset.switch+"…";
+        try{await A.switchTo(b.dataset.switch)}catch(e){drawAccounts();adlg.querySelector("#acctErr").textContent=e.message}
+      });
+      adlg.querySelectorAll("[data-forget]").forEach(b=>b.onclick=async()=>{b.disabled=true;await A.remove(b.dataset.forget);drawAccounts()});
+    }
+    const openAccounts=()=>{close();drawAccounts();if(adlg.showModal)adlg.showModal();else adlg.setAttribute("open","");const f=adlg.querySelector("[data-switch]")||adlg.querySelector("#acctAdd");if(f)f.focus()};
+    adlg.addEventListener("click",e=>{if(e.target===adlg)adlg.close()}); // tap outside closes
+    acctBtn.onclick=openAccounts;dr.querySelector("#drawerSwitch").onclick=openAccounts;
+    const showWho=w=>{acctBtn.hidden=!w;if(!w)return;acctBtn.textContent=w.trim()[0]||"?";acctBtn.title="Signed in as "+w+". Tap to switch account.";acctBtn.setAttribute("aria-label","Signed in as "+w+". Switch account")};
+    if(window.mncfSb)mncfSb.auth.onAuthStateChange((ev,se)=>showWho(se&&se.user?se.user.email||"":"")); // also after signing in on this page
     // ---- what this login may do ----
     function applyRole(r,known){
       if(r===null||r===undefined)return; // role unknown: leave everything as it was

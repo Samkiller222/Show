@@ -21,29 +21,102 @@
 .gate .note{font-size:13px;color:var(--muted,#5d6475);margin:0}
 .gate .err{color:var(--red,#c8322f);font-size:14px;font-weight:600;margin:0}
 .gate .err:empty{display:none}
-.gate button{font:inherit;font-weight:600;border-radius:8px;padding:11px 16px;border:1px solid var(--accent,#4b2fa3);background:var(--accent,#4b2fa3);color:#fff;cursor:pointer;width:100%}`;document.head.appendChild(st)})();
-  function askLogin(msg){
-    if(gateP) return gateP;
-    gateP=new Promise(res=>{
+.gate button{font:inherit;font-weight:600;border-radius:8px;padding:11px 16px;border:1px solid var(--accent,#4b2fa3);background:var(--accent,#4b2fa3);color:#fff;cursor:pointer;width:100%}
+.gate .btns{display:flex;flex-direction:column;gap:8px}
+.gate button.cancel{background:transparent;color:var(--fg,#1b1f2a);border-color:var(--line,#dde0e8)}
+.gate .saved{display:flex;flex-direction:column;gap:6px}
+.gate button.acct{display:flex;justify-content:space-between;align-items:center;gap:8px;text-align:left;background:var(--bg,#f3f4f7);color:var(--fg,#1b1f2a);border-color:var(--line,#dde0e8);overflow-wrap:anywhere}
+.gate button.acct small{flex:none;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted,#5d6475)}`;document.head.appendChild(st)})();
+  // opt.add: signing in to one more account (the current login stays until the new one works; Cancel keeps it).
+  function askLogin(msg,opt){
+    opt=opt||{};
+    if(gateP&&!opt.add) return gateP;
+    const p=new Promise(res=>{
       const g=document.createElement("div");g.className="gate";
-      g.innerHTML=`<form><h2>Sign in</h2><p class="note">Use your MNCF team login. This phone stays signed in.</p>${msg?`<p class="err">${esc(msg)}</p>`:""}
-        <div class="field"><label for="loginEmail">Email</label><input type="email" id="loginEmail" autocomplete="username" required></div>
+      const saved=opt.add?[]:readAccts().sort((a,b)=>(b.used||0)-(a.used||0));
+      g.innerHTML=`<form><h2>${opt.add?"Add an account":"Sign in"}</h2><p class="note">${opt.add?"Sign in with another MNCF login. You can switch back from the account button at the top.":"Use your MNCF team login. This phone stays signed in."}</p>${msg?`<p class="err">${esc(msg)}</p>`:""}
+        ${saved.length?`<div class="saved"><p class="note">Saved on this phone:</p>${saved.map(a=>`<button type="button" class="acct" data-email="${esc(a.email)}">${esc(a.email)}${a.role?` <small>${esc(ROLE_NAMES[a.role]||a.role)}</small>`:""}</button>`).join("")}<p class="note">Or sign in with another login:</p></div>`:""}
+        <div class="field"><label for="loginEmail">Email</label><input type="email" id="loginEmail" autocomplete="username" required value="${esc(opt.email||"")}"></div>
         <div class="field"><label for="loginPw">Password</label><input type="password" id="loginPw" autocomplete="current-password" required></div>
-        <p class="err" id="loginErr"></p><div class="btns"><button class="pri" type="submit">Sign in</button></div></form>`;
-      document.body.appendChild(g);setTimeout(()=>g.querySelector("input").focus(),50);
+        <p class="err" id="loginErr"></p><div class="btns"><button class="pri" type="submit">Sign in</button>${opt.add?`<button type="button" class="cancel">Cancel</button>`:""}</div></form>`;
+      document.body.appendChild(g);setTimeout(()=>g.querySelector(opt.email?"#loginPw":"#loginEmail").focus(),50);
+      const cancel=g.querySelector(".cancel");if(cancel)cancel.onclick=()=>{g.remove();res(false)};
+      g.querySelectorAll(".acct").forEach(b=>b.onclick=async()=>{
+        b.disabled=true;g.querySelector("#loginErr").textContent="";
+        try{await mncfAccounts.switchTo(b.dataset.email)}catch(e){b.remove();g.querySelector("#loginEmail").value=b.dataset.email;g.querySelector("#loginPw").focus();g.querySelector("#loginErr").textContent=e.message}
+      });
       g.querySelector("form").addEventListener("submit",async ev=>{
-        ev.preventDefault();const b=g.querySelector("button");b.disabled=true;b.textContent="Signing in…";
+        ev.preventDefault();const b=g.querySelector("button.pri");b.disabled=true;b.textContent="Signing in…";
         const {error}=await sb.auth.signInWithPassword({email:g.querySelector("#loginEmail").value.trim(),password:g.querySelector("#loginPw").value});
         if(error){g.querySelector("#loginErr").textContent=/invalid/i.test(error.message)?"That email and password don't match a team login.":error.message;b.disabled=false;b.textContent="Sign in";return}
-        clearCache();g.remove();gateP=null;roleP=null;res();
+        resetLocal();g.remove();if(!opt.add){gateP=null;roleP=null}res(true);
       });
     });
-    return gateP;
+    if(!opt.add) gateP=p;
+    return p;
   }
   // Saved copies of lists belong to whoever was signed in: drop them when the login changes (handlers only see their own dogs).
   function clearCache(){try{for(let i=localStorage.length-1;i>=0;i--){const k=localStorage.key(i);if(k&&k.startsWith("mncf-cache-"))localStorage.removeItem(k)}}catch(e){}}
+  // Everything this phone remembers about the current login (role, admin preview, saved lists).
+  function resetLocal(){try{localStorage.removeItem("mncf-role");sessionStorage.removeItem("mncf-preview-role");clearCache()}catch(e){}}
   async function signedIn(){const {data}=await sb.auth.getSession();if(!data.session)await askLogin();}
-  window.mncfSignOut=async()=>{try{localStorage.removeItem("mncf-role");sessionStorage.removeItem("mncf-preview-role");clearCache()}catch(e){}await sb.auth.signOut();location.reload()};
+  window.mncfSignOut=async()=>{resetLocal();await sb.auth.signOut();location.reload()};
+
+  // ---- saved accounts: switch between logins on this phone without typing the password again ----
+  // Each login that signs in here is remembered (email, role, its latest tokens) under "mncf-accounts".
+  // Supabase changes the refresh token every hour, so the saved copy is kept up to date for the login in use;
+  // a login that isn't in use isn't refreshed, so its saved token stays good until it is switched back to.
+  const ACCTS="mncf-accounts",ACTIVE="mncf-active-account";
+  function readAccts(){try{const a=JSON.parse(localStorage.getItem(ACCTS)||"[]");return Array.isArray(a)?a.filter(x=>x&&x.email&&x.refresh_token):[]}catch(e){return []}}
+  function writeAccts(a){try{localStorage.setItem(ACCTS,JSON.stringify(a))}catch(e){}}
+  let curEmail="";
+  function remember(session){
+    const email=String(session.user.email||"").toLowerCase();if(!email)return;
+    const a=readAccts(),i=a.findIndex(x=>x.email===email),old=i>=0?a[i]:{};
+    const row={email,role:old.role||"",access_token:session.access_token,refresh_token:session.refresh_token,used:Date.now()};
+    if(i>=0)a[i]=row;else a.push(row);writeAccts(a);
+  }
+  function forget(email){writeAccts(readAccts().filter(x=>x.email!==email))}
+  function setActive(email){
+    if(email===curEmail)return;curEmail=email;
+    try{if(localStorage.getItem(ACTIVE)!==email)localStorage.setItem(ACTIVE,email)}catch(e){}
+  }
+  // Don't call Supabase from inside this callback (it would wait on itself).
+  sb.auth.onAuthStateChange((ev,session)=>{
+    if(ev==="SIGNED_OUT"){if(curEmail)forget(curEmail);setActive("");return}
+    if(session&&session.user){remember(session);setActive(String(session.user.email||"").toLowerCase())}
+  });
+  // Another tab on this phone switched login: reload so this tab doesn't show the old login's screens.
+  window.addEventListener("storage",e=>{if(e.key===ACTIVE&&curEmail&&e.newValue!==curEmail)location.reload()});
+  // A separate client that keeps nothing, for checking a saved login before switching to it,
+  // so a login that has expired can't sign the current one out.
+  const tmpClient=()=>window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false,storageKey:"mncf-check"}});
+  window.mncfAccounts={
+    // saved logins, most recently used first
+    list(){return readAccts().sort((a,b)=>(b.used||0)-(a.used||0)).map(({email,role})=>({email,role}))},
+    current(){return curEmail},
+    async switchTo(email){
+      email=String(email||"").toLowerCase();
+      const a=readAccts().find(x=>x.email===email);if(!a)throw new Error("That login isn't saved on this phone any more. Sign in with its password.");
+      const {data:cur}=await sb.auth.getSession();if(cur.session)remember(cur.session);
+      const t=tmpClient();
+      const {data,error}=await t.auth.setSession({access_token:a.access_token,refresh_token:a.refresh_token});
+      if(error||!data.session){forget(email);throw new Error(`${email} has been signed out. Sign in with its password to add it again.`)}
+      const {error:e2}=await sb.auth.setSession({access_token:data.session.access_token,refresh_token:data.session.refresh_token});
+      if(e2)throw new Error(e2.message);
+      resetLocal();location.reload();
+    },
+    // sign in to one more login; the current one stays saved
+    async add(){const {data:cur}=await sb.auth.getSession();if(cur.session)remember(cur.session);if(await askLogin("",{add:true}))location.reload()},
+    // forget a saved login (and sign it out on this phone); removing the current one is "Sign out"
+    async remove(email){
+      email=String(email||"").toLowerCase();if(email===curEmail)return mncfSignOut();
+      const a=readAccts().find(x=>x.email===email);forget(email);if(!a)return;
+      try{const t=tmpClient();const {error}=await t.auth.setSession({access_token:a.access_token,refresh_token:a.refresh_token});if(!error)await t.auth.signOut({scope:"local"})}catch(e){}
+    }
+  };
+  const saveRole=r=>{if(!curEmail||r==null)return;const a=readAccts(),x=a.find(y=>y.email===curEmail);if(x&&x.role!==r){x.role=r;writeAccts(a)}};
+
   // ---- roles: admin, organiser, steward (awards only), viewer (read only) ----
   // The database enforces these; pages only use the role to hide what this login can't do.
   const ROLE_NAMES={admin:"Admin",organiser:"Organiser",steward:"Steward",viewer:"Viewer",handler:"Handler",owner:"Owner"};
@@ -63,7 +136,7 @@
   // the login's real role
   window.mncfRealRole=(fresh)=>{
     if(!roleP||fresh) roleP=(async()=>{await signedIn();const {data,error}=await sb.rpc("my_role");if(error)throw error;
-      try{localStorage.setItem("mncf-role",data||"")}catch(e){}return data||""})().catch(e=>{roleP=null;return null}); // null: unknown, the database still decides
+      try{localStorage.setItem("mncf-role",data||"")}catch(e){}saveRole(data||"");return data||""})().catch(e=>{roleP=null;return null}); // null: unknown, the database still decides
     return roleP;
   };
   // the role the page acts as: the real role, or the previewed one for an admin
