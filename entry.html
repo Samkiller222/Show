@@ -7,7 +7,7 @@
 <title>MNCF Add Entry</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<link rel="stylesheet" href="css/style.css?v=2026-11-06p">
+<link rel="stylesheet" href="css/style.css?v=2026-11-06q">
 </head>
 <body>
 <div class="wrap">
@@ -55,8 +55,8 @@
 </div>
 <div class="toast" id="toast"></div>
 <script src="vendor/supabase.min.js"></script>
-<script src="js/api.js?v=2026-11-06p"></script>
-<script src="js/shell.js?v=2026-11-06p"></script>
+<script src="js/api.js?v=2026-11-06q"></script>
+<script src="js/shell.js?v=2026-11-06q"></script>
 <script>
 mncfShell({page:"add",title:mncfQuery("show")||"Add an entry",kicker:mncfQuery("show")?(mncfQuery("edit")?"Edit entry":"Add entry"):"Add an entry"});
 const esc=mncfEsc, $=id=>document.getElementById(id);
@@ -74,16 +74,16 @@ function fillShows(){
   $("formPanel").hidden=!S.show;
   $("pickPanel").hidden=!!S.show&&!!s;
 }
-// Handlers enter their own dogs only: no ring numbers, handler classes or new breeds (the database checks this too).
-const ownRole=r=>r==="handler"||r==="owner";
-let HANDLER=ownRole(mncfRoleCached());
-mncfRole().then(r=>{if(ownRole(r)!==HANDLER){HANDLER=ownRole(r);if(S.breeds.length)fillLists()}});
+// Owners enter their own dogs only: no ring numbers, Junior Handler / Childrens Class or new breeds (the database checks this too).
+const ownRole=r=>r==="owner";
+let OWNER=ownRole(mncfRoleCached());
+mncfRole().then(r=>{if(ownRole(r)!==OWNER){OWNER=ownRole(r);if(S.breeds.length)fillLists()}});
 function fillLists(){
   const cur=$("fClass").value;
-  $("fClass").innerHTML=AGE.flatMap(a=>[`${a} Dog`,`${a} Bitch`]).concat(HANDLER?SPECIAL.filter(c=>!PERSON.includes(c)):SPECIAL).map(c=>`<option>${c}</option>`).join("");
+  $("fClass").innerHTML=AGE.flatMap(a=>[`${a} Dog`,`${a} Bitch`]).concat(OWNER?SPECIAL.filter(c=>!PERSON.includes(c)):SPECIAL).map(c=>`<option>${c}</option>`).join("");
   if(cur&&[...$("fClass").options].some(o=>o.value===cur))$("fClass").value=cur;
   const byG={};S.breeds.forEach(b=>{(byG[b.Group]=byG[b.Group]||[]).push(b.Breed)});
-  $("fBreed").innerHTML='<option value="">Pick a breed…</option>'+Object.keys(byG).sort((a,b)=>GROUP_ORDER.indexOf(a)-GROUP_ORDER.indexOf(b)).map(g=>`<optgroup label="${esc(g)}">${byG[g].sort().map(b=>`<option>${esc(b)}</option>`).join("")}</optgroup>`).join("")+(HANDLER?"":'<option value="__new">Add a new breed…</option>');
+  $("fBreed").innerHTML='<option value="">Pick a breed…</option>'+Object.keys(byG).sort((a,b)=>GROUP_ORDER.indexOf(a)-GROUP_ORDER.indexOf(b)).map(g=>`<optgroup label="${esc(g)}">${byG[g].sort().map(b=>`<option>${esc(b)}</option>`).join("")}</optgroup>`).join("")+(OWNER?"":'<option value="__new">Add a new breed…</option>');
   $("fGroup").innerHTML='<option value="">Pick a group…</option>'+S.groups.map(g=>`<option>${esc(g)}</option>`).join("");
   fillDogList();
 }
@@ -127,7 +127,7 @@ function startEdit(e){
   S.editing=e;$("fClass").value=e.Class;$("fRing").value=String(e["Ring No"]).trim();$("fName").value=e["Dog name"];syncForm();lookupDog();
   $("formTitle").textContent="Edit entry";$("saveBtn").textContent="Save changes";$("cancelBtn").hidden=false;
 }
-const backToList=()=>{if(HANDLER){location.href="mydogs.html";return}location.href="register.html?show="+encodeURIComponent(S.show)+(S.editing?"&edited="+encodeURIComponent(S.editing._row):"")};
+const backToList=()=>{if(OWNER){location.href="mydogs.html";return}location.href="register.html?show="+encodeURIComponent(S.show)+(S.editing?"&edited="+encodeURIComponent(S.editing._row):"")};
 // Entries added on this screen since it was opened, newest first, so the steward can check what went in.
 const RECENT=[];
 function drawRecent(){

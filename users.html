@@ -7,7 +7,7 @@
 <title>MNCF Users and Roles</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<link rel="stylesheet" href="css/style.css?v=2026-11-06p">
+<link rel="stylesheet" href="css/style.css?v=2026-11-06q">
 <style>
 .urow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 12px;align-items:center;padding:10px 14px;border-top:1px solid var(--line)}
 .urow b{display:block;overflow-wrap:anywhere}
@@ -33,8 +33,7 @@
       <li><b>Organiser</b> Everything except users: shows, entries, dogs, breeds, judging days and awards. <button type="button" class="pv" data-preview="organiser">Preview</button></li>
       <li><b>Steward</b> Records awards. Can see everything else but not change it. <button type="button" class="pv" data-preview="steward">Preview</button></li>
       <li><b>Viewer</b> Looks only. Can't change anything. <button type="button" class="pv" data-preview="viewer">Preview</button></li>
-      <li><b>Handler</b> Sees only the dogs linked to their email (set on each dog's page under Club dogs) and enters them into Open shows. They land on a My dogs page; use Preview on a handler below to see it as them.</li>
-      <li><b>Owner</b> Like a handler, for the dogs linked to their email as owner, and also sees what their entries cost and what is paid. Use Preview on an owner below.</li>
+      <li><b>Owner</b> Sees only the dogs linked to their email (set under Owner logins on each dog's page in Club dogs), enters them into Open shows, and sees and pays what their entries cost. They land on a My dogs page; use Preview on an owner below to see it as them.</li>
     </ul>
   </section>
   <section class="panel" id="addPanel" hidden>
@@ -51,12 +50,12 @@
 </div>
 <div class="toast" id="toast"></div>
 <script src="vendor/supabase.min.js"></script>
-<script src="js/api.js?v=2026-11-06p"></script>
-<script src="js/shell.js?v=2026-11-06p"></script>
+<script src="js/api.js?v=2026-11-06q"></script>
+<script src="js/shell.js?v=2026-11-06q"></script>
 <script>
 mncfShell({page:"users",title:"Users and roles",kicker:"Manage"});
 const esc=mncfEsc,$=id=>document.getElementById(id);
-const ROLES=["admin","organiser","steward","viewer","handler","owner"];
+const ROLES=["admin","organiser","steward","viewer","owner"];
 let MEMBERS=[],ME="";
 document.querySelectorAll(".roles [data-preview]").forEach(b=>b.onclick=()=>{mncfPreview.set(b.dataset.preview);location.href="index.html"});
 const roleOpts=cur=>ROLES.map(r=>`<option value="${r}"${r===cur?" selected":""}>${mncfRoleName(r)}</option>`).join("");
@@ -67,9 +66,9 @@ function draw(list){
   const team=MEMBERS.filter(m=>m.role),others=MEMBERS.filter(m=>!m.role);
   const row=m=>{
     const me=m.email===ME;
-    const sub=[m.name&&m.email,m.role==="handler"||m.role==="owner"?(m.dogs?`${m.role==="owner"?"Owns":"Handles"} ${m.dogs} dog${m.dogs===1?"":"s"}`:"No dogs linked yet: add their email on a dog's page"):"",m.has_login?when(m.last_sign_in):"No login yet: create one in Supabase"].filter(Boolean);
+    const sub=[m.name&&m.email,m.role==="owner"?(m.dogs?`Owns ${m.dogs} dog${m.dogs===1?"":"s"}`:"No dogs linked yet: add their email on a dog's page"):"",m.has_login?when(m.last_sign_in):"No login yet: create one in Supabase"].filter(Boolean);
     return `<div class="urow"><div><b>${esc(m.name||m.email)}${me?' <span class="you">You</span>':""}</b>${sub.map(s=>`<small>${esc(s)}</small>`).join("")}</div>
-      <div class="uacts"><select data-role="${esc(m.email)}" aria-label="Role for ${esc(m.email)}"${me?" disabled title=\"You can't change your own role\"":""}>${roleOpts(m.role)}</select>${m.role==="handler"||m.role==="owner"?`<button type="button" data-pvhandler="${esc(m.role+":"+m.email)}">Preview</button>`:""}${me?"":`<button class="danger" type="button" data-remove="${esc(m.email)}">Remove</button>`}</div></div>`};
+      <div class="uacts"><select data-role="${esc(m.email)}" aria-label="Role for ${esc(m.email)}"${me?" disabled title=\"You can't change your own role\"":""}>${roleOpts(m.role)}</select>${m.role==="owner"?`<button type="button" data-pvowner="${esc(m.role+":"+m.email)}">Preview</button>`:""}${me?"":`<button class="danger" type="button" data-remove="${esc(m.email)}">Remove</button>`}</div></div>`};
   const other=m=>`<div class="urow"><div><b>${esc(m.email)}</b><small>${esc(when(m.last_sign_in))} · can't see anything yet</small></div>
       <div class="uacts"><select data-pick="${esc(m.email)}" aria-label="Role for ${esc(m.email)}">${roleOpts("viewer")}</select><button class="pri" type="button" data-add="${esc(m.email)}">Add</button></div></div>`;
   $("list").innerHTML=`<article class="breed"><div class="bhead"><div><small>${team.length} ${team.length===1?"person":"people"}</small><h2>Team</h2></div></div>${team.map(row).join("")||'<div class="empty">Nobody yet.</div>'}</article>`+
@@ -87,7 +86,7 @@ $("list").addEventListener("change",e=>{
 });
 $("list").addEventListener("click",e=>{
   const b=e.target.closest("button");if(!b)return;
-  if(b.dataset.pvhandler){mncfPreview.set(b.dataset.pvhandler);location.href="mydogs.html";return}
+  if(b.dataset.pvowner){mncfPreview.set(b.dataset.pvowner);location.href="mydogs.html";return}
   if(b.dataset.remove){if(!confirm(`Take ${b.dataset.remove} off the team? Their login stays but they won't see anything.`))return;
     run("removeMember",{email:b.dataset.remove},b.dataset.remove+" removed from the team",b)}
   if(b.dataset.add){const s=b.parentNode.querySelector("[data-pick]");run("setMember",{email:b.dataset.add,role:s.value},`${b.dataset.add} added as ${mncfRoleName(s.value)}`,b)}

@@ -112,13 +112,13 @@ body.ro-edit #breedForm,body.ro-edit .erow .acts,body.ro-edit .erow .grip,body.r
 body.ro-edit .tabs{grid-template-columns:repeat(3,1fr)}
 body.ro-edit select[data-breed]{pointer-events:none;appearance:none;-webkit-appearance:none;border-color:transparent;background:transparent}
 body.ro-award [data-k],body.ro-award [data-g]{pointer-events:none;opacity:.75}
-/* handlers: their own dogs and entries only, no show setup, awards or results */
-body.ro-handler #editShowBtn,body.ro-handler #drawerEdit,body.ro-handler #newBtn,body.ro-handler #breedForm,body.ro-handler #saveBar,body.ro-handler #catLink,
-body.ro-handler .tabs a[data-tab="awards"],body.ro-handler .tabs a[data-tab="results"],body.ro-handler a[href^="awards.html"],
-body.ro-handler .drawer a[href^="schedule.html"],body.ro-handler .drawer a[href^="catalogue.html"],body.ro-handler a[href^="payments.html"],body.ro-handler .drawer a[href="breeds.html"],
-body.ro-handler .drawer a[href="index.html"],body.ro-handler .erow .acts .given,body.ro-handler .field:has(#fRing),body.ro-handler .needs-edit,body.ro-handler .organiser-only{display:none!important}
-body.ro-handler .tabs{grid-template-columns:repeat(2,1fr)}
-body.ro-handler select[data-breed]{pointer-events:none;appearance:none;-webkit-appearance:none;border-color:transparent;background:transparent}
+/* owners: their own dogs and entries only, no show setup, awards or results */
+body.ro-owner #editShowBtn,body.ro-owner #drawerEdit,body.ro-owner #newBtn,body.ro-owner #breedForm,body.ro-owner #saveBar,body.ro-owner #catLink,
+body.ro-owner .tabs a[data-tab="awards"],body.ro-owner .tabs a[data-tab="results"],body.ro-owner a[href^="awards.html"],
+body.ro-owner .drawer a[href^="schedule.html"],body.ro-owner .drawer a[href^="catalogue.html"],body.ro-owner a[href^="payments.html"],body.ro-owner .drawer a[href="breeds.html"],
+body.ro-owner .drawer a[href="index.html"],body.ro-owner .erow .acts .given,body.ro-owner .field:has(#fRing),body.ro-owner .needs-edit,body.ro-owner .organiser-only{display:none!important}
+body.ro-owner .tabs{grid-template-columns:repeat(2,1fr)}
+body.ro-owner select[data-breed]{pointer-events:none;appearance:none;-webkit-appearance:none;border-color:transparent;background:transparent}
 .drawer .role{display:inline-block;margin-left:6px;padding:2px 8px;border-radius:999px;background:var(--accent-soft);color:var(--fg);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
 .previewbar{margin:-12px calc(-1 * max(16px,env(safe-area-inset-left,0px))) 10px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 16px;background:#b45309;color:#fff;font-size:14px;font-weight:600}
 .previewbar button{flex:none;min-height:40px;padding:6px 14px;border-radius:8px;border:1.5px solid #fff;background:transparent;color:#fff;font:inherit;font-weight:700}
@@ -161,7 +161,7 @@ body.ro-handler select[data-breed]{pointer-events:none;appearance:none;-webkit-a
         <a class="item${opt.page==="shows"?" here":""}" href="index.html">All shows and new show <small>›</small></a></div>
       ${show?`<div class="sec"><h3>This show</h3><button class="item" type="button" id="drawerEdit">Edit show details <small>›</small></button><a class="item${opt.page==="schedule"?" here":""}" href="schedule.html${q}">Judging days and times <small>›</small></a><a class="item${opt.page==="catalogue"?" here":""}" href="catalogue.html${q}">Show catalogue to print <small>›</small></a><a class="item${opt.page==="payments"?" here":""}" href="payments.html${q}">Entry fees and payments <small>›</small></a></div>`:""}
       <div class="sec"><h3>Manage</h3><a class="item${opt.page==="mydogs"?" here":""}" href="mydogs.html" id="drawerMyDogs" hidden><span>My dogs</span> <small>›</small></a><a class="item${opt.page==="dogs"?" here":""}" href="dogs.html">Club dogs <small>›</small></a><a class="item${opt.page==="breeds"?" here":""}" href="breeds.html">Breeds and groups <small>›</small></a><a class="item${opt.page==="users"?" here":""}" href="users.html" id="drawerUsers" hidden>Users and roles <small>›</small></a></div>
-      <div class="sec" id="drawerPreview" hidden><h3>Preview the site as</h3><div class="seg four" role="group" aria-label="Preview as">${["admin","organiser","steward","viewer","handler","owner"].map(r=>`<button type="button" data-preview="${r}" aria-pressed="false">${r==="admin"?"Me":r[0].toUpperCase()+r.slice(1)}</button>`).join("")}</div><p class="note" style="margin:0;font-size:12px">See the screens as that role would. Only this tab changes.</p></div>
+      <div class="sec" id="drawerPreview" hidden><h3>Preview the site as</h3><div class="seg four" role="group" aria-label="Preview as">${["admin","organiser","steward","viewer","owner"].map(r=>`<button type="button" data-preview="${r}" aria-pressed="false">${r==="admin"?"Me":r[0].toUpperCase()+r.slice(1)}</button>`).join("")}</div><p class="note" style="margin:0;font-size:12px">See the screens as that role would. Only this tab changes.</p></div>
       <div class="sec"><h3>Awards view on this phone</h3><div class="seg" role="group" aria-label="Awards view"><button type="button" data-view="round" aria-pressed="${mode==="round"}">One round at a time</button><button type="button" data-view="list" aria-pressed="${mode==="list"}">Full list</button></div></div>
       <div class="sec keys"><h3>Keyboard shortcuts</h3><p><kbd>/</kbd>Search</p>${show?`<p><kbd>N</kbd>Add entry</p><p><kbd>←</kbd><kbd>→</kbd>Previous or next round</p>`:""}<p><kbd>Esc</kbd>Close menu</p></div>
       <div class="sec"><h3>Older pages</h3><a class="item" href="legacy/nov-2026.html">November 2026, first version <small>›</small></a></div>
@@ -207,14 +207,14 @@ body.ro-handler select[data-breed]{pointer-events:none;appearance:none;-webkit-a
     // ---- what this login may do ----
     function applyRole(r,known){
       if(r===null||r===undefined)return; // role unknown: leave everything as it was
-      const edit=r==="admin"||r==="organiser",award=edit||r==="steward",handler=r==="handler"||r==="owner";
+      const edit=r==="admin"||r==="organiser",award=edit||r==="steward",owner=r==="owner";
       document.body.dataset.role=r;
-      document.body.classList.toggle("ro-edit",!edit&&!handler);document.body.classList.toggle("ro-award",!award);document.body.classList.toggle("ro-handler",handler);
+      document.body.classList.toggle("ro-edit",!edit&&!owner);document.body.classList.toggle("ro-award",!award);document.body.classList.toggle("ro-owner",owner);
       const u=dr.querySelector("#drawerUsers");if(u)u.hidden=r!=="admin";
-      const md=dr.querySelector("#drawerMyDogs");if(md){md.hidden=!(handler||r==="admin");md.querySelector("span").textContent=handler?"My dogs":"Owners' and handlers' page"}
+      const md=dr.querySelector("#drawerMyDogs");if(md){md.hidden=!(owner||r==="admin");md.querySelector("span").textContent=owner?"My dogs":"Owners' page"}
       const rb=dr.querySelector("#drawerRole");if(rb){rb.hidden=false;rb.textContent=window.mncfRoleName?mncfRoleName(r):r}
       if(known&&!edit&&!document.querySelector(".viewonly")&&header){const p=document.createElement("p");p.className="viewonly";
-        p.textContent=handler?(r==="owner"?"Owner login: you see your own dogs, their entries and fees, and can enter them while a show is Open.":"Handler login: you see your own dogs and can enter them while a show is Open.")+" Organisers give out ring numbers.":award?"Steward login: you can record awards but not change entries or shows.":r?"View only: your login can look but not change anything.":"Your login isn't on the team list yet. Ask an admin to add you.";
+        p.textContent=owner?"Owner login: you see your own dogs, their entries and fees, and can enter them and pay while a show is Open. Organisers give out ring numbers.":award?"Steward login: you can record awards but not change entries or shows.":r?"View only: your login can look but not change anything.":"Your login isn't on the team list yet. Ask an admin to add you.";
         header.appendChild(p)}
     }
     if(window.mncfRole)mncfRole().then(r=>applyRole(r,true));
@@ -227,7 +227,7 @@ body.ro-handler select[data-breed]{pointer-events:none;appearance:none;-webkit-a
         b.onclick=()=>{mncfPreview.set(b.dataset.preview);location.reload()}});
       if(pv){
         const bar=document.createElement("div");bar.className="previewbar";bar.setAttribute("role","status");
-        const who=pv==="handler"||pv==="owner"?(mncfPreview.email()?" "+mncfPreview.email():` (nobody picked: preview a ${pv} from Users and roles to see their dogs)`):"";
+        const who=pv==="owner"?(mncfPreview.email()?" "+mncfPreview.email():` (nobody picked: preview a ${pv} from Users and roles to see their dogs)`):"";
         bar.innerHTML=`<span>Previewing as ${esc(mncfRoleName(pv))}${esc(who)}. This is what they see.</span><button type="button">Exit preview</button>`;
         bar.querySelector("button").onclick=()=>{mncfPreview.set("");location.reload()};
         if(header)header.insertBefore(bar,header.firstChild);else document.body.insertBefore(bar,document.body.firstChild);
