@@ -7,7 +7,7 @@
 <title>MNCF Users and Roles</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<link rel="stylesheet" href="css/style.css?v=2026-11-05f">
+<link rel="stylesheet" href="css/style.css?v=2026-11-06a">
 <style>
 .urow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 12px;align-items:center;padding:10px 14px;border-top:1px solid var(--line)}
 .urow b{display:block;overflow-wrap:anywhere}
@@ -26,7 +26,7 @@
   <header>
     <div class="sub">Who can sign in, and what each login may do. Only admins see this page.</div>
   </header>
-  <section class="panel">
+  <section class="panel" id="rolesPanel" hidden>
     <h2>Roles</h2>
     <ul class="roles">
       <li><b>Admin</b> Everything, plus this page: add people and change roles.</li>
@@ -51,8 +51,8 @@
 </div>
 <div class="toast" id="toast"></div>
 <script src="vendor/supabase.min.js"></script>
-<script src="js/api.js?v=2026-11-05f"></script>
-<script src="js/shell.js?v=2026-11-05f"></script>
+<script src="js/api.js?v=2026-11-06a"></script>
+<script src="js/shell.js?v=2026-11-06a"></script>
 <script>
 mncfShell({page:"users",title:"Users and roles",kicker:"Manage"});
 const esc=mncfEsc,$=id=>document.getElementById(id);
@@ -102,7 +102,7 @@ $("addForm").addEventListener("submit",async ev=>{
   ME=(await mncfWho()).toLowerCase();
   const r=await mncfRole();
   if(r!=="admin"){$("list").innerHTML=`<div class="empty">Only admins can see users and change roles.${r?` Your login is ${/^[ao]/.test(r)?"an":"a"} ${esc(mncfRoleName(r))}.`:""}</div>`;return}
-  $("addPanel").hidden=false;
+  $("rolesPanel").hidden=false;$("addPanel").hidden=false;
   try{const j=await mncfApi("team");draw(j.members)}
   catch(e){$("list").innerHTML=`<p class="err">${esc(e.message)}</p>`}
 })();
