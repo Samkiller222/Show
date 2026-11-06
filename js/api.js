@@ -26,6 +26,8 @@
 .gate button.cancel{background:transparent;color:var(--fg,#1b1f2a);border-color:var(--line,#dde0e8)}
 .gate .saved{display:flex;flex-direction:column;gap:6px}
 .gate button.acct{display:flex;justify-content:space-between;align-items:center;gap:8px;text-align:left;background:var(--bg,#f3f4f7);color:var(--fg,#1b1f2a);border-color:var(--line,#dde0e8);overflow-wrap:anywhere}
+.gate .pw{position:relative}.gate .pw input{padding-right:76px}
+.gate button.peek{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:auto;min-height:36px;padding:4px 12px;font-size:14px;background:transparent;color:var(--accent,#4b2fa3);border-color:transparent}
 .gate button.acct small{flex:none;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted,#5d6475)}`;document.head.appendChild(st)})();
   // opt.add: signing in to one more account (the current login stays until the new one works; Cancel keeps it).
   function askLogin(msg,opt){
@@ -37,9 +39,10 @@
       g.innerHTML=`<form><h2>${opt.add?"Add an account":"Sign in"}</h2><p class="note">${opt.add?"Sign in with another MNCF login. You can switch back from the account button at the top.":"Use your MNCF team login. This phone stays signed in."}</p>${msg?`<p class="err">${esc(msg)}</p>`:""}
         ${saved.length?`<div class="saved"><p class="note">Saved on this phone:</p>${saved.map(a=>`<button type="button" class="acct" data-email="${esc(a.email)}">${esc(a.email)}${a.role?` <small>${esc(ROLE_NAMES[a.role]||a.role)}</small>`:""}</button>`).join("")}<p class="note">Or sign in with another login:</p></div>`:""}
         <div class="field"><label for="loginEmail">Email</label><input type="email" id="loginEmail" autocomplete="username" required value="${esc(opt.email||"")}"></div>
-        <div class="field"><label for="loginPw">Password</label><input type="password" id="loginPw" autocomplete="current-password" required></div>
-        <p class="err" id="loginErr"></p><div class="btns"><button class="pri" type="submit">Sign in</button>${opt.add?`<button type="button" class="cancel">Cancel</button>`:""}</div></form>`;
+        <div class="field"><label for="loginPw">Password</label><div class="pw"><input type="password" id="loginPw" autocomplete="current-password" required><button type="button" class="peek" aria-pressed="false">Show</button></div></div>
+        <p class="err" id="loginErr"></p><div class="btns"><button class="pri" type="submit">Sign in</button>${opt.add?`<button type="button" class="cancel">Cancel</button>`:""}</div>${opt.add?"":`<p class="note">Forgot your password, or no login yet? Ask a club admin.</p>`}</form>`;
       document.body.appendChild(g);setTimeout(()=>g.querySelector(opt.email?"#loginPw":"#loginEmail").focus(),50);
+      const peek=g.querySelector(".peek");peek.onclick=()=>{const i=g.querySelector("#loginPw"),on=i.type==="password";i.type=on?"text":"password";peek.textContent=on?"Hide":"Show";peek.setAttribute("aria-pressed",String(on));i.focus()};
       const cancel=g.querySelector(".cancel");if(cancel)cancel.onclick=()=>{g.remove();res(false)};
       g.querySelectorAll(".acct").forEach(b=>b.onclick=async()=>{
         b.disabled=true;g.querySelector("#loginErr").textContent="";
