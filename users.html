@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="mncf-version" content="2026-11-08a">
+<meta name="mncf-version" content="2026-11-08b">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>MNCF Users and Roles</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<link rel="stylesheet" href="css/style.css?v=2026-11-08a">
+<link rel="stylesheet" href="css/style.css?v=2026-11-08b">
 <style>
 .urow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 12px;align-items:center;padding:10px 14px;border-top:1px solid var(--line)}
 .urow b{display:block;overflow-wrap:anywhere}
@@ -18,91 +18,212 @@
 .roles{margin:0;padding:0;list-style:none;display:grid;gap:6px;font-size:14px}
 .roles b{display:inline-block;min-width:6.5em}
 .roles .pv{min-height:34px;padding:4px 10px;font-size:13px;margin-left:4px}
-@media (max-width:520px){.urow{grid-template-columns:1fr}.urow .uacts{justify-content:flex-start;flex-wrap:nowrap}.urow .uacts select{flex:1;min-width:0}}
+.facts{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 14px;margin:0;font-size:14px}
+.facts dt{color:var(--muted);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;padding-top:2px}
+.facts dd{margin:0;overflow-wrap:anywhere}
+.alist{display:flex;flex-direction:column}
+.alist .ar{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line);font-size:14px}
+.alist .ar:first-child{border-top:0}
+.alist .ar small{display:block;color:var(--muted);font-size:12px}
+.alist a.ar{color:inherit;text-decoration:none}
+.newpw{font-family:ui-monospace,Menlo,monospace;font-size:18px;font-weight:700;letter-spacing:.05em;background:var(--bg);border:1px dashed var(--accent);border-radius:8px;padding:8px 12px;user-select:all;overflow-wrap:anywhere}
+.backlink{align-self:flex-start}
+@media (max-width:520px){.urow{grid-template-columns:1fr}.urow .uacts{justify-content:flex-start;flex-wrap:wrap}.urow .uacts select{flex:1 1 100%;min-width:0}}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <div class="sub">Who can sign in, and what each login may do. Only admins see this page.</div>
+    <div class="sub" id="sub">Every account: make new ones, change roles, names and emails, see everything about an account, and sign in as anyone to act for them. Only admins see this page.</div>
   </header>
+  <div id="listView" style="display:flex;flex-direction:column;gap:12px">
+  <section class="panel" id="addPanel" hidden>
+    <h2>Create an account</h2>
+    <p class="note">Makes the login and gives it a role in one go. It's ready to use straight away; no email is sent.</p>
+    <form id="addForm" class="form" autocomplete="off">
+      <div class="field"><label for="nmEmail">Email</label><input type="email" id="nmEmail" required placeholder="name@example.com" autocomplete="off"></div>
+      <div class="field"><label for="nmName">Name</label><input type="text" id="nmName" autocomplete="off"></div>
+      <div class="field"><label for="nmRole">Role</label><select id="nmRole"></select></div>
+      <div class="field"><label for="nmPw">Password (optional)</label><input type="text" id="nmPw" minlength="6" placeholder="Leave empty to make one up" autocomplete="new-password"></div>
+      <div class="field wide"><div class="btns"><button class="pri" type="submit" id="nmBtn">Create account</button></div><p class="err" id="nmErr"></p></div>
+    </form>
+    <div id="nmDone" hidden></div>
+  </section>
+  <div id="list" style="display:flex;flex-direction:column;gap:12px"><p class="loading">Loading users…</p></div>
   <section class="panel" id="rolesPanel" hidden>
     <h2>Roles</h2>
     <ul class="roles">
-      <li><b>Admin</b> Everything, plus this page: add people and change roles.</li>
+      <li><b>Admin</b> Everything, plus this page: accounts, roles, and signing in as anyone.</li>
       <li><b>Organiser</b> Everything except users: shows, entries, dogs, breeds, judging days and awards. <button type="button" class="pv" data-preview="organiser">Preview</button></li>
       <li><b>Steward</b> Records awards. Can see everything else but not change it. <button type="button" class="pv" data-preview="steward">Preview</button></li>
       <li><b>Viewer</b> Looks only. Can't change anything. <button type="button" class="pv" data-preview="viewer">Preview</button></li>
-      <li><b>Owner</b> Sees only the dogs linked to their email (set under Owner logins on each dog's page in Club dogs), enters them into Open shows, and sees and pays what their entries cost. They land on a My dogs page; use Preview on an owner below to see it as them.</li>
+      <li><b>Owner</b> Sees only the dogs linked to their email (set under Owner logins on each dog's page in Club dogs), enters them into Open shows, and sees and pays what their entries cost.</li>
     </ul>
+    <p class="note">Preview shows the screens a role gets without signing in as anyone. To act for a real person, open their account and use Sign in as them.</p>
   </section>
-  <section class="panel" id="addPanel" hidden>
-    <h2>Add someone to the team</h2>
-    <p class="note">They also need a login: create it in Supabase under Authentication, Users, Add user (auto-confirm on), using the same email.</p>
-    <form id="addForm" class="form" autocomplete="off">
-      <div class="field"><label for="nmEmail">Email</label><input type="email" id="nmEmail" required placeholder="name@example.com"></div>
-      <div class="field"><label for="nmName">Name (optional)</label><input type="text" id="nmName"></div>
-      <div class="field"><label for="nmRole">Role</label><select id="nmRole"></select></div>
-      <div class="field wide"><div class="btns"><button class="pri" type="submit" id="nmBtn">Add to team</button></div><p class="err" id="nmErr"></p></div>
-    </form>
-  </section>
-  <div id="list" style="display:flex;flex-direction:column;gap:12px"><p class="loading">Loading users…</p></div>
+  </div>
+  <div id="acctView" style="display:flex;flex-direction:column;gap:12px" hidden></div>
 </div>
 <div class="toast" id="toast"></div>
 <script src="vendor/supabase.min.js"></script>
-<script src="js/api.js?v=2026-11-08a"></script>
-<script src="js/shell.js?v=2026-11-08a"></script>
+<script src="js/api.js?v=2026-11-08b"></script>
+<script src="js/shell.js?v=2026-11-08b"></script>
 <script>
 mncfShell({page:"users",title:"Users and roles",kicker:"Manage"});
 const esc=mncfEsc,$=id=>document.getElementById(id);
 const ROLES=["admin","organiser","steward","viewer","owner"];
 let MEMBERS=[],ME="";
+const an=r=>/^[aoe]/i.test(r)?"an":"a";
 document.querySelectorAll(".roles [data-preview]").forEach(b=>b.onclick=()=>{mncfPreview.set(b.dataset.preview);location.href="index.html"});
-const roleOpts=cur=>ROLES.map(r=>`<option value="${r}"${r===cur?" selected":""}>${mncfRoleName(r)}</option>`).join("");
-$("nmRole").innerHTML=roleOpts("steward");
-const when=t=>t?"Last signed in "+new Date(t).toLocaleDateString([],{day:"numeric",month:"short",year:"numeric"}):"Hasn't signed in yet";
+const roleOpts=(cur,none)=>(none?`<option value=""${cur?"":" selected"}>Not on the team</option>`:"")+ROLES.map(r=>`<option value="${r}"${r===cur?" selected":""}>${mncfRoleName(r)}</option>`).join("");
+$("nmRole").innerHTML=roleOpts("owner");
+const day=t=>t?new Date(t).toLocaleDateString([],{day:"numeric",month:"short",year:"numeric"}):"";
+const dt=t=>t?new Date(t).toLocaleString([],{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"}):"";
+const when=t=>t?"Last signed in "+day(t):"Hasn't signed in yet";
+const euro=c=>"€"+(c/100).toFixed(2).replace(/\.00$/,"");
+
+// ---- the list ----
 function draw(list){
   if(list)MEMBERS=list;
   const team=MEMBERS.filter(m=>m.role),others=MEMBERS.filter(m=>!m.role);
+  const acts=m=>`<button type="button" data-open="${esc(m.email)}">Open</button>${m.email!==ME&&m.has_login?`<button type="button" data-act="${esc(m.email)}">Sign in as</button>`:""}`;
   const row=m=>{
     const me=m.email===ME;
-    const sub=[m.name&&m.email,m.role==="owner"?(m.dogs?`Owns ${m.dogs} dog${m.dogs===1?"":"s"}`:"No dogs linked yet: add their email on a dog's page"):"",m.has_login?when(m.last_sign_in):"No login yet: create one in Supabase"].filter(Boolean);
+    const sub=[m.name&&m.email,m.role==="owner"?(m.dogs?`Owns ${m.dogs} dog${m.dogs===1?"":"s"}`:"No dogs linked yet"):"",m.has_login?when(m.last_sign_in):"No login yet: open to make one"].filter(Boolean);
     return `<div class="urow"><div><b>${esc(m.name||m.email)}${me?' <span class="you">You</span>':""}</b>${sub.map(s=>`<small>${esc(s)}</small>`).join("")}</div>
-      <div class="uacts"><select data-role="${esc(m.email)}" aria-label="Role for ${esc(m.email)}"${me?" disabled title=\"You can't change your own role\"":""}>${roleOpts(m.role)}</select>${m.role==="owner"?`<button type="button" data-pvowner="${esc(m.role+":"+m.email)}">Preview</button>`:""}${me?"":`<button class="danger" type="button" data-remove="${esc(m.email)}">Remove</button>`}</div></div>`};
+      <div class="uacts"><select data-role="${esc(m.email)}" aria-label="Role for ${esc(m.email)}"${me?" disabled title=\"You can't change your own role\"":""}>${roleOpts(m.role)}</select>${acts(m)}</div></div>`};
   const other=m=>`<div class="urow"><div><b>${esc(m.email)}</b><small>${esc(when(m.last_sign_in))} · can't see anything yet</small></div>
-      <div class="uacts"><select data-pick="${esc(m.email)}" aria-label="Role for ${esc(m.email)}">${roleOpts("viewer")}</select><button class="pri" type="button" data-add="${esc(m.email)}">Add</button></div></div>`;
+      <div class="uacts"><select data-pick="${esc(m.email)}" aria-label="Role for ${esc(m.email)}">${roleOpts("viewer")}</select><button class="pri" type="button" data-add="${esc(m.email)}">Add</button>${acts(m)}</div></div>`;
   $("list").innerHTML=`<article class="breed"><div class="bhead"><div><small>${team.length} ${team.length===1?"person":"people"}</small><h2>Team</h2></div></div>${team.map(row).join("")||'<div class="empty">Nobody yet.</div>'}</article>`+
     (others.length?`<article class="breed"><div class="bhead"><div><small>Signed up but not on the team</small><h2>Waiting for a role</h2></div></div>${others.map(other).join("")}</article>`:"");
 }
+async function reloadList(){const j=await mncfApi("team");draw(j.members)}
 async function run(action,data,msg,ctl){
   if(ctl)ctl.disabled=true;
-  try{const j=await mncfApi(action,data);draw(j.members);if(msg)mncfToast(msg);return true}
-  catch(e){mncfToast(e.message);draw();return false}
+  try{const j=await mncfApi(action,data);if(j.members)draw(j.members);if(msg)mncfToast(msg);return j}
+  catch(e){mncfToast(e.message);draw();return null}
   finally{if(ctl)ctl.disabled=false}
+}
+async function actAs(email,b){
+  if(!confirm(`Sign in as ${email}?\n\nYou'll use the site as them with full control: anything you change is saved as them. The red bar at the top brings you back to your own account.`))return;
+  if(b){b.disabled=true;b.textContent="Signing in…"}
+  try{const m=MEMBERS.find(x=>x.email===email);await mncfAccounts.actAs(email,m&&m.role==="owner"?"mydogs.html":"index.html")}
+  catch(e){mncfToast(e.message);if(b){b.disabled=false;b.textContent="Sign in as"}}
 }
 $("list").addEventListener("change",e=>{
   const s=e.target;if(!s.dataset.role)return;
-  run("setMember",{email:s.dataset.role,role:s.value},`${s.dataset.role} is now ${/^[aoe]/i.test(s.value)?"an":"a"} ${mncfRoleName(s.value)}`,s);
+  run("setMember",{email:s.dataset.role,role:s.value},`${s.dataset.role} is now ${an(s.value)} ${mncfRoleName(s.value)}`,s);
 });
 $("list").addEventListener("click",e=>{
   const b=e.target.closest("button");if(!b)return;
-  if(b.dataset.pvowner){mncfPreview.set(b.dataset.pvowner);location.href="mydogs.html";return}
-  if(b.dataset.remove){if(!confirm(`Take ${b.dataset.remove} off the team? Their login stays but they won't see anything.`))return;
-    run("removeMember",{email:b.dataset.remove},b.dataset.remove+" removed from the team",b)}
+  if(b.dataset.open){openAccount(b.dataset.open,true);return}
+  if(b.dataset.act){actAs(b.dataset.act,b);return}
   if(b.dataset.add){const s=b.parentNode.querySelector("[data-pick]");run("setMember",{email:b.dataset.add,role:s.value},`${b.dataset.add} added as ${mncfRoleName(s.value)}`,b)}
 });
 $("addForm").addEventListener("submit",async ev=>{
-  ev.preventDefault();$("nmErr").textContent="";
-  const email=$("nmEmail").value.trim().toLowerCase();
-  if(MEMBERS.some(m=>m.email===email&&m.role)){$("nmErr").textContent=email+" is already on the team. Change their role in the list.";return}
-  if(await run("setMember",{email,name:$("nmName").value.trim(),role:$("nmRole").value},`${email} added as ${mncfRoleName($("nmRole").value)}`,$("nmBtn")))ev.target.reset(),$("nmRole").value="steward";
+  ev.preventDefault();$("nmErr").textContent="";$("nmDone").hidden=true;
+  const email=$("nmEmail").value.trim().toLowerCase(),role=$("nmRole").value,pw=$("nmPw").value;
+  if(MEMBERS.some(m=>m.email===email&&m.has_login)){$("nmErr").textContent=email+" already has an account. Open it in the list to change it.";return}
+  $("nmBtn").disabled=true;
+  try{
+    const j=await mncfApi("createAccount",{email,name:$("nmName").value.trim(),role,password:pw});
+    $("nmDone").hidden=false;
+    $("nmDone").innerHTML=`<p><b>${esc(email)}</b> can sign in now as ${an(role)} ${esc(mncfRoleName(role))}.</p>`+(j.password?`<p class="note">Their password (shown once, give it to them):</p><div class="newpw">${esc(j.password)}</div>`:`<p class="note">They sign in with the password you typed.</p>`);
+    ev.target.reset();$("nmRole").value="owner";mncfToast("Account created");await reloadList();
+  }catch(e){$("nmErr").textContent=e.message}
+  finally{$("nmBtn").disabled=false}
 });
+
+// ---- one account: every detail, and full control ----
+let CUR=null;
+function showList(){$("acctView").hidden=true;$("listView").hidden=false;CUR=null}
+window.addEventListener("popstate",()=>{const u=mncfQuery("u");if(u)openAccount(u,false);else showList()});
+async function openAccount(email,push){
+  if(push)history.pushState(null,"","?u="+encodeURIComponent(email));
+  $("listView").hidden=true;const v=$("acctView");v.hidden=false;window.scrollTo(0,0);
+  v.innerHTML=`<button type="button" class="backlink" id="back">‹ All accounts</button><p class="loading">Loading ${esc(email)}…</p>`;
+  $("back").onclick=()=>history.length>1&&!push?history.back():(history.pushState(null,"","users.html"),showList());
+  try{CUR=await mncfApi("account",{email});drawAccount()}
+  catch(e){v.insertAdjacentHTML("beforeend",`<p class="err">${esc(e.message)}</p>`);v.querySelector(".loading").remove()}
+}
+function drawAccount(){
+  const j=CUR,L=j.login,M=j.member,email=(L&&L.email||M&&M.email||"").toLowerCase(),me=email===ME;
+  const name=(M&&M.name)||"",role=M?M.role:"";
+  const shows={};j.entries.forEach(e=>{(shows[e.show_id]=shows[e.show_id]||{name:e.show_name,list:[]}).list.push(e)});
+  const v=$("acctView");
+  v.innerHTML=`<button type="button" class="backlink" id="back">‹ All accounts</button>
+  <section class="panel"><div><h2 style="margin:0">${esc(name||email)}${me?' <span class="tag">You</span>':""}</h2><p class="note">${esc(email)} · ${esc(role?mncfRoleName(role):"Not on the team")}${L&&L.blocked?' · <span class="tag warn">Blocked from signing in</span>':""}</p></div>
+    ${!me&&L&&!L.blocked?`<div class="btns"><button class="pri" type="button" id="aAct">Sign in as ${esc(name||email)}</button></div><p class="note">Use the site as them with full control. The red bar at the top brings you back.</p>`:""}
+  </section>
+  <section class="panel"><h2>Details</h2>
+    <form id="aForm" class="form" autocomplete="off">
+      <div class="field"><label for="aName">Name</label><input type="text" id="aName" value="${esc(name)}"></div>
+      <div class="field"><label for="aEmail">Email</label><input type="email" id="aEmail" value="${esc(email)}"${me?" disabled title=\"Change your own email from your own login\"":""}></div>
+      <div class="field"><label for="aRole">Role</label><select id="aRole"${me?" disabled title=\"You can't change your own role\"":""}>${roleOpts(role,true)}</select></div>
+      ${L?`<div class="field"><label for="aPw">New password</label><input type="text" id="aPw" minlength="6" placeholder="Leave empty to keep it" autocomplete="new-password"></div>`:""}
+      <div class="field wide"><div class="btns"><button class="pri" type="submit" id="aSave">Save changes</button></div><p class="err" id="aErr"></p></div>
+    </form>
+  </section>
+  <section class="panel"><h2>Login</h2>
+    ${L?`<dl class="facts">
+      <dt>Created</dt><dd>${esc(dt(L.created_at))}</dd>
+      <dt>Last sign-in</dt><dd>${esc(L.last_sign_in_at?dt(L.last_sign_in_at):"Never")}</dd>
+      <dt>Email confirmed</dt><dd>${esc(L.confirmed_at?dt(L.confirmed_at):"No")}</dd>
+      <dt>Signs in with</dt><dd>${esc((L.providers||[]).join(", ")||"email")}</dd>
+      ${L.phone?`<dt>Phone</dt><dd>${esc(L.phone)}</dd>`:""}
+      ${M?`<dt>On the team since</dt><dd>${esc(day(M.added_at))}</dd>`:""}
+      <dt>Account id</dt><dd><small>${esc(L.id)}</small></dd></dl>
+      ${me?"":`<div class="btns"><button type="button" id="aBlock">${L.blocked?"Allow signing in again":"Block signing in"}</button></div>`}`
+    :`<p class="note">No login yet${M?", but they're on the team":""}. Make one so they can sign in.</p>
+      <form id="aMake" class="form" autocomplete="off"><div class="field"><label for="aMkPw">Password (optional)</label><input type="text" id="aMkPw" minlength="6" placeholder="Leave empty to make one up" autocomplete="new-password"></div>
+      <div class="field wide"><div class="btns"><button class="pri" type="submit">Make login</button></div><div id="aMkDone"></div></div></form>`}
+  </section>
+  <section class="panel"><h2>Dogs <span class="note">· ${j.dogs.length}</span></h2>
+    <div class="alist">${j.dogs.map(d=>`<a class="ar" href="dogs.html?dog=${encodeURIComponent(d.id)}"><span><b>${esc(d.name)}</b><small>${esc([d.breed,d.sex,d.dob].filter(Boolean).join(" · "))}</small></span><span aria-hidden="true">›</span></a>`).join("")||'<p class="note">No dogs linked to this email. Add it under Owner logins on a dog\'s page in Club dogs.</p>'}</div>
+  </section>
+  <section class="panel"><h2>Show entries <span class="note">· ${j.entries.length}</span></h2>
+    ${Object.values(shows).map(s=>`<div><h3 style="margin:6px 0 2px;font-size:15px">${esc(s.name)}</h3><div class="alist">${s.list.map(e=>`<div class="ar"><span><b>${esc(e.dog_name)}</b><small>${esc([e.class,e.ring_no?"Ring "+e.ring_no:"",e.absent?"Absent":""].filter(Boolean).join(" · "))}</small></span>${e.paid_at?`<span class="pill-s ok">Paid${e.paid_via?" "+esc(e.paid_via):""}</span>`:`<span class="pill-s due">Not paid</span>`}</div>`).join("")}</div></div>`).join("")||'<p class="note">No entries.</p>'}
+  </section>
+  <section class="panel"><h2>Card payments <span class="note">· ${j.payments.length}</span></h2>
+    <div class="alist">${j.payments.map(p=>`<div class="ar"><span><b>${euro(p.amount_cents)}</b> <small>${esc(dt(p.created_at))} · ${p.entry_ids.length} entr${p.entry_ids.length===1?"y":"ies"}${p.mode==="test"?" · test":""}${p.created_by&&p.created_by!==email?" · paid by "+esc(p.created_by):""}</small></span><span class="pill-s ${p.state==="completed"?"ok":p.state==="pending"||p.state==="creating"?"due":"bad"}">${esc(p.state)}</span></div>`).join("")||'<p class="note">No card payments.</p>'}</div>
+  </section>
+  ${me?"":`<section class="panel"><h2>Remove</h2><p class="note">Taking them off the team keeps the login but they can't see anything. Deleting removes the login for good; their dogs and entries stay.</p>
+    <div class="btns">${M?`<button class="danger" type="button" id="aOff">Take off the team</button>`:""}${L?`<button class="danger" type="button" id="aDel">Delete account</button>`:""}</div></section>`}`;
+  $("back").onclick=()=>{history.pushState(null,"","users.html");showList();reloadList().catch(()=>{})};
+  const act=$("aAct");if(act)act.onclick=()=>actAs(email,act);
+  $("aForm").addEventListener("submit",async ev=>{
+    ev.preventDefault();$("aErr").textContent="";
+    const d={email,name:$("aName").value.trim()};
+    if(!me){const r=$("aRole").value;if(r!==role)d.role=r;const ne=$("aEmail").value.trim().toLowerCase();if(ne&&ne!==email)d.new_email=ne}
+    const pw=$("aPw")&&$("aPw").value;if(pw)d.password=pw;
+    if(d.role===""&&!confirm(`Take ${email} off the team? Their login stays but they won't see anything.`))return;
+    if(d.new_email&&!confirm(`Change ${email} to ${d.new_email}? They'll sign in with the new email, and their dogs and payments move with them.`))return;
+    $("aSave").disabled=true;
+    try{CUR=await mncfApi("updateAccount",d);if(d.new_email)history.replaceState(null,"","?u="+encodeURIComponent(CUR.email));drawAccount();mncfToast(pw?"Saved. New password set.":"Saved")}
+    catch(e){$("aErr").textContent=e.message;$("aSave").disabled=false}
+  });
+  const blk=$("aBlock");if(blk)blk.onclick=async()=>{
+    if(!L.blocked&&!confirm(`Block ${email} from signing in? They're signed out within the hour.`))return;
+    blk.disabled=true;try{CUR=await mncfApi("updateAccount",{email,blocked:!L.blocked});drawAccount();mncfToast(L.blocked?"They can sign in again":"Blocked")}catch(e){mncfToast(e.message);blk.disabled=false}};
+  const mk=$("aMake");if(mk)mk.addEventListener("submit",async ev=>{
+    ev.preventDefault();const b=mk.querySelector("button");b.disabled=true;
+    try{const r=await mncfApi("createAccount",{email,name,role:role||"viewer",password:$("aMkPw").value});
+      CUR=await mncfApi("account",{email});drawAccount();
+      if(r.password)$("acctView").querySelector("section").insertAdjacentHTML("beforeend",`<p class="note">Login made. Their password (shown once, give it to them):</p><div class="newpw">${esc(r.password)}</div>`);mncfToast("Login made")}
+    catch(e){mncfToast(e.message);b.disabled=false}});
+  const off=$("aOff");if(off)off.onclick=async()=>{if(!confirm(`Take ${email} off the team? Their login stays but they won't see anything.`))return;
+    off.disabled=true;try{CUR=await mncfApi("updateAccount",{email,role:""});drawAccount();mncfToast("Taken off the team")}catch(e){mncfToast(e.message);off.disabled=false}};
+  const del=$("aDel");if(del)del.onclick=async()=>{if(!confirm(`Delete ${email} for good? They won't be able to sign in. Their dogs and entries stay.`))return;
+    del.disabled=true;try{await mncfApi("deleteAccount",{email});mncfToast(email+" deleted");history.pushState(null,"","users.html");showList();await reloadList()}catch(e){mncfToast(e.message);del.disabled=false}};
+}
+
 (async()=>{
   ME=(await mncfWho()).toLowerCase();
   const r=await mncfRole();
-  if(r!=="admin"){$("list").innerHTML=`<div class="empty">Only admins can see users and change roles.${r?` Your login is ${/^[ao]/.test(r)?"an":"a"} ${esc(mncfRoleName(r))}.`:""}</div>`;return}
+  if(r!=="admin"){$("list").innerHTML=`<div class="empty">Only admins can see users and change roles.${r?` Your login is ${an(r)} ${esc(mncfRoleName(r))}.`:""}</div>`;return}
   $("rolesPanel").hidden=false;$("addPanel").hidden=false;
-  try{const j=await mncfApi("team");draw(j.members)}
+  const u=mncfQuery("u");if(u)openAccount(u,false);
+  try{await reloadList()}
   catch(e){$("list").innerHTML=`<p class="err">${esc(e.message)}</p>`}
 })();
 </script>

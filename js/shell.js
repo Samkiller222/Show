@@ -121,6 +121,7 @@ body.ro-owner .tabs{grid-template-columns:repeat(2,1fr)}
 body.ro-owner select[data-breed]{pointer-events:none;appearance:none;-webkit-appearance:none;border-color:transparent;background:transparent}
 .drawer .role{display:inline-block;margin-left:6px;padding:2px 8px;border-radius:999px;background:var(--accent-soft);color:var(--fg);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
 .previewbar{margin:-12px calc(-1 * max(16px,env(safe-area-inset-left,0px))) 10px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 16px;background:#b45309;color:#fff;font-size:14px;font-weight:600}
+.previewbar.acting{background:#b91c1c}
 .previewbar button{flex:none;min-height:40px;padding:6px 14px;border-radius:8px;border:1.5px solid #fff;background:transparent;color:#fff;font:inherit;font-weight:700}
 .drawer .seg.four{grid-template-columns:repeat(3,1fr)}
 .drawer .seg.four button+button{border-left:1px solid var(--line)}
@@ -219,6 +220,14 @@ body.ro-owner select[data-breed]{pointer-events:none;appearance:none;-webkit-app
         header.appendChild(p)}
     }
     if(window.mncfRole)mncfRole().then(r=>applyRole(r,true));
+    // ---- an admin signed in as someone else (full control, from Users and roles) ----
+    const acting=window.mncfAccounts&&mncfAccounts.acting&&mncfAccounts.acting();
+    if(acting){
+      const bar=document.createElement("div");bar.className="previewbar acting";bar.setAttribute("role","status");
+      bar.innerHTML=`<span>You're signed in as ${esc(acting.as)} with full control. Anything you change is saved as them.</span><button type="button">Back to my account</button>`;
+      bar.querySelector("button").onclick=async e=>{e.target.disabled=true;e.target.textContent="Switching…";await mncfAccounts.endActAs()};
+      if(header)header.insertBefore(bar,header.firstChild);else document.body.insertBefore(bar,document.body.firstChild);
+    }
     // ---- admins: preview another role ----
     if(window.mncfRealRole)mncfRealRole().then(real=>{
       const pv=window.mncfPreview?mncfPreview.get():"";
