@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="mncf-version" content="2026-11-08a">
+<meta name="mncf-version" content="2026-11-08b">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>MNCF My Dogs</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<link rel="stylesheet" href="css/style.css?v=2026-11-08a">
+<link rel="stylesheet" href="css/style.css?v=2026-11-08b">
 <style>
 .dhead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
 .dgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
@@ -31,8 +31,8 @@
   </header>
   <!-- admins: pick an owner to see this page as them -->
   <section class="panel" id="adminPanel" hidden>
-    <h2>See this page as an owner</h2>
-    <p class="note">This is the page owners land on. Pick someone to preview exactly what they see. Only this browser tab changes, and the orange bar at the top takes you back.</p>
+    <h2>Sign in as an owner</h2>
+    <p class="note">This is the page owners land on. Pick someone to use the site as them with full control: enter their dogs, change details and pay for them. The red bar at the top brings you back to your own account.</p>
     <div class="pickh" id="owners"><p class="loading">Loading owners…</p></div>
   </section>
   <div id="main" style="display:flex;flex-direction:column;gap:12px" hidden>
@@ -42,8 +42,8 @@
 </div>
 <div class="toast" id="toast"></div>
 <script src="vendor/supabase.min.js"></script>
-<script src="js/api.js?v=2026-11-08a"></script>
-<script src="js/shell.js?v=2026-11-08a"></script>
+<script src="js/api.js?v=2026-11-08b"></script>
+<script src="js/shell.js?v=2026-11-08b"></script>
 <script>
 mncfShell({page:"mydogs",title:"My dogs",kicker:"Owners"});
 const esc=mncfEsc,$=id=>document.getElementById(id);
@@ -59,13 +59,15 @@ function draw(j){
   const own=role==="owner";
   // back from Stripe: the payment is checked on the per-show page
   const pid=mncfQuery("payment");if(pid&&own){location.replace("myshows.html?payment="+encodeURIComponent(pid));return}
-  // an admin (not previewing): choose which owner to see the page as
+  // an admin (not previewing): choose which owner to sign in as
   if(real==="admin"&&!own){
     $("adminPanel").hidden=false;$("sub").textContent="The home page for owners.";
     try{const t=await mncfApi("team");const hs=t.members.filter(m=>m.role==="owner");
       $("owners").innerHTML=hs.map(h=>`<button type="button" data-h="${esc(h.role+":"+h.email)}"><span><b>${esc(h.name||h.email)}</b> <small>${esc(mncfRoleName(h.role))}</small><br><small>${esc(h.email)} · ${h.dogs||0} dog${h.dogs===1?"":"s"}</small></span><span aria-hidden="true">›</span></button>`).join("")
         ||'<p class="note">No owners yet. Give someone the Owner role on <a href="users.html">Users and roles</a>.</p>';
-      $("owners").querySelectorAll("[data-h]").forEach(b=>b.onclick=()=>{mncfPreview.set(b.dataset.h);location.reload()});
+      $("owners").querySelectorAll("[data-h]").forEach(b=>b.onclick=async()=>{const email=b.dataset.h.replace(/^owner:/,"");
+        if(!confirm(`Sign in as ${email}? Anything you change is saved as them.`))return;b.disabled=true;
+        try{await mncfAccounts.actAs(email,"mydogs.html")}catch(e){b.disabled=false;mncfToast(e.message)}});
     }catch(e){$("owners").innerHTML=`<p class="err">${esc(e.message)}</p>`}
     return;
   }

@@ -63,7 +63,7 @@
   // Everything this phone remembers about the current login (role, admin preview, saved lists).
   function resetLocal(){try{localStorage.removeItem("mncf-role");sessionStorage.removeItem("mncf-preview-role");clearCache()}catch(e){}}
   async function signedIn(){const {data}=await sb.auth.getSession();if(!data.session)await askLogin();}
-  window.mncfSignOut=async()=>{resetLocal();await sb.auth.signOut();location.reload()};
+  window.mncfSignOut=async()=>{if(window.mncfAccounts&&mncfAccounts.acting())return mncfAccounts.endActAs();resetLocal();await sb.auth.signOut();location.reload()};
 
   // ---- saved accounts: switch between logins on this phone without typing the password again ----
   // Each login that signs in here is remembered (email, role, its latest tokens) under "mncf-accounts".
@@ -118,6 +118,39 @@
       try{const t=tmpClient();const {error}=await t.auth.setSession({access_token:a.access_token,refresh_token:a.refresh_token});if(!error)await t.auth.signOut({scope:"local"})}catch(e){}
     }
   };
+  // ---- admins: use the site as another account, with full control ----
+  // The admin edge function hands back a one-time sign-in token for that account (the service key stays on the server).
+  // The admin's own login stays saved on this phone, and "Back to my account" swaps back to it.
+  const ACTING="mncf-acting";
+  const readActing=()=>{try{const a=JSON.parse(localStorage.getItem(ACTING)||"null");return a&&a.admin&&a.as?a:null}catch(e){return null}};
+  Object.assign(window.mncfAccounts,{
+    // {admin, as} while an admin is signed in as someone else on this phone
+    acting(){const a=readActing();return a&&(!curEmail||curEmail===a.as)?a:null},
+    async actAs(email,go){
+      email=String(email||"").toLowerCase();
+      const {data:cur}=await sb.auth.getSession();if(!cur.session)throw new Error("Sign in first.");
+      const me=String(cur.session.user.email||"").toLowerCase();
+      const j=await adminFn({action:"act",email});
+      remember(cur.session); // the admin's own login, to come back to
+      const was=readActing();
+      const {error}=await sb.auth.verifyOtp({token_hash:j.token_hash,type:"magiclink"});
+      if(error)throw new Error("Couldn't sign in as "+email+": "+error.message);
+      try{localStorage.setItem(ACTING,JSON.stringify({admin:was?was.admin:me,as:email}))}catch(e){}
+      resetLocal();location.href=go||"index.html";
+    },
+    // back to the admin: sign the other account out on this phone and restore the admin's saved login
+    async endActAs(go){
+      const a=readActing();try{localStorage.removeItem(ACTING)}catch(e){}
+      if(!a)return location.reload();
+      const saved=readAccts().find(x=>x.email===a.admin);
+      let tok=null;
+      if(saved){const t=tmpClient();const {data,error}=await t.auth.setSession({access_token:saved.access_token,refresh_token:saved.refresh_token});if(!error&&data.session)tok=data.session}
+      try{await sb.auth.signOut({scope:"local"})}catch(e){} // also forgets the other account's saved copy
+      resetLocal();
+      if(tok){await sb.auth.setSession({access_token:tok.access_token,refresh_token:tok.refresh_token});location.href=go||"users.html"}
+      else{forget(a.admin);location.href="index.html"} // the admin's saved login expired: sign in again
+    }
+  });
   const saveRole=r=>{if(!curEmail||r==null)return;const a=readAccts(),x=a.find(y=>y.email===curEmail);if(x&&x.role!==r){x.role=r;writeAccts(a)}};
 
   // ---- roles: admin, organiser, steward (awards only), viewer (read only), owner (own dogs only) ----
@@ -155,7 +188,7 @@
     if(r==="owner"&&OWNER_ACTIONS.includes(action)) return "";
     if(EDIT_ACTIONS.includes(action)&&!canEdit(r)) return `Your login is ${r?"a "+ROLE_NAMES[r]:"not on the team"}, so it can't change shows, entries, dogs or breeds. Ask an admin to change your role.`;
     if(action==="syncState"&&(data.changes||[]).length&&!canAward(r)) return `Your login is ${r?"a "+ROLE_NAMES[r]:"not on the team"}, so it can't record awards. Ask an admin to change your role.`;
-    if(["team","setMember","removeMember"].includes(action)&&r!=="admin") return "Only admins can see and change users.";
+    if(["team","setMember","removeMember","account","createAccount","updateAccount","deleteAccount"].includes(action)&&r!=="admin") return "Only admins can see and change users.";
     return "";
   }
   window.mncfWho=async()=>{const {data}=await sb.auth.getSession();return data.session?data.session.user.email:""};
@@ -277,6 +310,11 @@
     async team(){const {data,error}=await sb.rpc("team_list");if(error)fail(error);return {ok:true,members:data||[]}},
     async setMember(d){const {error}=await sb.rpc("set_team_member",{p_email:d.email,p_role:d.role,p_name:d.name==null?null:d.name});if(error)fail(error);return actions.team()},
     async removeMember(d){const {error}=await sb.rpc("remove_team_member",{p_email:d.email});if(error)fail(error);return actions.team()},
+    // full account control (edge function "admin"): every detail, make a login, change name/email/password/role, block, delete
+    async account(d){return adminFn({action:"details",email:d.email})},
+    async createAccount(d){return adminFn({action:"create",email:d.email,name:d.name||"",role:d.role,password:d.password||""})},
+    async updateAccount(d){return adminFn(Object.assign({action:"update"},d))},
+    async deleteAccount(d){return adminFn({action:"delete",email:d.email})},
     // ---- entry fees and card payments (Stripe Checkout) (payments.html, edge function "payments") ----
     async setFee(d){
       const c=d.cents==null||d.cents===""?null:Math.round(Number(d.cents));if(c!==null&&!(c>=0))fail({message:"Type the fee in euro, like 15 or 12.50."});
@@ -306,6 +344,14 @@
     if(error){let msg=error.message;try{const j=await error.context.json();msg=j.error||j.msg||msg}catch(e){}
       if(/Failed to send|not found|404/i.test(msg))msg="Card payments aren't set up yet (the payments function isn't deployed in Supabase).";fail({message:msg})}
     if(!data||!data.ok)fail({message:(data&&data.error)||"The payment couldn't be started."});
+    return data;
+  }
+
+  async function adminFn(body){
+    const {data,error}=await sb.functions.invoke("admin",{body});
+    if(error){let msg=error.message;try{const j=await error.context.json();msg=j.error||j.msg||msg}catch(e){}
+      if(/Failed to send|not found|404/i.test(msg))msg="Account control isn't switched on yet (the admin function isn't deployed in Supabase).";fail({message:msg})}
+    if(!data||!data.ok)fail({message:(data&&data.error)||"That didn't work. Try again."});
     return data;
   }
 

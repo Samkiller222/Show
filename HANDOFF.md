@@ -1,6 +1,6 @@
 # Handoff: MNCF dog show awards organiser
 
-Notes for picking this project up in a new chat. Last updated 6 November 2026 (handler role removed, owners stay; entry fee payments by card through Stripe, paid out to Revolut).
+Notes for picking this project up in a new chat. Last updated 8 November 2026 (full account control for admins; before that: handler role removed, owners stay; entry fee payments by card through Stripe, paid out to Revolut).
 
 ## What it is
 
@@ -61,7 +61,7 @@ Sam asked to organise the repo instead of one long list of files. The live pages
 | `dogs.html` | **Club dogs** (Manage section of the drawer): every dog in the `dogs` table, A to Z, with search and a breed filter, and "+ Add dog". `?dog=<id>` opens one dog: breed, sex, date of birth, breeder, sire, dam, owner, phone, address, then every show it was entered in with its classes and the results recorded for it. "Edit details" changes any field. `&add=1` on the list opens the add form. |
 | `myshows.html` | **Shows and payments** for owners (drawer, and the big link on My dogs): pick a show (chips show "€x to pay" or "All paid"), then see that show's entered dogs split into Not paid / Paid, with Pay by card and Change. `?s=<show id or name>`. Stripe still returns owners to `mydogs.html?payment=`, which forwards here (so the payments function didn't need redeploying). `mydogs.html` now only lists the owner's registered dogs (8 Nov 2026). |
 | `payments.html` | **Entry fees and payments** (`?show=`, drawer "Entry fees and payments", or "Payments" on Entries): fee per entry, totals, entries grouped by owner with Pay by card (Stripe Checkout), Paid in cash, and the list of card payments. |
-| `users.html` | **Users and roles** (Manage section of the drawer, admins only): the team with a role picker per person, Remove, an "Add someone to the team" form, and logins that signed up but aren't on the team yet. |
+| `users.html` | **Users and roles** (Manage section of the drawer, admins only): Create an account (login + role in one go), the team with a role picker, Open and Sign in as per person, logins waiting for a role. `users.html?u=<email>` is one account: every detail (login, dogs, entries, card payments), change name, email, role and password, block signing in, take off the team, delete, Sign in as them. |
 | `breeds.html` | Add breeds (a group is required) and change a breed's group |
 | `import.html` | Hidden. Claude API file import. |
 | `legacy/` `saturday.html`, `sunday-morning.html`, `sunday-evening.html`, `absent.html`, `best-in-show.html`, `nov-2026.html` | The first version, hard-coded for the November 2026 show. Kept as a fallback. |
@@ -258,6 +258,13 @@ Sam asked for an account quick switcher. Every page now has a round button with 
 - After "Sign out" the sign-in screen lists the remaining saved logins for one-tap sign-in. Add account has a Cancel that keeps the current login.
 - This is different from the admin "Preview the site as" (which only changes what an admin's screens show): switching is a real sign-in as the other person, so the database answers as them.
 
+## Full account control for admins (8 Nov 2026)
+
+Sam: *"owners have full control of accounts: create accounts, change privileges, account names and see every detail about accounts, not a preview"* (owners here means the site owner, i.e. admins). Built on Users and roles:
+- **Edge function `admin`** (`supabase/functions/admin/index.ts`, deploy with JWT verification on). Uses the service key server-side only; every call checks the caller is an admin in `team_members`. Actions: `details` (auth login facts, team row, dogs by `owner_emails`, their entries, their card payments), `create` (confirmed login + role; no password given = one made up and returned once), `update` (name, role or "" to take off the team, password, `blocked` via ban, `new_email` which also moves `team_members`, `dogs.owner_emails` and `payments.created_by`), `delete` (auth login + team row; dogs stay), `act` (magic-link `hashed_token`, no email sent). Same rules as the SQL functions: no changing your own role/email, no blocking/deleting/acting as yourself, the club keeps one admin. No database migration.
+- **Sign in as** (`mncfAccounts.actAs(email, page)` in `api.js`): saves the admin's own login in the account switcher, exchanges the token with `verifyOtp`, and sets localStorage `mncf-acting` = {admin, as}. Every page then shows a red bar "You're signed in as … with full control" with **Back to my account** (`endActAs`), which signs the other account out on this phone (it doesn't stay in the switcher) and restores the admin. Sign out while acting does the same. The database really answers as that person, so it's not a preview. It updates their "last signed in".
+- The owner pick list on the Owners' page (`mydogs.html`) now signs in as the owner instead of previewing. The drawer's "Preview the site as" role preview is unchanged (for seeing a role's screens without a person).
+
 ## Clearer payment screens (6 Nov 2026)
 
 Sam asked to make the site friendlier and highlight what matters on the payment screens. Colours: green = paid, amber = due or waiting, red = problem (shared `.callout` and `.pill-s` classes and `--due` colours in `css/style.css`).
@@ -276,6 +283,7 @@ None yet.
 3. Payments: redeploy the `payments` function after the audit PR, and run `20261105_audit_fixes.sql`.
 4. Payments: Stripe account with the Revolut IBAN for payouts, apply `20261105_payments.sql`, deploy the `payments` function, add `STRIPE_SECRET_KEY` and the webhook (steps in `supabase/README.md`).
 5. Handler role removal: redeploy the `payments` function first, then run `20261106_remove_handler_role.sql`.
+6. Full account control: deploy the `admin` edge function (`supabase/functions/admin/index.ts`, JWT verification on).
 
 ## How to work on it
 

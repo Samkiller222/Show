@@ -5,7 +5,9 @@
 - Functions called by the site: `save_entry`, `import_entries`, `sync_state`.
 - Edge function `extract` (this folder) reads uploaded catalogues with Claude Sonnet 5.5. It needs the secret `ANTHROPIC_API_KEY`.
 
-To add a team member: create their user in Authentication > Users, then give them a role on the site's Users and roles page (admins only).
+Edge function `admin` (this folder) gives admins full account control on the Users and roles page: create logins, change name, email, role and password, block, delete, see every detail, and sign in as someone. Deploy it with JWT verification on: `supabase functions deploy admin`. It uses the built-in service key; no secrets to add.
+
+To add a team member: Users and roles > Create an account (with the `admin` function deployed), or create the user in Authentication > Users and give them a role on the Users and roles page.
 
 ## Entry fee payments (Stripe, paid out to Revolut)
 
