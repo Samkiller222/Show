@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="mncf-version" content="2026-11-17m">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MNCF Owner Memberships</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<link rel="stylesheet" href="css/style.css?v=2026-11-17m">
+<style>
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chips button{font-size:14px;font-weight:600;padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:var(--bg);color:var(--fg);min-height:40px}
+.chips button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--card)}
+.chips .n{opacity:.7;font-weight:500;margin-left:4px}
+.mrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 12px;align-items:center;padding:12px 14px;border-top:1px solid var(--line)}
+.mrow:first-of-type{border-top:0}
+.mrow b{display:block;overflow-wrap:anywhere}
+.mrow small{display:block;color:var(--muted);font-size:12px;overflow-wrap:anywhere}
+.mrow .macts{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.mrow .mnote{font-style:italic}
+.mform{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+.mform .field{display:flex;flex-direction:column;gap:4px}
+.mform .wide{grid-column:1/-1}
+.mform .quick{display:flex;gap:6px;flex-wrap:wrap}
+.mform .quick button{min-height:36px;padding:4px 12px;font-size:13px}
+@media (max-width:520px){.mrow{grid-template-columns:1fr}.mrow .macts{justify-content:flex-start}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="sub" id="sub">Each owner's club membership: active, pending or expired, and until when. Owners see their own status in their menu. Admins and organisers can change it here.</div>
+  </header>
+  <div id="main" style="display:flex;flex-direction:column;gap:12px">
+    <section class="panel" id="tools" hidden>
+      <div class="find"><input type="text" id="q" placeholder="Search owners by name or email" autocomplete="off"></div>
+      <div class="chips" id="chips" role="group" aria-label="Show owners"></div>
+    </section>
+    <article class="breed" id="listBox"><div id="list"><p class="loading" style="padding:12px 14px">Loading owners…</p></div></article>
+    <section class="panel" id="help" hidden>
+      <h2>What the statuses mean</h2>
+      <ul class="note" style="margin:0;padding-left:18px">
+        <li><b>Active</b>: a paid-up member. With a "member until" date, it turns to Expired by itself the day after.</li>
+        <li><b>Pending</b>: waiting to join or renew. New owner accounts start here.</li>
+        <li><b>Expired</b>: the membership has lapsed.</li>
+      </ul>
+      <p class="note">The status is for the club's records and to let owners know where they stand. It doesn't stop anyone entering dogs or paying.</p>
+    </section>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<script src="vendor/supabase.min.js"></script>
+<script src="js/api.js?v=2026-11-17m"></script>
+<script src="js/shell.js?v=2026-11-17m"></script>
+<script>
+mncfShell({page:"memberships",title:"Owner memberships",kicker:"Manage"});
+const esc=mncfEsc,$=id=>document.getElementById(id);
+const NAMES={active:"Active",pending:"Pending",expired:"Expired"},PILL={active:"ok",pending:"due",expired:"bad"};
+const FILTERS=[["all","All"],["active","Active"],["soon","Ends within 30 days"],["pending","Pending"],["expired","Expired"]];
+let OWNERS=[],filter="all",OPEN="";
+try{filter=localStorage.getItem("mncf-member-filter")||"all"}catch(e){}
+const day=t=>t?new Date(t+(String(t).length===10?"T12:00:00":"")).toLocaleDateString([],{day:"numeric",month:"short",year:"numeric"}):"";
+const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+const today=iso(new Date());
+const soon=o=>o.status==="active"&&o.expires&&o.expires>=today&&(new Date(o.expires+"T12:00:00")-new Date())/864e5<=30;
+const match=(o,f)=>f==="all"||(f==="soon"?soon(o):o.status===f);
+function draw(){
+  $("chips").innerHTML=FILTERS.map(([k,l])=>`<button type="button" data-f="${k}" aria-pressed="${k===filter}">${l}<span class="n">${OWNERS.filter(o=>match(o,k)).length}</span></button>`).join("");
+  const t=$("q").value.trim().toLowerCase();
+  const list=OWNERS.filter(o=>match(o,filter)&&(!t||(o.name+" "+o.email).toLowerCase().includes(t)));
+  $("list").innerHTML=list.map(row).join("")||`<div class="empty">${OWNERS.length?"No owners match. Try another search or filter.":'No owner accounts yet. Give someone the Owner role on Users and roles.'}</div>`;
+}
+function row(o){
+  const s=o.status,until=o.expires?(s==="expired"&&o.saved==="active"?"Ended "+day(o.expires):(s==="active"?"Until ":"Was until ")+day(o.expires)):(s==="active"?"No end date":"");
+  const sub=[o.name&&o.email,`${o.dogs} dog${o.dogs===1?"":"s"}`,o.has_login?"":"No login yet"].filter(Boolean).join(" · ");
+  const changed=o.updated_at?`Changed ${day(o.updated_at.slice(0,10))}${o.updated_by?" by "+o.updated_by:""}`:"";
+  return `<div class="mrow" data-email="${esc(o.email)}"><div><b>${esc(o.name||o.email)}</b><small>${esc(sub)}</small>${o.note?`<small class="mnote">${esc(o.note)}</small>`:""}${changed?`<small>${esc(changed)}</small>`:""}</div>
+    <div class="macts"><span><span class="pill-s ${PILL[s]||""}">${esc(NAMES[s]||s)}</span>${until?`<small style="text-align:right">${esc(until)}</small>`:""}</span><button type="button" data-edit="${esc(o.email)}">${OPEN===o.email?"Close":"Change"}</button></div>
+    ${OPEN===o.email?form(o):""}</div>`;
+}
+function form(o){
+  const y=new Date().getFullYear();
+  return `<form class="mform" data-form="${esc(o.email)}" autocomplete="off">
+    <div class="field"><label for="mS">Status</label><select id="mS">${Object.keys(NAMES).map(k=>`<option value="${k}"${k===o.saved?" selected":""}>${NAMES[k]}</option>`).join("")}</select></div>
+    <div class="field"><label for="mE">Member until (optional)</label><input type="date" id="mE" value="${esc(o.expires||"")}"></div>
+    <div class="field wide"><span class="note" style="font-size:12px">Quick set</span><div class="quick">
+      <button type="button" data-q="active:${y}-12-31">Active to 31 Dec ${y}</button><button type="button" data-q="active:${y+1}-12-31">Active to 31 Dec ${y+1}</button><button type="button" data-q="pending:">Pending</button><button type="button" data-q="expired:keep">Expired</button></div></div>
+    <div class="field wide"><label for="mN">Note (optional, only admins and organisers see it)</label><input type="text" id="mN" maxlength="300" value="${esc(o.note||"")}" placeholder="For example: paid €25 cash at the November show"></div>
+    <div class="field wide"><div class="btns"><button class="pri" type="submit">Save</button><button type="button" data-edit="${esc(o.email)}">Cancel</button></div><p class="err" id="mErr"></p></div>
+  </form>`;
+}
+$("chips").addEventListener("click",e=>{const b=e.target.closest("[data-f]");if(!b)return;filter=b.dataset.f;try{localStorage.setItem("mncf-member-filter",filter)}catch(x){}draw()});
+$("q").addEventListener("input",draw);
+$("list").addEventListener("click",e=>{
+  const b=e.target.closest("button");if(!b)return;
+  if(b.dataset.edit){OPEN=OPEN===b.dataset.edit?"":b.dataset.edit;draw();const s=document.getElementById("mS");if(s)s.focus();return}
+  if(b.dataset.q){const [st,dt]=b.dataset.q.split(":");$("mS").value=st;if(dt!=="keep")$("mE").value=dt}
+});
+$("list").addEventListener("submit",async ev=>{
+  ev.preventDefault();const f=ev.target,email=f.dataset.form,btn=f.querySelector("button[type=submit]");
+  const status=$("mS").value,expires=$("mE").value||null,note=$("mN").value.trim();
+  btn.disabled=true;$("mErr").textContent="";
+  try{const j=await mncfApi("setMembership",{email,status,expires,note});OWNERS=j.owners;OPEN="";draw();
+    const o=OWNERS.find(x=>x.email===email);mncfToast(`${o&&o.name||email}: ${NAMES[o?o.status:status]}`)}
+  catch(e){$("mErr").textContent=e.message;btn.disabled=false}
+});
+(async()=>{
+  const r=await mncfRole();
+  if(r!=="admin"&&r!=="organiser"){$("list").innerHTML=`<div class="empty">Only admins and organisers can see and change owner memberships.${r==="owner"?' Your own membership is shown in the menu.':""}</div>`;return}
+  $("tools").hidden=false;$("help").hidden=false;
+  try{OWNERS=(await mncfApi("memberships")).owners;draw()}
+  catch(e){$("list").innerHTML=`<p class="err" style="padding:12px 14px">${esc(/owner_memberships|function/i.test(e.message)?"The membership update hasn't been added to the database yet. Ask an admin to run it.":e.message)}</p>`}
+})();
+</script>
+</body>
+</html>

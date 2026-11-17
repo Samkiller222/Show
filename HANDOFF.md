@@ -1,6 +1,6 @@
 # Handoff: MNCF dog show awards organiser
 
-Notes for picking this project up in a new chat. Last updated 8 November 2026 (full account control for admins; before that: handler role removed, owners stay; entry fee payments by card through Stripe, paid out to Revolut).
+Notes for picking this project up in a new chat. Last updated 17 November 2026 (owner membership status; before that: full account control for admins; before that: handler role removed, owners stay; entry fee payments by card through Stripe, paid out to Revolut).
 
 ## What it is
 
@@ -62,6 +62,7 @@ Sam asked to organise the repo instead of one long list of files. The live pages
 | `myshows.html` | **Shows and payments** for owners (drawer, and the big link on My dogs): pick a show (chips show "€x to pay" or "All paid"), then see that show's entered dogs split into Not paid / Paid, with Pay by card and Change. `?s=<show id or name>`. Stripe still returns owners to `mydogs.html?payment=`, which forwards here (so the payments function didn't need redeploying). `mydogs.html` now only lists the owner's registered dogs (8 Nov 2026). |
 | `payments.html` | **Entry fees and payments** (`?show=`, drawer "Entry fees and payments", or "Payments" on Entries): fee per entry, totals, entries grouped by owner with Pay by card (Stripe Checkout), Paid in cash, and the list of card payments. |
 | `users.html` | **Users and roles** (Manage section of the drawer, admins only): Create an account (login + role in one go), the team with a role picker, Open and Sign in as per person, logins waiting for a role. `users.html?u=<email>` is one account: every detail (login, dogs, entries, card payments), change name, email, role and password, block signing in, take off the team, delete, Sign in as them. |
+| `memberships.html` | **Owner memberships** (Manage section of the drawer, admins and organisers): every owner with their membership status (Active, Pending, Expired), "member until" date and a private note; search, filter chips (incl. "Ends within 30 days"), Change per owner with quick-set buttons. |
 | `breeds.html` | Add breeds (a group is required) and change a breed's group |
 | `import.html` | Hidden. Claude API file import. |
 | `legacy/` `saturday.html`, `sunday-morning.html`, `sunday-evening.html`, `absent.html`, `best-in-show.html`, `nov-2026.html` | The first version, hard-coded for the November 2026 show. Kept as a fallback. |
@@ -293,3 +294,9 @@ None yet.
 - **Commit identity:** `Sam Micallef <sammicallef12@gmail.com>`.
 - **Testing:** use Playwright at phone size (390×844) and replace `api.js` with a fake that returns sample entries, so no sign-in is needed. Test SQL inside a transaction that is rolled back, using `set local role authenticated` and the JWT claims.
 - **Styling:** keep the existing look. Touch targets are at least 46px, and `style.css` uses CSS variables.
+
+## Owner membership status (17 Nov 2026)
+
+Sam: *"Add a membership status for all owners"* and *"an interface for admins and organisers to update owner membership status"*.
+- **Migration `20261117_membership_status.sql`**: `team_members.membership` (`active`/`pending`/`expired`; existing rows became active, new rows default pending), `membership_expires date`, `membership_note`, `membership_updated_at/by`. `private.membership_now()` reads an active membership past its end date (Malta time) as expired. RPCs: `my_membership()` (the signed-in owner's status, no note), `owner_memberships()` and `set_membership(email,status,expires,note)` (admins and organisers via `can_edit()`, owner logins only). `team_list()` gains `membership`, `membership_expires`. No edge function redeploy.
+- **Site**: `memberships.html`; drawer link "Owner memberships" for admins and organisers; owners see "Club membership: Active until …" under the page header and in the drawer (`shell.js`); Users and roles shows the status on owner rows and the account page. Information only: it does not block entries or payments. If the migration isn't run, owners see nothing and the page says it isn't in the database yet.
