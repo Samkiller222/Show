@@ -113,7 +113,7 @@ body.ro-edit .tabs{grid-template-columns:repeat(3,1fr)}
 body.ro-edit select[data-breed]{pointer-events:none;appearance:none;-webkit-appearance:none;border-color:transparent;background:transparent}
 body.ro-award [data-k],body.ro-award [data-g]{pointer-events:none;opacity:.75}
 /* owners: their own dogs and entries only, no show setup, awards or results */
-body.ro-owner #editShowBtn,body.ro-owner #drawerEdit,body.ro-owner #newBtn,body.ro-owner #breedForm,body.ro-owner #saveBar,body.ro-owner #catLink,
+body.ro-owner #editShowBtn,body.ro-owner #addBtn,body.ro-owner #drawerEdit,body.ro-owner #newBtn,body.ro-owner #breedForm,body.ro-owner #saveBar,body.ro-owner #catLink,
 body.ro-owner .tabs a[data-tab="awards"],body.ro-owner .tabs a[data-tab="results"],body.ro-owner a[href^="awards.html"],
 body.ro-owner .drawer a[href^="schedule.html"],body.ro-owner .drawer a[href^="catalogue.html"],body.ro-owner a[href^="payments.html"],body.ro-owner .drawer a[href="breeds.html"],
 body.ro-owner .drawer a[href="index.html"],body.ro-owner .erow .acts .given,body.ro-owner .field:has(#fRing),body.ro-owner .needs-edit,body.ro-owner .organiser-only{display:none!important}
