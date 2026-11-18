@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="mncf-version" content="2026-11-08b">
+<meta name="mncf-version" content="2026-11-18a">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>MNCF Users and Roles</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<link rel="stylesheet" href="css/style.css?v=2026-11-08b">
+<link rel="stylesheet" href="css/style.css?v=2026-11-18a">
 <style>
 .urow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 12px;align-items:center;padding:10px 14px;border-top:1px solid var(--line)}
 .urow b{display:block;overflow-wrap:anywhere}
@@ -28,6 +28,7 @@
 .alist a.ar{color:inherit;text-decoration:none}
 .newpw{font-family:ui-monospace,Menlo,monospace;font-size:18px;font-weight:700;letter-spacing:.05em;background:var(--bg);border:1px dashed var(--accent);border-radius:8px;padding:8px 12px;user-select:all;overflow-wrap:anywhere}
 .backlink{align-self:flex-start}
+small.ms{display:flex!important;align-items:center;gap:6px;flex-wrap:wrap;margin-top:3px}
 @media (max-width:520px){.urow{grid-template-columns:1fr}.urow .uacts{justify-content:flex-start;flex-wrap:wrap}.urow .uacts select{flex:1 1 100%;min-width:0}}
 </style>
 </head>
@@ -57,7 +58,7 @@
       <li><b>Organiser</b> Everything except users: shows, entries, dogs, breeds, judging days and awards. <button type="button" class="pv" data-preview="organiser">Preview</button></li>
       <li><b>Steward</b> Records awards. Can see everything else but not change it. <button type="button" class="pv" data-preview="steward">Preview</button></li>
       <li><b>Viewer</b> Looks only. Can't change anything. <button type="button" class="pv" data-preview="viewer">Preview</button></li>
-      <li><b>Owner</b> Sees only the dogs linked to their email (set under Owner logins on each dog's page in Club dogs), enters them into Open shows, and sees and pays what their entries cost.</li>
+      <li><b>Owner</b> Sees only the dogs linked to their email (set under Owner logins on each dog's page in Club dogs), enters them into Open shows, and sees and pays what their entries cost. Each owner has a club membership status, kept on <a href="memberships.html">Owner memberships</a>.</li>
     </ul>
     <p class="note">Preview shows the screens a role gets without signing in as anyone. To act for a real person, open their account and use Sign in as them.</p>
   </section>
@@ -66,8 +67,8 @@
 </div>
 <div class="toast" id="toast"></div>
 <script src="vendor/supabase.min.js"></script>
-<script src="js/api.js?v=2026-11-08b"></script>
-<script src="js/shell.js?v=2026-11-08b"></script>
+<script src="js/api.js?v=2026-11-18a"></script>
+<script src="js/shell.js?v=2026-11-18a"></script>
 <script>
 mncfShell({page:"users",title:"Users and roles",kicker:"Manage"});
 const esc=mncfEsc,$=id=>document.getElementById(id);
@@ -80,6 +81,11 @@ $("nmRole").innerHTML=roleOpts("owner");
 const day=t=>t?new Date(t).toLocaleDateString([],{day:"numeric",month:"short",year:"numeric"}):"";
 const dt=t=>t?new Date(t).toLocaleString([],{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"}):"";
 const when=t=>t?"Last signed in "+day(t):"Hasn't signed in yet";
+// owner membership (memberships.html changes it)
+const MS={active:["Active","ok"],pending:["Pending","due"],expired:["Expired","bad"]};
+const msNow=(st,ex)=>st==="active"&&ex&&ex<new Date().toISOString().slice(0,10)?"expired":st;
+const mship=(st,ex)=>{if(!st||!MS[st])return "";const d=ex?new Date(ex+"T12:00:00").toLocaleDateString([],{day:"numeric",month:"short",year:"numeric"}):"";
+  return `<small class="ms">Membership <span class="pill-s ${MS[st][1]}">${MS[st][0]}</span>${d?esc((st==="active"?" until ":" · ended ")+d):""}</small>`};
 const euro=c=>"€"+(c/100).toFixed(2).replace(/\.00$/,"");
 
 // ---- the list ----
@@ -90,7 +96,7 @@ function draw(list){
   const row=m=>{
     const me=m.email===ME;
     const sub=[m.name&&m.email,m.role==="owner"?(m.dogs?`Owns ${m.dogs} dog${m.dogs===1?"":"s"}`:"No dogs linked yet"):"",m.has_login?when(m.last_sign_in):"No login yet: open to make one"].filter(Boolean);
-    return `<div class="urow"><div><b>${esc(m.name||m.email)}${me?' <span class="you">You</span>':""}</b>${sub.map(s=>`<small>${esc(s)}</small>`).join("")}</div>
+    return `<div class="urow"><div><b>${esc(m.name||m.email)}${me?' <span class="you">You</span>':""}</b>${sub.map(s=>`<small>${esc(s)}</small>`).join("")}${mship(m.membership,m.membership_expires)}</div>
       <div class="uacts"><select data-role="${esc(m.email)}" aria-label="Role for ${esc(m.email)}"${me?" disabled title=\"You can't change your own role\"":""}>${roleOpts(m.role)}</select>${acts(m)}</div></div>`};
   const other=m=>`<div class="urow"><div><b>${esc(m.email)}</b><small>${esc(when(m.last_sign_in))} · can't see anything yet</small></div>
       <div class="uacts"><select data-pick="${esc(m.email)}" aria-label="Role for ${esc(m.email)}">${roleOpts("viewer")}</select><button class="pri" type="button" data-add="${esc(m.email)}">Add</button>${acts(m)}</div></div>`;
@@ -159,6 +165,7 @@ function drawAccount(){
     <form id="aForm" class="form" autocomplete="off">
       <div class="field"><label for="aName">Name</label><input type="text" id="aName" value="${esc(name)}"></div>
       <div class="field"><label for="aEmail">Email</label><input type="email" id="aEmail" value="${esc(email)}"${me?" disabled title=\"Change your own email from your own login\"":""}></div>
+      ${role==="owner"&&M&&M.membership?`<div class="field wide">${mship(msNow(M.membership,M.membership_expires),M.membership_expires)}<small><a href="memberships.html">Change on Owner memberships ›</a></small></div>`:""}
       <div class="field"><label for="aRole">Role</label><select id="aRole"${me?" disabled title=\"You can't change your own role\"":""}>${roleOpts(role,true)}</select></div>
       ${L?`<div class="field"><label for="aPw">New password</label><input type="text" id="aPw" minlength="6" placeholder="Leave empty to keep it" autocomplete="new-password"></div>`:""}
       <div class="field wide"><div class="btns"><button class="pri" type="submit" id="aSave">Save changes</button></div><p class="err" id="aErr"></p></div>

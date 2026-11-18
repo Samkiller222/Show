@@ -113,7 +113,7 @@ body.ro-edit .tabs{grid-template-columns:repeat(3,1fr)}
 body.ro-edit select[data-breed]{pointer-events:none;appearance:none;-webkit-appearance:none;border-color:transparent;background:transparent}
 body.ro-award [data-k],body.ro-award [data-g]{pointer-events:none;opacity:.75}
 /* owners: their own dogs and entries only, no show setup, awards or results */
-body.ro-owner #editShowBtn,body.ro-owner #drawerEdit,body.ro-owner #newBtn,body.ro-owner #breedForm,body.ro-owner #saveBar,body.ro-owner #catLink,
+body.ro-owner #editShowBtn,body.ro-owner #addBtn,body.ro-owner #drawerEdit,body.ro-owner #newBtn,body.ro-owner #breedForm,body.ro-owner #saveBar,body.ro-owner #catLink,
 body.ro-owner .tabs a[data-tab="awards"],body.ro-owner .tabs a[data-tab="results"],body.ro-owner a[href^="awards.html"],
 body.ro-owner .drawer a[href^="schedule.html"],body.ro-owner .drawer a[href^="catalogue.html"],body.ro-owner a[href^="payments.html"],body.ro-owner .drawer a[href="breeds.html"],
 body.ro-owner .drawer a[href="index.html"],body.ro-owner .erow .acts .given,body.ro-owner .field:has(#fRing),body.ro-owner .needs-edit,body.ro-owner .organiser-only{display:none!important}
@@ -127,6 +127,8 @@ body.ro-owner select[data-breed]{pointer-events:none;appearance:none;-webkit-app
 .drawer .seg.four button+button{border-left:1px solid var(--line)}
 .drawer .seg.four button:nth-child(n+4){border-top:1px solid var(--line)}
 .drawer .seg.four button{font-size:13px;padding:10px 2px}
+.drawer .mship{margin-top:8px;font-size:13px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.mship-note .pill-s{vertical-align:middle;margin:0 2px}
 .viewonly{margin:8px 0 0;padding:8px 12px;border-radius:8px;background:var(--accent-soft);font-size:14px;font-weight:600}
 @media (prefers-reduced-motion:reduce){.toast{transform:translate(-50%,0)}*,*::before,*::after{animation:none!important;transition:none!important}}
 `;
@@ -161,7 +163,7 @@ body.ro-owner select[data-breed]{pointer-events:none;appearance:none;-webkit-app
       <div class="sec"><h3>Shows</h3><input type="text" id="drawerQ" placeholder="Find a show" autocomplete="off"><div class="shows" id="drawerShows"><span class="note">Loading…</span></div>
         <a class="item${opt.page==="shows"?" here":""}" href="index.html">All shows and new show <small>›</small></a></div>
       ${show?`<div class="sec"><h3>This show</h3><button class="item" type="button" id="drawerEdit">Edit show details <small>›</small></button><a class="item${opt.page==="schedule"?" here":""}" href="schedule.html${q}">Judging days and times <small>›</small></a><a class="item${opt.page==="catalogue"?" here":""}" href="catalogue.html${q}">Show catalogue to print <small>›</small></a><a class="item${opt.page==="payments"?" here":""}" href="payments.html${q}">Entry fees and payments <small>›</small></a></div>`:""}
-      <div class="sec"><h3>Manage</h3><a class="item${opt.page==="mydogs"?" here":""}" href="mydogs.html" id="drawerMyDogs" hidden><span>My dogs</span> <small>›</small></a><a class="item${opt.page==="myshows"?" here":""}" href="myshows.html" id="drawerMyShows" hidden>Shows and payments <small>›</small></a><a class="item${opt.page==="dogs"?" here":""}" href="dogs.html">Club dogs <small>›</small></a><a class="item${opt.page==="breeds"?" here":""}" href="breeds.html">Breeds and groups <small>›</small></a><a class="item${opt.page==="users"?" here":""}" href="users.html" id="drawerUsers" hidden>Users and roles <small>›</small></a></div>
+      <div class="sec"><h3>Manage</h3><a class="item${opt.page==="mydogs"?" here":""}" href="mydogs.html" id="drawerMyDogs" hidden><span>My dogs</span> <small>›</small></a><a class="item${opt.page==="myshows"?" here":""}" href="myshows.html" id="drawerMyShows" hidden>Shows and payments <small>›</small></a><a class="item${opt.page==="dogs"?" here":""}" href="dogs.html">Club dogs <small>›</small></a><a class="item${opt.page==="breeds"?" here":""}" href="breeds.html">Breeds and groups <small>›</small></a><a class="item${opt.page==="memberships"?" here":""}" href="memberships.html" id="drawerMembers" hidden>Owner memberships <small>›</small></a><a class="item${opt.page==="users"?" here":""}" href="users.html" id="drawerUsers" hidden>Users and roles <small>›</small></a><div id="drawerMember" class="mship" hidden></div></div>
       <div class="sec" id="drawerPreview" hidden><h3>Preview the site as</h3><div class="seg four" role="group" aria-label="Preview as">${["admin","organiser","steward","viewer","owner"].map(r=>`<button type="button" data-preview="${r}" aria-pressed="false">${r==="admin"?"Me":r[0].toUpperCase()+r.slice(1)}</button>`).join("")}</div><p class="note" style="margin:0;font-size:12px">See the screens as that role would. Only this tab changes.</p></div>
       <div class="sec"><h3>Awards view on this phone</h3><div class="seg" role="group" aria-label="Awards view"><button type="button" data-view="round" aria-pressed="${mode==="round"}">One round at a time</button><button type="button" data-view="list" aria-pressed="${mode==="list"}">Full list</button></div></div>
       <div class="sec keys"><h3>Keyboard shortcuts</h3><p><kbd>/</kbd>Search</p>${show?`<p><kbd>N</kbd>Add entry</p><p><kbd>←</kbd><kbd>→</kbd>Previous or next round</p>`:""}<p><kbd>Esc</kbd>Close menu</p></div>
@@ -212,12 +214,29 @@ body.ro-owner select[data-breed]{pointer-events:none;appearance:none;-webkit-app
       document.body.dataset.role=r;
       document.body.classList.toggle("ro-edit",!edit&&!owner);document.body.classList.toggle("ro-award",!award);document.body.classList.toggle("ro-owner",owner);
       const u=dr.querySelector("#drawerUsers");if(u)u.hidden=r!=="admin";
+      const mm=dr.querySelector("#drawerMembers");if(mm)mm.hidden=!edit;
       const md=dr.querySelector("#drawerMyDogs");if(md){md.hidden=!(owner||r==="admin");md.querySelector("span").textContent=owner?"My dogs":"Owners' page"}
       const ms=dr.querySelector("#drawerMyShows");if(ms)ms.hidden=!owner;
       const rb=dr.querySelector("#drawerRole");if(rb){rb.hidden=false;rb.textContent=window.mncfRoleName?mncfRoleName(r):r}
       if(known&&!edit&&!document.querySelector(".viewonly")&&header){const p=document.createElement("p");p.className="viewonly";
         p.textContent=owner?"Owner login: My dogs lists your registered dogs. Shows and payments shows, show by show, which of your dogs are entered and paid for. Organisers give out ring numbers.":award?"Steward login: you can record awards but not change entries or shows.":r?"View only: your login can look but not change anything.":"Your login isn't on the team list yet. Ask an admin to add you.";
         header.appendChild(p)}
+      if(known&&owner)showMembership();
+    }
+    // ---- owners: their club membership status, in the menu and under the page header ----
+    let memberShown=false;
+    function showMembership(){
+      if(memberShown||!window.mncfApi)return;memberShown=true;
+      mncfApi("myMembership").then(j=>{
+        const m=j&&j.membership;if(!m||!m.status)return;
+        const names={active:"Active",pending:"Pending",expired:"Expired"},cls={active:"ok",pending:"due",expired:"bad"};
+        const d=m.expires?new Date(m.expires+"T12:00:00").toLocaleDateString([],{day:"numeric",month:"short",year:"numeric"}):"";
+        const when=d?(m.status==="active"?" until "+d:m.status==="expired"?" since "+d:""):"";
+        const say=m.status==="active"?"":m.status==="pending"?" Your membership is waiting to be confirmed by the club.":" Please contact the club to renew.";
+        const html=`Club membership: <span class="pill-s ${cls[m.status]||""}">${esc(names[m.status]||m.status)}</span>${esc(when)}`;
+        const box=dr.querySelector("#drawerMember");if(box){box.innerHTML=html;box.hidden=false}
+        if(header&&!document.querySelector(".mship-note")){const p=document.createElement("p");p.className="viewonly mship-note";p.innerHTML=html+(say?`<br><small style="font-weight:500">${esc(say)}</small>`:"");header.appendChild(p)}
+      }).catch(()=>{}); // not in the database yet: show nothing
     }
     if(window.mncfRole)mncfRole().then(r=>applyRole(r,true));
     // ---- an admin signed in as someone else (full control, from Users and roles) ----
