@@ -186,6 +186,7 @@
   const canEdit=r=>r==="admin"||r==="organiser", canAward=r=>canEdit(r)||r==="steward";
   function roleBlock(action,data,r){
     if(r==="owner"&&OWNER_ACTIONS.includes(action)) return "";
+    if(["memberships","setMembership"].includes(action)&&!canEdit(r)) return "Only admins and organisers can see and change owner memberships.";
     if(EDIT_ACTIONS.includes(action)&&!canEdit(r)) return `Your login is ${r?"a "+ROLE_NAMES[r]:"not on the team"}, so it can't change shows, entries, dogs or breeds. Ask an admin to change your role.`;
     if(action==="syncState"&&(data.changes||[]).length&&!canAward(r)) return `Your login is ${r?"a "+ROLE_NAMES[r]:"not on the team"}, so it can't record awards. Ask an admin to change your role.`;
     if(["team","setMember","removeMember","account","createAccount","updateAccount","deleteAccount"].includes(action)&&r!=="admin") return "Only admins can see and change users.";
@@ -310,6 +311,10 @@
     async team(){const {data,error}=await sb.rpc("team_list");if(error)fail(error);return {ok:true,members:data||[]}},
     async setMember(d){const {error}=await sb.rpc("set_team_member",{p_email:d.email,p_role:d.role,p_name:d.name==null?null:d.name});if(error)fail(error);return actions.team()},
     async removeMember(d){const {error}=await sb.rpc("remove_team_member",{p_email:d.email});if(error)fail(error);return actions.team()},
+    // owner membership status (memberships.html: admins and organisers; my_membership: the owner themselves)
+    async memberships(){const {data,error}=await sb.rpc("owner_memberships");if(error)fail(error);return {ok:true,owners:data||[]}},
+    async setMembership(d){const {error}=await sb.rpc("set_membership",{p_email:d.email,p_status:d.status,p_expires:d.expires||null,p_note:d.note==null?null:d.note});if(error)fail(error);return actions.memberships()},
+    async myMembership(){const {data,error}=await sb.rpc("my_membership");if(error)fail(error);return {ok:true,membership:data||null}},
     // full account control (edge function "admin"): every detail, make a login, change name/email/password/role, block, delete
     async account(d){return adminFn({action:"details",email:d.email})},
     async createAccount(d){return adminFn({action:"create",email:d.email,name:d.name||"",role:d.role,password:d.password||""})},
