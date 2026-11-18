@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="mncf-version" content="2026-11-08b">
+<meta name="mncf-version" content="2026-11-17a">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>MNCF My Dogs</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<link rel="stylesheet" href="css/style.css?v=2026-11-08b">
+<link rel="stylesheet" href="css/style.css?v=2026-11-17a">
 <style>
 .dhead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
 .dgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
@@ -37,13 +37,13 @@
   </section>
   <div id="main" style="display:flex;flex-direction:column;gap:12px" hidden>
     <a class="golink" href="myshows.html"><span><b>Shows and payments</b><small>Enter your dogs in a show, and see which entries are paid for, one show at a time.</small></span><span class="go" aria-hidden="true">›</span></a>
-    <section class="panel"><div class="dhead"><h2>My registered dogs <span class="note" id="dogCount"></span></h2><a class="btn pri" href="dogs.html?add=1">+ Add a dog</a></div><div class="dgrid" id="dogs"><p class="loading">Loading…</p></div></section>
+    <section class="panel"><div class="dhead"><h2>My registered dogs <span class="note" id="dogCount"></span></h2></div><p class="note" style="margin:0 0 10px">Only organisers can add dogs to the club register. If a dog of yours is missing, ask an organiser to add it and link it to your email.</p><div class="dgrid" id="dogs"><p class="loading">Loading…</p></div></section>
   </div>
 </div>
 <div class="toast" id="toast"></div>
 <script src="vendor/supabase.min.js"></script>
-<script src="js/api.js?v=2026-11-08b"></script>
-<script src="js/shell.js?v=2026-11-08b"></script>
+<script src="js/api.js?v=2026-11-17a"></script>
+<script src="js/shell.js?v=2026-11-17a"></script>
 <script>
 mncfShell({page:"mydogs",title:"My dogs",kicker:"Owners"});
 const esc=mncfEsc,$=id=>document.getElementById(id);
@@ -52,7 +52,7 @@ const sx=s=>s==="Dog"?"♂ ":s==="Bitch"?"♀ ":"";
 function draw(j){
   $("dogCount").textContent=`· ${j.dogs.length}`;
   $("dogs").innerHTML=j.dogs.map(d=>`<a class="dcard" href="dogs.html?dog=${encodeURIComponent(d.id)}"><div><b>${sx(d.Sex)}${esc(d["Dog name"])}</b><small>${esc([d.Breed,d["Date of birth"]].filter(Boolean).join(" · "))}</small></div><span class="go" aria-hidden="true">›</span></a>`).join("")
-    ||'<p class="note">No dogs are linked to your login yet. Add one, or ask an organiser to link your dogs to your email.</p>';
+    ||'<p class="note">No dogs are linked to your login yet. Ask an organiser to add your dogs to the club register and link them to your email.</p>';
 }
 (async()=>{
   const role=await mncfRole(),real=await mncfRealRole();

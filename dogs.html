@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="mncf-version" content="2026-11-08b">
+<meta name="mncf-version" content="2026-11-17a">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>MNCF Club Dogs</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<link rel="stylesheet" href="css/style.css?v=2026-11-08b">
+<link rel="stylesheet" href="css/style.css?v=2026-11-17a">
 </head>
 <body>
 <style>
@@ -85,8 +85,8 @@ a.btn,button{min-height:46px}
 </div>
 <div class="toast" id="toast"></div>
 <script src="vendor/supabase.min.js"></script>
-<script src="js/api.js?v=2026-11-08b"></script>
-<script src="js/shell.js?v=2026-11-08b"></script>
+<script src="js/api.js?v=2026-11-17a"></script>
+<script src="js/shell.js?v=2026-11-17a"></script>
 <script>
 const esc=mncfEsc,$=id=>document.getElementById(id);
 const DOG_ID=mncfQuery("dog");
@@ -144,6 +144,7 @@ $("dogForm").addEventListener("submit",async ev=>{
   const dog={};Object.entries(F).forEach(([id,k])=>dog[k]=$(id).value);
   if(!$("ownersBox").hidden&&!document.body.classList.contains("ro-owner"))dog.Owners=$("dOwners").value.split(/[\s,;]+/).filter(Boolean);
   const wasEdit=EDIT;
+  if(!wasEdit&&document.body.classList.contains("ro-owner")){err.textContent="Owners can't add new dogs. Ask an organiser to add your dog to the club register and link it to your login.";b.disabled=false;return}
   try{
     if(wasEdit&&wasEdit["Dog name"]!==dog["Dog name"].trim()&&!confirm(`Rename ${wasEdit["Dog name"]} to ${dog["Dog name"].trim()}? Its show entries will be renamed too.`)){b.disabled=false;return}
     const j=await mncfApi("saveDog",{id:wasEdit&&wasEdit.id,dog});
@@ -227,7 +228,7 @@ function drawDetail(d){
   const c=mncfCache.get("club-dogs");if(c){DOGS=c.dogs||[];BREEDS=c.breeds||[];fillBreeds();if(!DOG_ID)drawList()}
   try{const j=await mncfApi("dogs");DOGS=j.dogs;BREEDS=j.breeds;mncfCache.set("club-dogs",{dogs:DOGS,breeds:BREEDS});fillBreeds()}
   catch(e){if(!c){(DOG_ID?$("detail"):$("list")).innerHTML=`<p class="err">${esc(e.message)}</p>`;return}mncfToast(e.message)}
-  if(!DOG_ID){drawList();if(mncfQuery("add"))openForm(null);return}
+  if(!DOG_ID){drawList();if(mncfQuery("add")&&!document.body.classList.contains("ro-owner"))openForm(null);return}
   const d=DOGS.find(x=>x.id===DOG_ID);
   if(!d){$("detail").innerHTML='<a class="back" href="dogs.html">‹ All club dogs</a><div class="empty">That dog isn\'t in the register. It may have been renamed or removed.</div>';return}
   drawDetail(d);

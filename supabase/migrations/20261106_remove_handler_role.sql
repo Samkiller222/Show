@@ -35,8 +35,9 @@ alter policy "Team reads entries" on public.entries
 alter policy "Team reads payments" on public.payments
   using (private.sees_all() or (private.is_owner() and exists (
     select 1 from public.entries e where e.id = any(entry_ids) and private.my_dog(e.dog_name))));
+-- owners can't add dogs (17 Nov 2026, see 20261117_owners_no_new_dogs.sql)
 alter policy "Team adds dogs" on public.dogs
-  with check (private.can_edit() or (private.is_owner() and private.my_email() = any(owner_emails)));
+  with check (private.can_edit());
 alter policy "Team changes dogs" on public.dogs
   using (private.can_edit() or (private.is_owner() and private.my_email() = any(owner_emails)))
   with check (private.can_edit() or (private.is_owner() and private.my_email() = any(owner_emails)));
@@ -54,7 +55,7 @@ language plpgsql security definer set search_path = '' as $$
 begin
   if not private.is_owner() then return new; end if;
   if tg_op = 'INSERT' then
-    new.owner_emails := array[private.my_email()];
+    raise exception 'Owners can''t register new dogs. Ask an organiser to add it to the club register and link it to your login.';
   elsif new.owner_emails is distinct from old.owner_emails then
     raise exception 'Only organisers can change who owns a dog.';
   elsif lower(new.name) <> lower(old.name) then

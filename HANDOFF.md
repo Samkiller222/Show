@@ -214,6 +214,13 @@ Sam: *"add an admin view where an admin can see and change the roles of certain 
 - **Site:** `api.js` has `mncfRole()` (cached per page, last value in localStorage `mncf-role`), `mncfRoleName()`, actions `team`, `setMember`, `removeMember`, and refuses writes the role can't make with a plain message (no more sign-out on a permission error while signed in). `shell.js` sets `body[data-role]` and the classes `ro-edit` (steward, viewer, not on team) and `ro-award` (viewer), which hide Edit show, the Add entry tab, + New show, + Add dog, Edit details, entry buttons and drag, the breed form, the save bar on judging days, and lock award pickers; a note under the header says what the login can do. The drawer shows the role badge and, for admins, "Users and roles". If `my_role` is missing (migration not applied) the site behaves exactly as before.
 - Creating the login itself still happens in Supabase (Authentication → Users). Adding the email on `users.html` gives it a role.
 
+## Owners can't add dogs (17 Nov 2026)
+
+Sam: *"owners can't register new dogs, only register already assigned dogs to shows"*. Only organisers and admins add dogs to the club register (Club dogs, "Owner logins" links them to owners).
+- **Migration `20261117_owners_no_new_dogs.sql`** (safe before or after `20261106_remove_handler_role.sql`, which was changed to match): the "Team adds dogs" policy is `can_edit()` only; `upsert_dog_` lets a non-organiser only update one of their own dogs (never insert a dog or a breed) and says "Ask an organiser to add it" otherwise. Owners can still fill in their own dogs' details.
+- **Site**: on Add entry owners pick from a list of their own dogs (no free name box, no breed picker); My dogs has no "+ Add a dog" and says to ask an organiser; Club dogs hides "+ Add dog" and ignores `?add=1` for owners.
+- On 17 Nov the live database still had the handler-era functions (`20261106_remove_handler_role.sql` not yet run).
+
 ## Handler role removed (6 Nov 2026)
 
 Sam: *"remove the handler role entierly"*. The roles are now admin, organiser, steward, viewer and owner. Everything below about handlers is history: owners keep all of it (their own dogs through `dogs.owner_emails`, entering them into Open shows, My dogs, paying their entry fees by card).
