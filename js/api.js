@@ -196,7 +196,8 @@
 
   // ---- shapes the pages use ----
   const showOut=s=>({id:s.id,Show:s.name,Date:s.show_date,Venue:s.venue,Judge:s.judge,Status:s.status,Notes:s.notes,Schedule:Array.isArray(s.schedule)?s.schedule:[],Fee:s.entry_fee_cents==null?null:s.entry_fee_cents});
-  const dogOut=d=>({"Dog name":d.name,Breed:d.breed,Sex:d.sex,"Date of birth":d.dob,Owner:d.owner,Phone:d.phone,Address:d.address,Breeder:d.breeder,Sire:d.sire,Dam:d.dam,Owners:Array.isArray(d.owner_emails)?d.owner_emails:null});
+  const dogOut=d=>({"Dog name":d.name,Breed:d.breed,Sex:d.sex,"Date of birth":d.dob,Owner:d.owner,Phone:d.phone,Address:d.address,Breeder:d.breeder,Sire:d.sire,Dam:d.dam,Owners:Array.isArray(d.owner_emails)?d.owner_emails:null,Title:d.title==null?null:d.title,Microchip:d.microchip==null?null:d.microchip,OwnerId:d.owner_id||null});
+  const ownerOut=o=>({id:o.id,Surname:o.surname,"First name":o.first_name,Address:[o.address1,o.address2,o.address3].map(x=>String(x||"").trim()).filter(Boolean).join(" "),Phone:o.phone,Email:o.email});
   const breedOut=b=>({Breed:b.name,Group:b.grp});
   const entryOut=e=>({_row:e.id,Show:e.show_name,"Ring No":e.ring_no,"Dog name":e.dog_name,Class:e.class,Absent:e.absent,Breed:e.breed,Group:e.grp,Sex:e.sex,Owner:e.owner,PaidAt:e.paid_at||null,PaidVia:e.paid_via||"",PaymentId:e.payment_id||null});
   const fail=e=>{throw new Error(e.message||String(e))};
@@ -249,13 +250,21 @@
       return {ok:true,show:showOut(data[0])};
     },
     // Club dog register (dogs.html): every dog the club knows, with its id, so one dog can be opened and edited.
-    async dogs(){return {ok:true,dogs:(await all("dogs","name")).map(d=>Object.assign(dogOut(d),{id:d.id,Added:d.created_at})),breeds:await breeds()}},
+    // Owners (public.owners, 20261119 migration) come along when the table exists; OwnerInfo is that dog's owner record.
+    async dogs(){
+      const [g,b,o]=await Promise.all([all("dogs","name"),breeds(),all("owners","surname").catch(()=>null)]);
+      const byId={};(o||[]).forEach(x=>byId[x.id]=x);
+      return {ok:true,dogs:g.map(d=>Object.assign(dogOut(d),{id:d.id,Added:d.created_at,OwnerInfo:d.owner_id&&byId[d.owner_id]?ownerOut(byId[d.owner_id]):null})),breeds:b,owners:o?o.map(ownerOut):null};
+    },
     // Add a dog (no id) or change one (id). Renaming a dog also renames its show entries, which are linked by name.
     async saveDog(d){
       const g=d.dog||{},name=String(g["Dog name"]||"").trim(),breed=String(g.Breed||"").trim();
       if(!name)fail({message:"Type the dog's name."});if(!breed)fail({message:"Pick the dog's breed."});
       const row={name,breed,sex:["Dog","Bitch"].includes(g.Sex)?g.Sex:""};
       [["dob","Date of birth"],["owner","Owner"],["phone","Phone"],["address","Address"],["breeder","Breeder"],["sire","Sire"],["dam","Dam"]].forEach(([c,k])=>row[c]=String(g[k]||"").trim());
+      // title and microchip only once the database has them (20261119 migration)
+      if(g.Title!=null)row.title=String(g.Title).trim();
+      if(g.Microchip!=null)row.microchip=String(g.Microchip).replace(/\s+/g,"");
       // owner logins (organisers set these; an owner's own new dog is linked to them by the database)
       if(Array.isArray(g.Owners)){
         const bad=g.Owners.find(e=>!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e));if(bad)fail({message:bad+" isn't a valid email."});

@@ -1,6 +1,6 @@
 # Handoff: MNCF dog show awards organiser
 
-Notes for picking this project up in a new chat. Last updated 17 November 2026 (owner membership status; before that: full account control for admins; before that: handler role removed, owners stay; entry fee payments by card through Stripe, paid out to Revolut).
+Notes for picking this project up in a new chat. Last updated 19 November 2026 (owners register and the February 2027 import; before that: owner membership status; before that: full account control for admins; before that: handler role removed, owners stay; entry fee payments by card through Stripe, paid out to Revolut).
 
 ## What it is
 
@@ -307,3 +307,10 @@ None yet.
 Sam: *"Add a membership status for all owners"* and *"an interface for admins and organisers to update owner membership status"*.
 - **Migration `20261117_membership_status.sql`**: `team_members.membership` (`active`/`pending`/`expired`; existing rows became active, new rows default pending), `membership_expires date`, `membership_note`, `membership_updated_at/by`. `private.membership_now()` reads an active membership past its end date (Malta time) as expired. RPCs: `my_membership()` (the signed-in owner's status, no note), `owner_memberships()` and `set_membership(email,status,expires,note)` (admins and organisers via `can_edit()`, owner logins only). `team_list()` gains `membership`, `membership_expires`. No edge function redeploy.
 - **Site**: `memberships.html`; drawer link "Owner memberships" for admins and organisers; owners see "Club membership: Active until …" under the page header and in the drawer (`shell.js`); Users and roles shows the status on owner rows and the account page. Information only: it does not block entries or payments. If the migration isn't run, owners see nothing and the page says it isn't in the database yet.
+
+## Owners register and February 2027 import (19 Nov 2026)
+
+Sam: *"this is to populate the database for the dogs and owners, ignore the columns that have yellow headers and modify the DB however you need"* (FEBRUARY_2027_ENTRIES_MCS.xlsx, LIST sheet).
+- **Migration `20261119_owners_table.sql`**: new `public.owners` (surname, first_name, address1-3, phone, email; unique by lower(surname)+lower(first_name)); team reads (`sees_all()`), an owner login reads its own row by email, organisers and admins write (`can_edit()`). `dogs.title`, `dogs.microchip`, `dogs.owner_id` (FK, set null on delete). Trigger `dog_owner_link_rules` stops signed-in non-organisers changing `owner_id`. `dogs.owner/phone/address` are still filled in, so the catalogue and entry screens are unchanged.
+- **Import**: the generated SQL is not in the repo (it holds members' contact details); it lives in the project files (`feb-2027-import/`). Children's Class rows (`*` in MEMBER) are skipped. Dogs already in Club dogs (matched by name with or without the title in front) only get empty fields filled. New dog names are stored without the title; the title goes in `dogs.title`. The owner's email is added to `owner_emails`, so an owner login with that email sees the dogs.
+- **Site**: Club dogs shows title in front of the name (unless the name already starts with it), Title and Microchip fields on the form and dog page, the owner's email and "Also owned" dogs of the same owner. The catalogue prints the title. `api.js` `dogs` also returns `owners` and each dog's `OwnerInfo` when the table exists.
